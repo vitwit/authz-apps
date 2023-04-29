@@ -3,6 +3,7 @@ package sqldata
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -17,10 +18,9 @@ func ChainDataCreate() (db *sql.DB) {
 		panic(err)
 	}
 	return db
-
 }
-func ChainDataInsert(chain_name string, validator_address string) {
 
+func ChainDataInsert(chain_name string, validator_address string) {
 	db := ChainDataCreate()
 
 	stmt, err := db.Prepare("INSERT INTO chaindata(chain_name, validator_address) values(?,?)")
@@ -34,6 +34,34 @@ func ChainDataInsert(chain_name string, validator_address string) {
 
 	fmt.Println(Id)
 	db.Close()
+}
+
+type alldata struct {
+	chain_name        string
+	validator_address string
+}
+
+func ChainDataList() ([]alldata, error) {
+	log.Printf("Getting list")
+	db := ChainDataCreate()
+
+	rows, err := db.Query("SELECT chain_name, validator_address FROM chaindata")
+	checkErr(err)
+	defer rows.Close()
+
+	var data []alldata
+	for rows.Next() {
+		var chain alldata
+		if err := rows.Scan(&chain.chain_name, &chain.validator_address); err != nil {
+			return data, err
+		}
+		data = append(data, chain)
+	}
+	if err = rows.Err(); err != nil {
+		return data, err
+	}
+
+	return data, nil
 }
 
 func checkErr(err error) {
