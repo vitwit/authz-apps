@@ -24,14 +24,11 @@ func printCommandEvents(analyticsChannel <-chan *slacker.CommandEvent) {
 	}
 }
 
-// Send allows bot to send a telegram alert to the configured chatID
-func RegisterSlack() {
+// Send allows bot to send a slack alert to the configured channelID
+func RegisterSlack(config *config.Config) {
 	// Create a new client to slack by giving token
 	// Set debug to true while developing
-	config, err1 := config.ReadConfigFromFile()
-	if err1 != nil {
-		log.Fatal(err1)
-	}
+
 	bot := slacker.NewClient(config.Slack.BotToken, config.Slack.AppToken)
 
 	go printCommandEvents(bot.CommandEvents())
@@ -87,4 +84,39 @@ func RegisterSlack() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+// Send allows bot to send a slack alert to the configured channelID
+func (s slackAlert) Send(msgText, botToken string, channelID string) error {
+	// Create a new client to slack by giving token
+	// Set debug to true while developing
+	client := slack.New(botToken, slack.OptionDebug(true))
+
+	// Create the Slack attachment that we will send to the channel
+	attachment := slack.Attachment{
+		Pretext: "Lens Bot Message",
+		Text:    msgText,
+		// Fields are Optional extra data!
+		Fields: []slack.AttachmentField{
+			{
+				Title: "Date",
+				Value: time.Now().String(),
+			},
+		},
+	}
+
+	// PostMessage will send the message away.
+	// First parameter is just the channelID, makes no sense to accept it
+	_, timestamp, err := client.PostMessage(
+		channelID,
+		// uncomment the item below to add a extra Header to the message, try it out :)
+		// slack.MsgOptionText("New message from bot", false),
+		// slack.MsgOptionText(msgText, false),
+		slack.MsgOptionAttachments(attachment),
+	)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Message sent at %s", timestamp)
+	return nil
 }

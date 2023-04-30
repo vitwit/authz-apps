@@ -10,7 +10,7 @@ import (
 
 var Id int
 
-func ChainDataCreate() (db *sql.DB) {
+func NewChainData() (db *sql.DB) {
 	db, err := sql.Open("sqlite3", "./foo.db")
 	checkErr(err)
 	_, err = db.Exec("CREATE TABLE IF NOT EXISTS chaindata (chain_name VARCHAR, validator_address VARCHAR)")
@@ -21,7 +21,7 @@ func ChainDataCreate() (db *sql.DB) {
 }
 
 func ChainDataInsert(chain_name string, validator_address string) {
-	db := ChainDataCreate()
+	db := NewChainData()
 
 	stmt, err := db.Prepare("INSERT INTO chaindata(chain_name, validator_address) values(?,?)")
 	checkErr(err)
@@ -43,7 +43,7 @@ type alldata struct {
 
 func ChainDataList() ([]alldata, error) {
 	log.Printf("Getting list")
-	db := ChainDataCreate()
+	db := NewChainData()
 
 	rows, err := db.Query("SELECT chain_name, validator_address FROM chaindata")
 	checkErr(err)
@@ -62,6 +62,27 @@ func ChainDataList() ([]alldata, error) {
 	}
 
 	return data, nil
+}
+
+func GetAllValAddrs() (valAddrs []string, err error) {
+	log.Printf("Getting Validator addresses")
+	db := NewChainData()
+
+	rows, err := db.Query("SELECT validator_address FROM chaindata")
+	checkErr(err)
+	defer rows.Close()
+
+	for rows.Next() {
+		var chain alldata
+		if err := rows.Scan(&chain.validator_address); err != nil {
+			return []string{}, err
+		}
+		valAddrs = append(valAddrs, chain.validator_address)
+	}
+	if err = rows.Err(); err != nil {
+		return []string{}, err
+	}
+	return valAddrs, nil
 }
 
 func checkErr(err error) {

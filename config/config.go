@@ -12,16 +12,8 @@ type (
 	SlackBotConfig struct {
 		BotToken  string `mapstructure:"SLACK_BOT_TOKEN"`
 		AppToken  string `mapstructure:"SLACK_APP_TOKEN"`
-		ChannelId string `mapstructure:"CHANNEL_ID"`
+		ChannelID string `mapstructure:"CHANNEL_ID"`
 	}
-
-	// InfluxDB details
-	// InfluxDB struct {
-	// 	Port     string `mapstructure:"port"`
-	// 	Database string `mapstructure:"database"`
-	// 	Username string `mapstructure:"username"`
-	// 	Password string `mapstructure:"password"`
-	// }
 
 	// // VotingPeriodAlert defines about voting period alerts
 	// VotingPeriodAlert struct {
@@ -31,14 +23,9 @@ type (
 
 	// Config defines all the app configurations
 	Config struct {
-		ValOperatorAddress string         `mapstructure:"val_operator_addr"`
-		LCDEndpoint        string         `mapstructure:"lcd_endpoint"`
-		EnableSlackAlerts  string         `mapstructure:"enable_slack_alerts"`
-		Slack              SlackBotConfig `mapstructure:"slack"`
-		ValidatorName      string         `mapstructure:"validator_name"`
-		AccountAddress     string         `mapstructure:"account_addr"`
-		VotingPeriodAlert  string         `mapstructure:"voting_period_alert"`
-		//InfluxDB           InfluxDB       `mapstructure:"influxdb"`
+		EnableSlackAlerts string         `mapstructure:"enable_slack_alerts"`
+		Slack             SlackBotConfig `mapstructure:"slack"`
+		VotingPeriodAlert string         `mapstructure:"voting_period_alert"`
 	}
 )
 
