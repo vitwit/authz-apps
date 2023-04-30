@@ -35,7 +35,10 @@ func InitTargets() *Targets {
 			ScraperRate: "10s",
 		},
 		{
-			Name:        "Slack cmds",
+			Name: "Slack cmds",
+			HTTPOptions: HTTPOptions{
+				Method: http.MethodGet,
+			},
 			Func:        alerting.RegisterSlack,
 			ScraperRate: "10s",
 		},

@@ -10,9 +10,9 @@ import (
 type (
 	// Slack bot config details
 	SlackBotConfig struct {
-		BotToken  string `mapstructure:"SLACK_BOT_TOKEN"`
-		AppToken  string `mapstructure:"SLACK_APP_TOKEN"`
-		ChannelID string `mapstructure:"CHANNEL_ID"`
+		BotToken  string `mapstructure:"slack_bot_token"`
+		AppToken  string `mapstructure:"slack_app_token"`
+		ChannelID string `mapstructure:"slack_channel_id"`
 	}
 
 	// // VotingPeriodAlert defines about voting period alerts

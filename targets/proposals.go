@@ -82,8 +82,10 @@ func AlertOnProposals(endpoint string, cfg *config.Config) error {
 				}
 				for _, valAddr := range valAddrs {
 					validatorVoted := GetValidatorVoted(endpoint, proposal.ProposalID, valAddr)
-					SendVotingPeriodProposalAlerts(endpoint, valAddr, validatorVoted, proposal.ProposalID, proposal.VotingEndTime, cfg)
-
+					err := SendVotingPeriodProposalAlerts(endpoint, valAddr, validatorVoted, proposal.ProposalID, proposal.VotingEndTime, cfg)
+					if err != nil {
+						return fmt.Errorf("error on sending voting period proposals alert: %v", err)
+					}
 				}
 			}
 		}
@@ -119,7 +121,7 @@ func GetValidatorVoted(endpoint, proposalID, valAddr string) string {
 }
 
 // SendVotingPeriodProposalAlerts which send alerts of voting period proposals
-func SendVotingPeriodProposalAlerts(endpoint, accountAddress, validatorVoted, proposalID, votingEndTime string, cfg *config.Config) {
+func SendVotingPeriodProposalAlerts(endpoint, accountAddress, validatorVoted, proposalID, votingEndTime string, cfg *config.Config) error {
 	if (validatorVoted != "" && validatorVoted == "VOTE_OPTION_NO") || validatorVoted == "" {
 		now := time.Now().UTC()
 		votingEndTime, _ := time.Parse(time.RFC3339, votingEndTime)
@@ -127,8 +129,13 @@ func SendVotingPeriodProposalAlerts(endpoint, accountAddress, validatorVoted, pr
 		log.Println("timeDiff...", timeDiff.Hours())
 
 		if timeDiff.Hours() <= 24 {
-			_ = alerting.NewSlackAlerter().Send(fmt.Sprintf("you have not voted on proposal = %s", proposalID), cfg.Slack.BotToken, cfg.Slack.ChannelID)
-			log.Println("Sent alert of voting period proposals")
+			err := alerting.NewSlackAlerter().Send(fmt.Sprintf("@%s you have not voted on proposal = %s", accountAddress, proposalID), cfg.Slack.BotToken, cfg.Slack.ChannelID)
+			if err != nil {
+				return err
+			} else {
+				log.Println("Sent alert of voting period proposals")
+			}
 		}
 	}
+	return nil
 }
