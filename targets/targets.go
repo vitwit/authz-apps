@@ -32,7 +32,7 @@ func InitTargets() *Targets {
 				Method: http.MethodGet,
 			},
 			Func:        GetProposals,
-			ScraperRate: "10s",
+			ScraperRate: "2h",
 		},
 		{
 			Name: "Slack cmds",
@@ -40,7 +40,7 @@ func InitTargets() *Targets {
 				Method: http.MethodGet,
 			},
 			Func:        alerting.RegisterSlack,
-			ScraperRate: "10s",
+			ScraperRate: "3s",
 		},
 	}}
 }
