@@ -10,6 +10,32 @@ import (
 
 var Id int
 
+func NewVotesData() (db *sql.DB) {
+	db, err := sql.Open("sqlite3", "./foo.db")
+	checkErr(err)
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS votesdata (proposal_ID VARCHAR, validator_address VARCHAR, vote_option VARCHAR)")
+	if err != nil {
+		panic(err)
+	}
+	return db
+}
+
+func VotesDataInsert(proposal_ID, validator_address, vote_option string) {
+	db := NewVotesData()
+
+	stmt, err := db.Prepare("INSERT INTO votesdata(proposal_ID, validator_address, vote_option) values(?,?,?)")
+	checkErr(err)
+
+	res, err := stmt.Exec(proposal_ID, validator_address, vote_option)
+	checkErr(err)
+
+	Id, err := res.LastInsertId()
+	checkErr(err)
+
+	fmt.Println("Vote id ", Id)
+	db.Close()
+}
+
 func NewChainData() (db *sql.DB) {
 	db, err := sql.Open("sqlite3", "./foo.db")
 	checkErr(err)

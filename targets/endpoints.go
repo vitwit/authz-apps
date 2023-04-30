@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
 	"go.uber.org/zap"
@@ -20,6 +21,8 @@ func GetValidProposalsLCDEndpoints() (validProposalsEndpoints []string, err erro
 		return []string{}, err
 	}
 
+	// chains := []string{"terra2"}
+	// fmt.Printf("chains: %v\n", chains)
 	for _, chainName := range chains {
 		fmt.Printf("chainName: %v\n", chainName)
 		chainInfo, _ := cr.GetChain(context.Background(), chainName)
@@ -28,11 +31,11 @@ func GetValidProposalsLCDEndpoints() (validProposalsEndpoints []string, err erro
 			if err == nil {
 				validLCDEndpoint, _ := GetValidLCDEndpoint(AllLCDEndpoints)
 				if err == nil {
+					validLCDEndpoint = strings.TrimSuffix(validLCDEndpoint, "/")
 					validProposalsEndpoints = append(validProposalsEndpoints, validLCDEndpoint)
 				}
 			}
 		}
-		// fmt.Printf("validProposalsEndpoints: %v\n", validProposalsEndpoints)
 
 	}
 	return validProposalsEndpoints, nil

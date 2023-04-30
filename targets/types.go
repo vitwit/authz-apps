@@ -73,13 +73,29 @@ type (
 		} `json:"pagination"`
 	}
 
-	// ProposalVoters struct holds the parameters of proposal voters
-	ProposalVoters struct {
-		Height string `json:"height"`
-		Result []struct {
+	// Votes struct holds the parameters of proposal votes
+	Votes struct {
+		Votes []struct {
 			ProposalID string `json:"proposal_id"`
 			Voter      string `json:"voter"`
 			Option     string `json:"option"`
-		} `json:"result"`
+			Options    []struct {
+				Option string `json:"option"`
+				Weight string `json:"weight"`
+			}
+		}
+	}
+
+	// Vote struct holds the parameters of vote of voter.
+	Vote struct {
+		Vote struct {
+			ProposalID string `json:"proposal_id"`
+			Voter      string `json:"voter"`
+			Option     string `json:"option"`
+			Options    []struct {
+				Option string `json:"option"`
+				Weight string `json:"weight"`
+			}
+		}
 	}
 )
