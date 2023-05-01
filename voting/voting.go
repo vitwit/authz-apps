@@ -19,23 +19,18 @@ import (
 	v1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 )
 
-func getChainName(chainID string, cr registry.ChainRegistry) (string, error) {
-	// chains, err := cr.ListChains(context.Background())
-	// if err != nil {
-	// 	return "", err
-	// }
+func GetChainName(chainID string, cr registry.ChainRegistry) (string, error) {
+	chains, err := cr.ListChains(context.Background())
+	if err != nil {
+		return "", err
+	}
 
-	chainName := "cosmoshub"
-	// for _, chainName := range chains {
-	chainInfo, _ := cr.GetChain(context.Background(), chainName)
-	fmt.Println("=================")
-	if chainName == "cosmoshub" {
-		fmt.Printf("chainInfo.ChainID: %v\n", chainInfo.ChainID)
+	for _, chainName := range chains {
+		chainInfo, _ := cr.GetChain(context.Background(), chainName)
+		if chainInfo.ChainID == chainID {
+			return chainName, nil
+		}
 	}
-	if chainInfo.ChainID == chainID {
-		return chainName, nil
-	}
-	// }
 	return "", fmt.Errorf("chain name not found")
 }
 
@@ -43,7 +38,7 @@ func ExecVote(chainID, pID, valAddr, vote, memo, gas, fees string) error {
 	// Fetch chain info from chain registry
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
-	chainName, err := getChainName(chainID, cr)
+	chainName, err := GetChainName(chainID, cr)
 	if err != nil {
 		log.Fatalf("chain name not found")
 	}
@@ -55,7 +50,7 @@ func ExecVote(chainID, pID, valAddr, vote, memo, gas, fees string) error {
 	//	Use Chain info to select random endpoint
 	rpc, err := chainInfo.GetRandomRPCEndpoint(context.Background())
 	if err != nil {
-		return fmt.Errorf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
+		log.Fatalf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
 	}
 
 	chainConfig := lensclient.ChainClientConfig{

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"lens-bot/lens-bot-1/config"
+	keyshandler "lens-bot/lens-bot-1/keysHandler"
 	"lens-bot/lens-bot-1/sqldata"
 	"lens-bot/lens-bot-1/voting"
 
@@ -45,6 +46,20 @@ func RegisterSlack(config *config.Config) {
 			response.Reply(r)
 		},
 	})
+	bot.Command("create-key <chain_name> <key_name_optional>", &slacker.CommandDefinition{
+		Description: "create a new account with key name",
+		Examples:    []string{"create-key my_key"},
+		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+			key_name := request.StringParam("key_name_optional", "default")
+			chain_name := request.Param("chain_name")
+			err := keyshandler.CreateKeys(chain_name, key_name)
+			if err != nil {
+				response.Reply(err.Error())
+			} else {
+				NewSlackAlerter().Send(fmt.Sprintf("Successfully created your key with name %s", key_name), config.Slack.BotToken, config.Slack.ChannelID)
+			}
+		},
+	})
 	bot.Command(
 		"vote <chain_id> <proposal_id> <validator_address> <vote_option> <memo_optional> <gas_units_optional> <fees_optional>",
 		&slacker.CommandDefinition{
@@ -67,7 +82,38 @@ func RegisterSlack(config *config.Config) {
 			},
 		},
 	)
+	bot.Command("list-keys", &slacker.CommandDefinition{
+		Description: "lists all keys",
+		Examples:    []string{"list-all"},
+		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+			r, err := sqldata.ListKeys()
+			if err != nil {
+				response.ReportError(err)
+			} else {
+				data := fmt.Sprintf("%v", r)
 
+				apiClient := botCtx.APIClient()
+				event := botCtx.Event()
+
+				attachment := slack.Attachment{
+					Title: "List of all keys",
+					Text:  data,
+					Fields: []slack.AttachmentField{
+						{
+							Title: "Date",
+							Value: time.Now().String(),
+						},
+					},
+				}
+				if event.ChannelID != "" {
+					_, _, err := apiClient.PostMessage(event.ChannelID, slack.MsgOptionAttachments(attachment))
+					if err != nil {
+						response.ReportError(err)
+					}
+				}
+			}
+		},
+	})
 	bot.Command("list-all", &slacker.CommandDefinition{
 		Description: "lists all chains with associated validator addresses",
 		Examples:    []string{"list-all"},
@@ -97,7 +143,6 @@ func RegisterSlack(config *config.Config) {
 						response.ReportError(err)
 					}
 				}
-
 			}
 		},
 	})
@@ -120,7 +165,7 @@ func (s slackAlert) Send(msgText, botToken string, channelID string) error {
 	// Create the Slack attachment that we will send to the channel
 	attachment := slack.Attachment{
 		Pretext: "Lens Bot Message",
-		Text:    msgText,
+		Title:   msgText,
 		// Fields are Optional extra data!
 		Fields: []slack.AttachmentField{
 			{
