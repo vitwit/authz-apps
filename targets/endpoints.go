@@ -21,10 +21,7 @@ func GetValidProposalsLCDEndpoints() (validProposalsEndpoints []string, err erro
 		return []string{}, err
 	}
 
-	// chains := []string{"terra2"}
-	// fmt.Printf("chains: %v\n", chains)
 	for _, chainName := range chains {
-		fmt.Printf("chainName: %v\n", chainName)
 		chainInfo, _ := cr.GetChain(context.Background(), chainName)
 		if err == nil {
 			AllLCDEndpoints, _ := GetAllLCDEndpoints(chainInfo)

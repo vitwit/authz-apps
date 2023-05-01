@@ -16,7 +16,6 @@ import (
 
 func GetProposals(cfg *config.Config) {
 	proposalsEndpoints, err := GetValidProposalsLCDEndpoints()
-	// fmt.Printf("All valid proposalsEndpoints: %v\n", proposalsEndpoints)
 	if err != nil {
 		fmt.Printf("Error in getting proposals endpoint : %v\n", err)
 	}
@@ -71,8 +70,6 @@ func AlertOnProposals(endpoint string, cfg *config.Config) error {
 			return err
 		}
 
-		fmt.Println(i, "==========START=============")
-		fmt.Printf("endpoint: %s\n", endpoint)
 		for _, proposal := range p.Proposals {
 			if proposal.Status == "PROPOSAL_STATUS_VOTING_PERIOD" {
 				valAddrs, err := sqldata.GetAllValAddrs()
@@ -93,7 +90,6 @@ func AlertOnProposals(endpoint string, cfg *config.Config) error {
 				}
 			}
 		}
-		fmt.Println("i, ===========END=============")
 	}
 	return nil
 }
