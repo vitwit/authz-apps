@@ -1,9 +1,3 @@
-# This is to enable slack alerts
-enable_slack_alerts = "yes"
-
-# This is to receive alert when the proposal is in voting period
-voting_period_alert = "yes"
-
 # Configure slack bot details to  get alerts
 [slack]
 slack_channel_id = "C053EK49BFX"

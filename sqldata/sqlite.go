@@ -45,7 +45,7 @@ func NewVotesData() (db *sql.DB) {
 func NewKeysData() (db *sql.DB) {
 	db, err := sql.Open("sqlite3", "./foo.db")
 	checkErr(err)
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS keysdata (chain_name VARCHAR, key_name VARCHAR)")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS keysdata (chain_name VARCHAR, key_name VARCHAR, key_address VARCHAR)")
 	if err != nil {
 		panic(err)
 	}
@@ -57,6 +57,7 @@ func VotesDataInsert(proposal_ID, validator_address, vote_option string) {
 
 	stmt, err := db.Prepare("INSERT INTO votesdata(proposal_ID, validator_address, vote_option) values(?,?,?)")
 	checkErr(err)
+	defer stmt.Close()
 
 	res, err := stmt.Exec(proposal_ID, validator_address, vote_option)
 	checkErr(err)
@@ -68,13 +69,14 @@ func VotesDataInsert(proposal_ID, validator_address, vote_option string) {
 	db.Close()
 }
 
-func InsertKey(chain_name, key_name string) {
+func InsertKey(chain_name, key_name, key_address string) {
 	db := NewKeysData()
 
-	stmt, err := db.Prepare("INSERT INTO keysdata(chain_name, key_name) values(?,?)")
+	stmt, err := db.Prepare("INSERT INTO keysdata(chain_name, key_name, key_address) values(?,?,?)")
 	checkErr(err)
+	defer stmt.Close()
 
-	res, err := stmt.Exec(chain_name, key_name)
+	res, err := stmt.Exec(chain_name, key_name, key_address)
 	checkErr(err)
 
 	Id, err := res.LastInsertId()
@@ -84,11 +86,26 @@ func InsertKey(chain_name, key_name string) {
 	db.Close()
 }
 
+func GetKeyAddress(key string) (string, error) {
+	db := NewKeysData()
+
+	var addr string
+	stmt, err := db.Prepare("SELECT key_address FROM keysdata WHERE key_name=?")
+	checkErr(err)
+	defer stmt.Close()
+
+	err = stmt.QueryRow(key).Scan(&addr)
+	checkErr(err)
+
+	return addr, nil
+}
+
 func ChainDataInsert(chain_name string, validator_address string) {
 	db := NewChainData()
 
 	stmt, err := db.Prepare("INSERT INTO chaindata(chain_name, validator_address) values(?,?)")
 	checkErr(err)
+	defer stmt.Close()
 
 	res, err := stmt.Exec(chain_name, validator_address)
 	checkErr(err)

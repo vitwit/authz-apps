@@ -53,12 +53,13 @@ func CreateKeys(chainName, keyName string) error {
 		return fmt.Errorf("failed to build new chain client for %s. Err: %v", chainInfo.ChainID, err)
 	}
 
-	_, err = chainClient.AddKey(keyName, sdk.CoinType)
+	res, err := chainClient.AddKey(keyName, sdk.CoinType)
 	if err != nil {
 		return fmt.Errorf("error while adding key: %v", err)
 	}
+	
 	chainConfig.Key = keyName
 
-	sqldata.InsertKey(chainName, keyName)
+	sqldata.InsertKey(chainName, keyName, res.Address)
 	return nil
 }

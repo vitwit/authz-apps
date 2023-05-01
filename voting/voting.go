@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"lens-bot/lens-bot-1/sqldata"
+
 	lensclient "github.com/strangelove-ventures/lens/client"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
 	"go.uber.org/zap"
@@ -53,7 +55,7 @@ func ExecVote(chainID, pID, valAddr, vote, fromKey, memo, gas, fees string) erro
 	}
 
 	chainConfig := lensclient.ChainClientConfig{
-		Key:            "default",
+		Key:            fromKey,
 		ChainID:        chainInfo.ChainID,
 		RPCAddr:        rpc,
 		AccountPrefix:  chainInfo.Bech32Prefix,
@@ -76,7 +78,7 @@ func ExecVote(chainID, pID, valAddr, vote, fromKey, memo, gas, fees string) erro
 		log.Fatalf("failed to build new chain client for %s. Err: %v", chainInfo.ChainID, err)
 	}
 
-	keyAddr, err := chainClient.GetKeyAddress()
+	keyAddr, err := sqldata.GetKeyAddress(fromKey)
 	if err != nil {
 		log.Fatalf("error while getting address of %s key", fromKey)
 	}
@@ -102,7 +104,7 @@ func ExecVote(chainID, pID, valAddr, vote, fromKey, memo, gas, fees string) erro
 	}
 
 	req := &authz.MsgExec{
-		Grantee: keyAddr.String(),
+		Grantee: keyAddr,
 		Msgs:    []*cdctypes.Any{msgAny},
 	}
 
