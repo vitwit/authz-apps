@@ -8,6 +8,7 @@ import (
 
 	"lens-bot/lens-bot-1/config"
 	"lens-bot/lens-bot-1/sqldata"
+	"lens-bot/lens-bot-1/voting"
 
 	"github.com/shomali11/slacker"
 	"github.com/slack-go/slack"
@@ -35,6 +36,7 @@ func RegisterSlack(config *config.Config) {
 
 	bot.Command("register <chain_id> <validator_address>", &slacker.CommandDefinition{
 		Description: "register",
+		Examples:    []string{"/register cosmoshub cosmos1a..."},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			chain_id := request.Param("chain_id")
 			validator_address := request.Param("validator_address")
@@ -43,6 +45,29 @@ func RegisterSlack(config *config.Config) {
 			response.Reply(r)
 		},
 	})
+	bot.Command(
+		"vote <chain_id> <proposal_id> <validator_address> <vote_option> <memo_optional> <gas_units_optional> <fees_optional>",
+		&slacker.CommandDefinition{
+			Description: "vote",
+			Examples:    []string{"/vote cosmoshub 123 YES memodata 300000 0.25uatom "},
+			Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+				chainID := request.Param("chain_id")
+				pID := request.Param("proposal_id")
+				valAddr := request.Param("validator_address")
+				voteOption := request.Param("vote_option")
+				memo := request.StringParam("memo_optional", "")
+				gas := request.StringParam("gas_units_optional", "")
+				fees := request.StringParam("fees_optional", "")
+				err := voting.ExecVote(chainID, pID, valAddr, voteOption, memo, gas, fees)
+				if err != nil {
+					fmt.Printf("error on executing vote: %v", err)
+				}
+				a := fmt.Sprintf("%v", err.Error())
+				response.Reply(a)
+			},
+		},
+	)
+
 	bot.Command("list-all", &slacker.CommandDefinition{
 		Description: "lists all chains with associated validator addresses",
 		Examples:    []string{"list-all"},
