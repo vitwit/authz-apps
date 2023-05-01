@@ -15,17 +15,9 @@ type (
 		ChannelID string `mapstructure:"slack_channel_id"`
 	}
 
-	// // VotingPeriodAlert defines about voting period alerts
-	// VotingPeriodAlert struct {
-	// 	EnableAlert   string `mapstructure:"enable_alert"`
-	// 	VotingEndTime string `mapstructure:"voting_end_time"`
-	// }
-
 	// Config defines all the app configurations
 	Config struct {
-		EnableSlackAlerts string         `mapstructure:"enable_slack_alerts"`
-		Slack             SlackBotConfig `mapstructure:"slack"`
-		VotingPeriodAlert string         `mapstructure:"voting_period_alert"`
+		Slack SlackBotConfig `mapstructure:"slack"`
 	}
 )
 

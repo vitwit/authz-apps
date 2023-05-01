@@ -14,7 +14,6 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/authz"
 	v1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 )
@@ -34,7 +33,7 @@ func GetChainName(chainID string, cr registry.ChainRegistry) (string, error) {
 	return "", fmt.Errorf("chain name not found")
 }
 
-func ExecVote(chainID, pID, valAddr, vote, memo, gas, fees string) error {
+func ExecVote(chainID, pID, valAddr, vote, fromKey, memo, gas, fees string) error {
 	// Fetch chain info from chain registry
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
@@ -77,12 +76,10 @@ func ExecVote(chainID, pID, valAddr, vote, memo, gas, fees string) error {
 		log.Fatalf("failed to build new chain client for %s. Err: %v", chainInfo.ChainID, err)
 	}
 
-	keyName := "my_key"
-	keyOp, err := chainClient.AddKey(keyName, sdk.CoinType)
+	keyAddr, err := chainClient.GetKeyAddress()
 	if err != nil {
-		log.Fatalf("error while adding key: %v", err)
+		log.Fatalf("error while getting address of %s key", fromKey)
 	}
-	chainConfig.Key = keyName
 
 	proposalID, err := strconv.ParseUint(pID, 10, 64)
 	if err != nil {
@@ -105,7 +102,7 @@ func ExecVote(chainID, pID, valAddr, vote, memo, gas, fees string) error {
 	}
 
 	req := &authz.MsgExec{
-		Grantee: keyOp.Address,
+		Grantee: keyAddr.String(),
 		Msgs:    []*cdctypes.Any{msgAny},
 	}
 
