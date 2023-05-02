@@ -73,19 +73,6 @@ type (
 		} `json:"pagination"`
 	}
 
-	// Votes struct holds the parameters of proposal votes
-	Votes struct {
-		Votes []struct {
-			ProposalID string `json:"proposal_id"`
-			Voter      string `json:"voter"`
-			Option     string `json:"option"`
-			Options    []struct {
-				Option string `json:"option"`
-				Weight string `json:"weight"`
-			}
-		}
-	}
-
 	// Vote struct holds the parameters of vote of voter.
 	Vote struct {
 		Vote struct {
