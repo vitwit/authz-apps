@@ -7,34 +7,12 @@ It alerts the user on the following:
  
 ## Install Prerequisites
 
-    Go 13.x+
+    Go 1.9 or higher
     Ubuntu 16.04 +
 
 The applications required for this bot are 
 * Slack
 * SQLite
-
-## Slack Installation
-
-**Steps to install slack:**
-
-To install Slack on Linux, follow these steps:
-* Open the terminal on your Linux system
-* Enter the following command to install the Slack snap package:
-
-           sudo snap install slack --classic
-
-* Wait for the installation to complete.
-
-* Once the installation is complete, you can launch Slack from the applications menu or by running the slack command in the terminal.
-
-To install Slack on Windows, follow these steps:
-
-* Go to the Slack download page in your web browser.
-* Click the Download button to download the Slack installer.
-* Once the download is complete, open the Slack installer by double-clicking the downloaded file.
-* Follow the prompts in the installer to complete the installation process.
-* When the installation is complete, open Slack and sign in with your workspace credentials.
 
 ## SQLite Installation
 
@@ -99,7 +77,7 @@ To install SQLite on Linux, follow these steps:
   * Under the "Features" Menu you will find "OAuth&Permissions". Under this section You can find the bot token under "Oauth tokens for your tokens"
   * Here's a similar example 
   
-          xoxb-5192976590416-5170323504898-Z5RwjjXxgyJbTiuktkYTFj
+          xoxb-XXXXXXXXXXXX
   ### **Socket Token**
   
   Socket token can be acquired from the api.slack website by following these steps
@@ -108,18 +86,18 @@ To install SQLite on Linux, follow these steps:
   * Under the "Settings" Menu you will find "Basic Information". Under this section You can find and choose the socket token under "App level tokens"
   * Here's a similar example 
   
-          xapp-1-A055BTNEYAD-5162715820838-57b8f785479baed7c1a2188c719e1c13d296effebc
+          xapp-1-XXXXXXXXXXXXXX
           
 ### Channel ID
 
 * Open your specific workspace on web.
 * Go your channel tab and take a note of your web address which will be similar to below
             
-        app.slack.com/client/H055NUQHDB8/C0551NPBGTW/
+        app.slack.com/client/XYZ/CABC/
 
 * In that specific web address You will be able to find an ID similar to below example from above reference
 
-        " C0551NPBGTW "
+        "CABC"
         
 ## Here is the list of available alerts and Slack bot commands
 
@@ -128,11 +106,11 @@ To install SQLite on Linux, follow these steps:
    
    ### List of avaliable telegram commands
 
-To get response from these commands you can just @<bot-name> <command_name> from your slack workspace/channel. You will be getting response to your slack workspace/channel based on the bot token/channel ID you have configured in config.toml
+To get response from these commands you can just use `@<bot-name> <command_name>` or `/<command_name>` from your slack workspace/channel. You will be getting response to your slack workspace/channel based on the bot token/channel ID you have configured in config.toml
 
     register : registers the validator using chain id and validator address
     create-key : Create a new account with key name
     vote : vote on proposals 
-         !note!: keys are an attribute which are added and need to be funded in order for the voting to progress. The grantee must give the voter authorisation before the voting can proceed 
+         !note!: keys are an attribute which are added and need to be funded in order for the voting to progress. The grantee must give the voter authorization before the voting can proceed 
     list-keys : List of all the key names
     list-all : List of all registered chain id & validators address
