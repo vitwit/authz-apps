@@ -85,11 +85,11 @@ func ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, gas, fees st
 
 	proposalID, err := strconv.ParseUint(pID, 10, 64)
 	if err != nil {
-		return fmt.Errorf("unable to convert string to uint64. Err: %v", err)
+		log.Fatalf("unable to convert string to uint64. Err: %v", err)
 	}
 	voteOption, err := stringToVoteOption(vote)
 	if err != nil {
-		return fmt.Errorf("unable to convert vote option string to sdk vote option. Err: %v", err)
+		log.Fatalf("unable to convert vote option string to sdk vote option. Err: %v", err)
 	}
 
 	msgVote := v1.MsgVote{

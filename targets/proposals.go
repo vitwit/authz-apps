@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/likhita-809/lens-bot/alerting"
@@ -29,68 +27,43 @@ func GetProposals(cfg *config.Config) {
 
 func AlertOnProposals(endpoint string, cfg *config.Config) error {
 	ops := HTTPOptions{
-		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals",
-		Method:   http.MethodGet,
+		Endpoint:    endpoint + "/cosmos/gov/v1beta1/proposals",
+		Method:      http.MethodGet,
+		QueryParams: QueryParams{"status": "2"},
 	}
-
 	resp, err := HitHTTPTarget(ops)
 	if err != nil {
-		log.Printf("Error in external rpc: %v", err)
-		fmt.Printf("⛔⛔ Unreachable to EXTERNAL RPC :: %s and the ERROR is : %v\n\n", ops.Endpoint, err.Error())
+		log.Printf("Error while getting http response: %v", err)
 		return err
 	}
 
 	var p Proposals
 	err = json.Unmarshal(resp.Body, &p)
 	if err != nil {
-		log.Printf("Error: %v", err)
+		log.Printf("Error while unmarshalling the proposals: %v", err)
 		return err
 	}
+	
 
-	totalCount, _ := strconv.ParseFloat(p.Pagination.Total, 64)
-	l := math.Ceil(totalCount / 100)
-	nextKey := p.Pagination.NextKey
-
-	for i := 1; i <= int(l); i++ {
-		ops := HTTPOptions{
-			Endpoint:    endpoint + "/cosmos/gov/v1beta1/proposals",
-			Method:      http.MethodGet,
-			QueryParams: QueryParams{"pagination.limit=": "100", "pagination.key": nextKey},
-		}
-		resp, err := HitHTTPTarget(ops)
+	for _, proposal := range p.Proposals {
+		valAddrs, err := sqldata.GetAllValAddrs()
 		if err != nil {
-			log.Printf("Error while getting http response: %v", err)
 			return err
 		}
-
-		var p Proposals
-		err = json.Unmarshal(resp.Body, &p)
-		if err != nil {
-			log.Printf("Error while unmarshalling the proposals: %v", err)
-			return err
-		}
-
-		for _, proposal := range p.Proposals {
-			if proposal.Status == "PROPOSAL_STATUS_VOTING_PERIOD" {
-				valAddrs, err := sqldata.GetAllValAddrs()
+		for _, valAddr := range valAddrs {
+			validatorVoted := GetValidatorVoted(endpoint, proposal.ProposalID, valAddr)
+			if (validatorVoted != "" && validatorVoted == "VOTE_OPTION_NO") || validatorVoted == "" {
+				err := SendVotingPeriodProposalAlerts(endpoint, valAddr, validatorVoted, proposal.ProposalID, proposal.VotingEndTime, cfg)
 				if err != nil {
-					return err
+					return fmt.Errorf("error on sending voting period proposals alert: %v", err)
 				}
-				for _, valAddr := range valAddrs {
-					validatorVoted := GetValidatorVoted(endpoint, proposal.ProposalID, valAddr)
-					if (validatorVoted != "" && validatorVoted == "VOTE_OPTION_NO") || validatorVoted == "" {
-						err := SendVotingPeriodProposalAlerts(endpoint, valAddr, validatorVoted, proposal.ProposalID, proposal.VotingEndTime, cfg)
-						if err != nil {
-							return fmt.Errorf("error on sending voting period proposals alert: %v", err)
-						}
-					} else {
-						StoreValidatorVote(endpoint, proposal.ProposalID, valAddr)
-					}
-
-				}
+			} else {
+				StoreValidatorVote(endpoint, proposal.ProposalID, valAddr)
 			}
+
 		}
 	}
+
 	return nil
 }
 
