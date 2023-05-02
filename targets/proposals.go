@@ -13,11 +13,11 @@ import (
 )
 
 func GetProposals(cfg *config.Config) {
-	proposalsEndpoints, err := GetValidProposalsLCDEndpoints()
+	validEndpoints, err := GetValidLCDEndpoints()
 	if err != nil {
 		fmt.Printf("Error in getting proposals endpoint : %v\n", err)
 	}
-	for _, proposalsEndpoint := range proposalsEndpoints {
+	for _, proposalsEndpoint := range validEndpoints {
 		err = AlertOnProposals(proposalsEndpoint, cfg)
 		if err != nil {
 			fmt.Printf("Error in sending proposals alert : %v\n", err)
@@ -43,7 +43,6 @@ func AlertOnProposals(endpoint string, cfg *config.Config) error {
 		log.Printf("Error while unmarshalling the proposals: %v", err)
 		return err
 	}
-	
 
 	for _, proposal := range p.Proposals {
 		valAddrs, err := sqldata.GetAllValAddrs()

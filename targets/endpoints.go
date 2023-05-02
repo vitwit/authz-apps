@@ -13,7 +13,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func GetValidProposalsLCDEndpoints() (validProposalsEndpoints []string, err error) {
+func GetValidLCDEndpoints() (validEndpoints []string, err error) {
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
 	chains, err := cr.ListChains(context.Background())
@@ -23,19 +23,13 @@ func GetValidProposalsLCDEndpoints() (validProposalsEndpoints []string, err erro
 
 	for _, chainName := range chains {
 		chainInfo, _ := cr.GetChain(context.Background(), chainName)
-		if err == nil {
-			AllLCDEndpoints, _ := GetAllLCDEndpoints(chainInfo)
-			if err == nil {
-				validLCDEndpoint, _ := GetValidLCDEndpoint(AllLCDEndpoints)
-				if err == nil {
-					validLCDEndpoint = strings.TrimSuffix(validLCDEndpoint, "/")
-					validProposalsEndpoints = append(validProposalsEndpoints, validLCDEndpoint)
-				}
-			}
-		}
+		AllLCDEndpoints, _ := GetAllLCDEndpoints(chainInfo)
+		validLCDEndpoint, _ := GetValidLCDEndpoint(AllLCDEndpoints)
+		validLCDEndpoint = strings.TrimSuffix(validLCDEndpoint, "/")
+		validEndpoints = append(validEndpoints, validLCDEndpoint)
 
 	}
-	return validProposalsEndpoints, nil
+	return validEndpoints, nil
 }
 
 func GetAllLCDEndpoints(c registry.ChainInfo) (out []string, err error) {

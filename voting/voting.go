@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/likhita-809/lens-bot/sqldata"
 
@@ -18,6 +21,7 @@ import (
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/x/authz"
 	v1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
+	"github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 )
 
 func GetChainName(chainID string, cr registry.ChainRegistry) (string, error) {
@@ -92,15 +96,34 @@ func ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, gas, fees st
 		log.Fatalf("unable to convert vote option string to sdk vote option. Err: %v", err)
 	}
 
-	msgVote := v1.MsgVote{
-		ProposalId: proposalID,
-		Voter:      valAddr,
-		Option:     voteOption,
-		Metadata:   metadata,
-	}
-	msgAny, err := cdctypes.NewAnyWithValue(&msgVote)
+	var msgAny *cdctypes.Any
+
+	validV1Endpoint, err := GetValidV1Endpoint(chainInfo)
 	if err != nil {
-		log.Fatalf("error on converting msg to Any: %v", err)
+		log.Fatalf("error while getting valid gov v1 endpoint: %v", err)
+	}
+	if validV1Endpoint {
+		msgVote := v1.MsgVote{
+			ProposalId: proposalID,
+			Voter:      valAddr,
+			Option:     voteOption,
+			Metadata:   metadata,
+		}
+		msgAny, err = cdctypes.NewAnyWithValue(&msgVote)
+		if err != nil {
+			log.Fatalf("error on converting msg to Any: %v", err)
+		}
+
+	} else {
+		msgVote := v1beta1.MsgVote{
+			ProposalId: proposalID,
+			Voter:      valAddr,
+			Option:     v1beta1.VoteOption(voteOption),
+		}
+		msgAny, err = cdctypes.NewAnyWithValue(&msgVote)
+		if err != nil {
+			log.Fatalf("error on converting msg to Any: %v", err)
+		}
 	}
 
 	req := &authz.MsgExec{
@@ -133,4 +156,50 @@ func stringToVoteOption(str string) (v1.VoteOption, error) {
 	default:
 		return v1.VoteOption(0), fmt.Errorf("invalid vote option: %s", str)
 	}
+}
+
+func GetValidV1Endpoint(chainInfo registry.ChainInfo) (bool, error) {
+	var out []string
+	for _, endpoint := range chainInfo.Apis.Rest {
+		u, err := url.Parse(endpoint.Address)
+		if err != nil {
+			return false, err
+		}
+		var port string
+		if u.Port() == "" {
+			switch u.Scheme {
+			case "https":
+				port = "443"
+			case "http":
+				port = "80"
+			default:
+				return false, fmt.Errorf("invalid or unsupported url scheme: %v", u.Scheme)
+			}
+		} else {
+			port = u.Port()
+		}
+
+		out = append(out, fmt.Sprintf("%s://%s:%s%s", u.Scheme, u.Hostname(), port, u.Path))
+	}
+	validEndpoint := false
+	for _, endpoint := range out {
+		req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+		if err != nil {
+			return false, err
+		}
+		client := &http.Client{
+			Timeout: 10 * time.Second, // set the time so that we should get response within that time
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return false, err
+		}
+		defer resp.Body.Close()
+		validEndpoint = true
+		if validEndpoint {
+			break
+		}
+	}
+	return validEndpoint, nil
 }
