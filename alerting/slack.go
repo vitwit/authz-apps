@@ -6,10 +6,11 @@ import (
 	"log"
 	"time"
 
-	"lens-bot/lens-bot-1/config"
-	keyshandler "lens-bot/lens-bot-1/keysHandler"
-	"lens-bot/lens-bot-1/sqldata"
-	"lens-bot/lens-bot-1/voting"
+	"github.com/likhita-809/lens-bot/config"
+	keyshandler "github.com/likhita-809/lens-bot/keysHandler"
+	"github.com/likhita-809/lens-bot/voting"
+
+	"github.com/likhita-809/lens-bot/sqldata"
 
 	"github.com/shomali11/slacker"
 	"github.com/slack-go/slack"

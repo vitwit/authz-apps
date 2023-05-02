@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"lens-bot/lens-bot-1/sqldata"
+	"github.com/likhita-809/lens-bot/sqldata"
 
 	lensclient "github.com/strangelove-ventures/lens/client"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
@@ -21,7 +21,7 @@ func CreateKeys(chainName, keyName string) error {
 
 	chainInfo, err := cr.GetChain(context.Background(), chainName)
 	if err != nil {
-		return fmt.Errorf("failed to get chain info. Err: %v \n", err)
+		return fmt.Errorf("failed to get chain info. Err: %v", err)
 	}
 
 	//	Use Chain info to select random endpoint
@@ -57,7 +57,7 @@ func CreateKeys(chainName, keyName string) error {
 	if err != nil {
 		return fmt.Errorf("error while adding key: %v", err)
 	}
-	
+
 	chainConfig.Key = keyName
 
 	sqldata.InsertKey(chainName, keyName, res.Address)

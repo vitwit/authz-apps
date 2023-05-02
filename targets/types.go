@@ -1,7 +1,7 @@
 package targets
 
 import (
-	"lens-bot/lens-bot-1/config"
+	"github.com/likhita-809/lens-bot/config"
 )
 
 type (

@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"time"
 
-	"lens-bot/lens-bot-1/alerting"
-	"lens-bot/lens-bot-1/config"
-	"lens-bot/lens-bot-1/sqldata"
+	"github.com/likhita-809/lens-bot/alerting"
+	"github.com/likhita-809/lens-bot/config"
+	"github.com/likhita-809/lens-bot/sqldata"
 )
 
 func GetProposals(cfg *config.Config) {

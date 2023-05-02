@@ -1,4 +1,4 @@
-module lens-bot/lens-bot-1
+module github.com/likhita-809/lens-bot
 
 go 1.19
 

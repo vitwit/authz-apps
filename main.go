@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"lens-bot/lens-bot-1/config"
-	"lens-bot/lens-bot-1/targets"
+	"github.com/likhita-809/lens-bot/config"
+	"github.com/likhita-809/lens-bot/targets"
 )
 
 func main() {

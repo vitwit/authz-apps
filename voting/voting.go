@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"lens-bot/lens-bot-1/sqldata"
+	"github.com/likhita-809/lens-bot/sqldata"
 
 	lensclient "github.com/strangelove-ventures/lens/client"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"

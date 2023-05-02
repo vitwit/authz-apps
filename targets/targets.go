@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"time"
 
-	"lens-bot/lens-bot-1/alerting"
-	"lens-bot/lens-bot-1/config"
+	"github.com/likhita-809/lens-bot/alerting"
+	"github.com/likhita-809/lens-bot/config"
 )
 
 type targetRunner struct{}
