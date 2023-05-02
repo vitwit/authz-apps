@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/likhita-809/lens-bot/alerting"
@@ -46,11 +45,11 @@ func InitTargets() *Targets {
 }
 
 func addQueryParameters(req *http.Request, queryParams QueryParams) {
-	params := url.Values{}
+	q := req.URL.Query()
 	for key, value := range queryParams {
-		params.Add(key, value)
+		q.Add(key, value)
 	}
-	req.URL.RawQuery = params.Encode()
+	req.URL.RawQuery = q.Encode()
 }
 
 // newHTTPRequest to make a new http request

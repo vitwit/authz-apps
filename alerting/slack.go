@@ -8,9 +8,8 @@ import (
 
 	"github.com/likhita-809/lens-bot/config"
 	keyshandler "github.com/likhita-809/lens-bot/keysHandler"
-	"github.com/likhita-809/lens-bot/voting"
-
 	"github.com/likhita-809/lens-bot/sqldata"
+	"github.com/likhita-809/lens-bot/voting"
 
 	"github.com/shomali11/slacker"
 	"github.com/slack-go/slack"
