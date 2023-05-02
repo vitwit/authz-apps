@@ -35,7 +35,7 @@ func GetChainName(chainID string, cr registry.ChainRegistry) (string, error) {
 	return "", fmt.Errorf("chain name not found")
 }
 
-func ExecVote(chainID, pID, valAddr, vote, fromKey, memo, gas, fees string) error {
+func ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, gas, fees string) error {
 	// Fetch chain info from chain registry
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
@@ -96,7 +96,7 @@ func ExecVote(chainID, pID, valAddr, vote, fromKey, memo, gas, fees string) erro
 		ProposalId: proposalID,
 		Voter:      valAddr,
 		Option:     voteOption,
-		Metadata:   "",
+		Metadata:   metadata,
 	}
 	msgAny, err := cdctypes.NewAnyWithValue(&msgVote)
 	if err != nil {

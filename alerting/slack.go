@@ -62,7 +62,7 @@ func RegisterSlack(config *config.Config) {
 		},
 	})
 	bot.Command(
-		"vote <chain_id> <proposal_id> <validator_address> <vote_option> <from_key> <memo_optional> <gas_units_optional> <fees_optional>",
+		"vote <chain_id> <proposal_id> <validator_address> <vote_option> <from_key> <metadata_optional> <memo_optional> <gas_units_optional> <fees_optional>",
 		&slacker.CommandDefinition{
 			Description: "vote",
 			Examples:    []string{"/vote cosmoshub 123 YES memodata 300000 0.25uatom "},
@@ -72,10 +72,11 @@ func RegisterSlack(config *config.Config) {
 				valAddr := request.Param("validator_address")
 				voteOption := request.Param("vote_option")
 				fromKey := request.Param("from_key")
+				metadata := request.StringParam("metadata_optional", "")
 				memo := request.StringParam("memo_optional", "")
 				gas := request.StringParam("gas_units_optional", "")
 				fees := request.StringParam("fees_optional", "")
-				err := voting.ExecVote(chainID, pID, valAddr, voteOption, fromKey, memo, gas, fees)
+				err := voting.ExecVote(chainID, pID, valAddr, voteOption, fromKey, metadata, memo, gas, fees)
 				if err != nil {
 					fmt.Printf("error on executing vote: %v", err)
 				}
