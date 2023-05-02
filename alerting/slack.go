@@ -100,12 +100,6 @@ func RegisterSlack(config *config.Config) {
 				attachment := slack.Attachment{
 					Title: "List of all keys",
 					Text:  data,
-					Fields: []slack.AttachmentField{
-						{
-							Title: "Date",
-							Value: time.Now().String(),
-						},
-					},
 				}
 				if event.ChannelID != "" {
 					_, _, err := apiClient.PostMessage(event.ChannelID, slack.MsgOptionAttachments(attachment))
@@ -132,12 +126,6 @@ func RegisterSlack(config *config.Config) {
 				attachment := slack.Attachment{
 					Title: "List of all chains and their validators",
 					Text:  data,
-					Fields: []slack.AttachmentField{
-						{
-							Title: "Date",
-							Value: time.Now().String(),
-						},
-					},
 				}
 				if event.ChannelID != "" {
 					_, _, err := apiClient.PostMessage(event.ChannelID, slack.MsgOptionAttachments(attachment))
