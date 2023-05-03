@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/spf13/viper"
 	"gopkg.in/go-playground/validator.v9"
@@ -28,16 +28,16 @@ func ReadConfigFromFile() (*Config, error) {
 	v.AddConfigPath("./config/")
 	v.SetConfigName("config")
 	if err := v.ReadInConfig(); err != nil {
-		log.Fatalf("error while reading config.toml: %v", err)
+		fmt.Errorf("error while reading config.toml: %v", err)
 	}
 
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
-		log.Fatalf("error unmarshaling config.toml to application config: %v", err)
+		fmt.Errorf("error unmarshaling config.toml to application config: %v", err)
 	}
 
 	if err := cfg.Validate(); err != nil {
-		log.Fatalf("error occurred in config validation: %v", err)
+		fmt.Errorf("error occurred in config validation: %v", err)
 	}
 
 	return &cfg, nil

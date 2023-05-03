@@ -3,7 +3,6 @@ package targets
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -76,7 +75,7 @@ func GetStatus(endpoint string) bool {
 
 	resp, err := HitHTTPTarget(ops)
 	if err != nil {
-		log.Printf("Error in external rpc: %v", err)
+		fmt.Printf("Error in external rpc: %v", err)
 		fmt.Printf("⛔⛔ Unreachable to EXTERNAL RPC :: %s and the ERROR is : %v\n\n", ops.Endpoint, err.Error())
 		return false
 	}
