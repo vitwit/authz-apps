@@ -9,19 +9,6 @@ import (
 )
 
 var Id int
-
-type (
-	keys struct {
-		chain_name string
-		key_name   string
-	}
-
-	chaindata struct {
-		chain_name        string
-		validator_address string
-	}
-)
-
 var (
 	db  *sql.DB
 	err error
@@ -35,6 +22,18 @@ func dbconnect() (db *sql.DB) {
 	return db
 
 }
+
+type (
+	keys struct {
+		chain_name string
+		key_name   string
+	}
+
+	chaindata struct {
+		chain_name        string
+		validator_address string
+	}
+)
 
 func NewChainData() (db *sql.DB) {
 	_, err = db.Exec("CREATE TABLE IF NOT EXISTS chaindata (chain_name VARCHAR, validator_address VARCHAR)")
