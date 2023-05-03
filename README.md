@@ -49,8 +49,9 @@ To install SQLite on Linux, follow these steps:
 
 * Add a bot user: In your app's settings, click the Bot Users tab and click the Add a Bot User button. Give your bot a display name and default username, then click Add Bot User.
 
-* Install the app: In your app's settings, click the Install App tab and click the Install App to Workspace button. Follow the prompts to authorize the app and install it in your workspace.
-
+* Install the app: In your app's settings, click the Install App tab and click the Install App to Workspace button. Follow these steps to authorize the app and install it in your workspace.
+    * Before installing it into the work space try to add scopes which are located under the OAuth & Permissions.some of the basic scopes which can be added are app_mention:read channel:history,channel:read,chat:write,im:history ,user:read
+    * If required events can also be initialised to make the bot more efficient .Some of the basic events are app_mention,message.channel,message.im,im_history_changed. 
 * Obtain the bot token: After the app is installed, you can obtain the bot token from the OAuth & Permissions tab in your app's settings. Copy the bot token to use it in your bot's code.
 
 *  Create a bot script: Script can be created using any required programming language which can build the bots core functions using databases and various slack function

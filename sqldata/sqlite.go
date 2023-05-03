@@ -22,9 +22,21 @@ type (
 	}
 )
 
-func NewChainData() (db *sql.DB) {
+var (
+	db  *sql.DB
+	err error
+)
+
+func dbconnect() (db *sql.DB) {
 	db, err := sql.Open("sqlite3", "./foo.db")
-	checkErr(err)
+	if err != nil {
+		panic(err)
+	}
+	return db
+
+}
+
+func NewChainData() (db *sql.DB) {
 	_, err = db.Exec("CREATE TABLE IF NOT EXISTS chaindata (chain_name VARCHAR, validator_address VARCHAR)")
 	if err != nil {
 		panic(err)
@@ -33,8 +45,6 @@ func NewChainData() (db *sql.DB) {
 }
 
 func NewVotesData() (db *sql.DB) {
-	db, err := sql.Open("sqlite3", "./foo.db")
-	checkErr(err)
 	_, err = db.Exec("CREATE TABLE IF NOT EXISTS votesdata (proposal_ID VARCHAR, validator_address VARCHAR, vote_option VARCHAR)")
 	if err != nil {
 		panic(err)
@@ -43,8 +53,6 @@ func NewVotesData() (db *sql.DB) {
 }
 
 func NewKeysData() (db *sql.DB) {
-	db, err := sql.Open("sqlite3", "./foo.db")
-	checkErr(err)
 	_, err = db.Exec("CREATE TABLE IF NOT EXISTS keysdata (chain_name VARCHAR, key_name VARCHAR, key_address VARCHAR)")
 	if err != nil {
 		panic(err)
