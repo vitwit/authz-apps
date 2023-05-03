@@ -3,35 +3,47 @@ package main
 import (
 	"log"
 	"sync"
-	"time"
 
+	"github.com/likhita-809/lens-bot/alerting"
 	"github.com/likhita-809/lens-bot/config"
-	"github.com/likhita-809/lens-bot/targets"
+	"github.com/likhita-809/lens-bot/database"
 )
 
 func main() {
+	db, err := database.NewDatabase()
+	if err != nil {
+		panic(err)
+	}
+
 	cfg, err := config.ReadConfigFromFile()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	m := targets.InitTargets()
-	runner := targets.NewRunner()
+	alerter := alerting.NewBotClient(cfg, db)
+	alerter.Initializecommands()
 
-	log.Printf("targets initialized")
+	// m := targets.InitTargets()
+	// runner := targets.NewRunner()
+
+	// log.Printf("targets initialized")
+	// var wg sync.WaitGroup
+	// for _, tg := range m.List {
+	// 	wg.Add(1)
+	// 	go func(target targets.Target) {
+	// 		scrapeRate, err := time.ParseDuration(target.ScraperRate)
+	// 		if err != nil {
+	// 			log.Fatal(err)
+	// 		}
+	// 		for {
+	// 			runner.Run(target.Func, cfg)
+	// 			time.Sleep(scrapeRate)
+	// 		}
+	// 	}(tg)
+	// }
+	// wg.Wait()
+
 	var wg sync.WaitGroup
-	for _, tg := range m.List {
-		wg.Add(1)
-		go func(target targets.Target) {
-			scrapeRate, err := time.ParseDuration(target.ScraperRate)
-			if err != nil {
-				log.Fatal(err)
-			}
-			for {
-				runner.Run(target.Func, cfg)
-				time.Sleep(scrapeRate)
-			}
-		}(tg)
-	}
+	wg.Add(1)
 	wg.Wait()
 }

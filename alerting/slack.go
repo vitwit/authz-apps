@@ -7,143 +7,145 @@ import (
 	"time"
 
 	"github.com/likhita-809/lens-bot/config"
-	keyshandler "github.com/likhita-809/lens-bot/keysHandler"
-	"github.com/likhita-809/lens-bot/sqldata"
-	"github.com/likhita-809/lens-bot/voting"
+	"github.com/likhita-809/lens-bot/database"
 
 	"github.com/shomali11/slacker"
 	"github.com/slack-go/slack"
 )
 
-func printCommandEvents(analyticsChannel <-chan *slacker.CommandEvent) {
-	for event := range analyticsChannel {
-		fmt.Println("Command Events")
-		fmt.Println(event.Timestamp)
-		fmt.Println(event.Command)
-		fmt.Println(event.Parameters)
-		fmt.Println(event.Event)
-	}
+type Slackbot struct {
+	bot *slacker.Slacker
+	db  *database.Sqlitedb
+	cfg *config.Config
 }
 
-// Send allows bot to send a slack alert to the configured channelID
-func RegisterSlack(config *config.Config) {
-	// Create a new client to slack by giving token
-	// Set debug to true while developing
-
+func NewBotClient(config *config.Config, db *database.Sqlitedb) *Slackbot {
 	bot := slacker.NewClient(config.Slack.BotToken, config.Slack.AppToken)
-
-	// show logs of command events
-	go printCommandEvents(bot.CommandEvents())
-
-	bot.Command("register <chain_id> <validator_address>", &slacker.CommandDefinition{
-		Description: "register",
-		Examples:    []string{"/register cosmoshub cosmos1a..."},
+	return &Slackbot{
+		bot: bot,
+		db:  db,
+		cfg: config,
+	}
+}
+func (a *Slackbot) Initializecommands() error {
+	a.bot.Command("register-validator <chainname> <validator_address>", &slacker.CommandDefinition{
+		Description: "register a new validator",
+		Examples:    []string{"/register-validator cosmoshub cosmos1a..."},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			chain_id := request.Param("chain_id")
+			chainname := request.Param("chainname")
 			validator_address := request.Param("validator_address")
-			sqldata.ChainDataInsert(chain_id, validator_address)
-			r := fmt.Sprintf("your respose has been recorded %s", validator_address)
-			response.Reply(r)
-		},
-	})
-	bot.Command("create-key <chain_name> <key_name_optional>", &slacker.CommandDefinition{
-		Description: "create a new account with key name",
-		Examples:    []string{"create-key my_key"},
-		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			key_name := request.StringParam("key_name_optional", "default")
-			chain_name := request.Param("chain_name")
-			err := keyshandler.CreateKeys(chain_name, key_name)
-			if err != nil {
-				response.Reply(err.Error())
+			n := a.db.CheckValidator(validator_address)
+			a.db.AddValidator(chainname, validator_address)
+			if n != "" {
+				response.Reply(n)
 			} else {
-				NewSlackAlerter().Send(fmt.Sprintf("Successfully created your key with name %s", key_name), config.Slack.BotToken, config.Slack.ChannelID)
+				r := fmt.Sprintf("your respose has been recorded %s", validator_address)
+				response.Reply(r)
 			}
 		},
 	})
-	bot.Command(
-		"vote <chain_id> <proposal_id> <validator_address> <vote_option> <from_key> <metadata_optional> <memo_optional> <gas_units_optional> <fees_optional>",
-		&slacker.CommandDefinition{
-			Description: "vote",
-			Examples:    []string{"/vote cosmoshub 123 YES memodata 300000 0.25uatom "},
-			Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-				chainID := request.Param("chain_id")
-				pID := request.Param("proposal_id")
-				valAddr := request.Param("validator_address")
-				voteOption := request.Param("vote_option")
-				fromKey := request.Param("from_key")
-				metadata := request.StringParam("metadata_optional", "")
-				memo := request.StringParam("memo_optional", "")
-				gas := request.StringParam("gas_units_optional", "")
-				fees := request.StringParam("fees_optional", "")
-				err := voting.ExecVote(chainID, pID, valAddr, voteOption, fromKey, metadata, memo, gas, fees)
-				if err != nil {
-					fmt.Printf("error on executing vote: %v", err)
-				}
-				a := fmt.Sprintf("%v", err.Error())
-				response.Reply(a)
-			},
-		},
-	)
-	bot.Command("list-keys", &slacker.CommandDefinition{
-		Description: "lists all keys",
-		Examples:    []string{"list-all"},
-		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			r, err := sqldata.ListKeys()
-			if err != nil {
-				response.ReportError(err)
-			} else {
-				data := fmt.Sprintf("%v", r)
+	// a.bot.Command("create-key <chain_name> <key_name_optional>", &slacker.CommandDefinition{
+	// 	Description: "create a new account with key name",
+	// 	Examples:    []string{"create-key my_key"},
+	// 	Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+	// 		key_name := request.StringParam("key_name_optional", "default")
+	// 		chain_name := request.Param("chain_name")
+	// 		err := keyshandler.CreateKeys(chain_name, key_name)
+	// 		if err != nil {
+	// 			response.Reply(err.Error())
+	// 		} else {
+	// 			NewSlackAlerter().Send(fmt.Sprintf("Successfully created your key with name %s", key_name), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
+	// 		}
+	// 	},
+	// })
+	// a.bot.Command(
+	// 	"vote <chain_id> <proposal_id> <validator_address> <vote_option> <from_key> <metadata_optional> <memo_optional> <gas_units_optional> <fees_optional>",
+	// 	&slacker.CommandDefinition{
+	// 		Description: "vote",
+	// 		Examples:    []string{"/vote cosmoshub 123 YES memodata 300000 0.25uatom "},
+	// 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+	// 			chainID := request.Param("chain_id")
+	// 			pID := request.Param("proposal_id")
+	// 			valAddr := request.Param("validator_address")
+	// 			voteOption := request.Param("vote_option")
+	// 			fromKey := request.Param("from_key")
+	// 			metadata := request.StringParam("metadata_optional", "")
+	// 			memo := request.StringParam("memo_optional", "")
+	// 			gas := request.StringParam("gas_units_optional", "")
+	// 			fees := request.StringParam("fees_optional", "")
+	// 			err := voting.ExecVote(chainID, pID, valAddr, voteOption, fromKey, metadata, memo, gas, fees)
+	// 			if err != nil {
+	// 				fmt.Printf("error on executing vote: %v", err)
+	// 			}
+	// 			a := fmt.Sprintf("%v", err.Error())
+	// 			response.Reply(a)
+	// 		},
+	// 	},
+	// )
+	// a.bot.Command("list-keys", &slacker.CommandDefinition{
+	// 	Description: "lists all keys",
+	// 	Examples:    []string{"list-all"},
+	// 	Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+	// 		r, err := sqldata.ListKeys()
+	// 		if err != nil {
+	// 			response.ReportError(err)
+	// 		} else {
+	// 			data := fmt.Sprintf("%v", r)
 
-				apiClient := botCtx.APIClient()
-				event := botCtx.Event()
+	// 			apiClient := botCtx.APIClient()
+	// 			event := botCtx.Event()
 
-				attachment := slack.Attachment{
-					Title: "List of all keys",
-					Text:  data,
-				}
-				if event.ChannelID != "" {
-					_, _, err := apiClient.PostMessage(event.ChannelID, slack.MsgOptionAttachments(attachment))
-					if err != nil {
-						response.ReportError(err)
-					}
-				}
-			}
-		},
-	})
-	bot.Command("list-all", &slacker.CommandDefinition{
+	// 			attachment := slack.Attachment{
+	// 				Title: "List of all keys",
+	// 				Text:  data,
+	// 			}
+	// 			if event.ChannelID != "" {
+	// 				_, _, err := apiClient.PostMessage(event.ChannelID, slack.MsgOptionAttachments(attachment))
+	// 				if err != nil {
+	// 					response.ReportError(err)
+	// 				}
+	// 			}
+	// 		}
+	// 	},
+	// })
+	a.bot.Command("list-validators", &slacker.CommandDefinition{
 		Description: "lists all chains with associated validator addresses",
-		Examples:    []string{"list-all"},
+		Examples:    []string{"list-validators"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			r, err := sqldata.ChainDataList()
+			validators, err := a.db.GetValidators()
 			if err != nil {
 				response.ReportError(err)
-			} else {
-				data := fmt.Sprintf("%v", r)
+			}
 
-				apiClient := botCtx.APIClient()
-				event := botCtx.Event()
+			apiClient := botCtx.APIClient()
+			event := botCtx.Event()
 
-				attachment := slack.Attachment{
-					Title: "List of all chains and their validators",
-					Text:  data,
-				}
-				if event.ChannelID != "" {
-					_, _, err := apiClient.PostMessage(event.ChannelID, slack.MsgOptionAttachments(attachment))
-					if err != nil {
-						response.ReportError(err)
-					}
+			var blocks []slack.Block
+			for _, val := range validators {
+				blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* ---- *%s*", val.ChainName, val.Address), false, false),
+					nil, nil))
+			}
+
+			attachment := []slack.Block{
+				slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Network ---- Validator address", false, false)),
+			}
+			attachment = append(attachment, blocks...)
+			if event.ChannelID != "" {
+				_, _, err := apiClient.PostMessage(event.ChannelID, slack.MsgOptionBlocks(attachment...))
+				if err != nil {
+					response.ReportError(err)
 				}
 			}
 		},
 	})
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := bot.Listen(ctx)
+	err := a.bot.Listen(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
+	return err
 }
 
 // Send allows bot to send a slack alert to the configured channelID
