@@ -20,7 +20,7 @@ type Cron struct {
 	bot *alerting.Slackbot
 }
 
-// NewCron sets necessary config and clients to begin jobs
+// NewCron sets necessary config and clients to begin cron jobs
 func NewCron(db *database.Sqlitedb, config *config.Config, bot *alerting.Slackbot) *Cron {
 	return &Cron{
 		db:  db,
@@ -44,45 +44,12 @@ func (c *Cron) Start() error {
 	// Every 15 minute
 	cron.AddFunc("1 * * * *", func() {
 		d.GetProposals(c.db)
-		// log.Println("successfully saved price information list")
 	})
 
 	go cron.Start()
 
 	return nil
 }
-
-// // NewRunner returns targetRunner
-// func NewRunner() *targetRunner {
-// 	return &targetRunner{}
-// }
-
-// // Run to run the request
-// func (m targetRunner) Run(function func(cfg *config.Config)) {
-// 	function(m.cfg)
-// }
-
-// func (m targetRunner) InitTargets() *Targets {
-// 	return &Targets{List: []Target{
-// 		{
-// 			ExecutionType: "http",
-// 			Name:          "Proposals",
-// 			HTTPOptions: HTTPOptions{
-// 				Method: http.MethodGet,
-// 			},
-// 			Func:        m.data.GetProposals,
-// 			ScraperRate: "2h",
-// 		},
-// 		{
-// 			Name: "Slack cmds",
-// 			HTTPOptions: HTTPOptions{
-// 				Method: http.MethodGet,
-// 			},
-// 			Func:        m.bot.Initializecommands,
-// 			ScraperRate: "3s",
-// 		},
-// 	}}
-// }
 
 func addQueryParameters(req *http.Request, queryParams QueryParams) {
 	q := req.URL.Query()

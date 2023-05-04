@@ -22,17 +22,17 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-func GetValidLCDEndpoints(chainname string) (validEndpoints []string, err error) {
+func GetValidLCDEndpoints(chainName string) (validEndpoints []string, err error) {
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
 	chains, err := cr.ListChains(context.Background())
 	if err != nil {
 		return []string{}, err
 	}
-	fmt.Println(chains)
+	log.Println(chains)
 
-	for _, chainName := range chains {
-		if chainName == chainname {
+	for _, name := range chains {
+		if name == chainName {
 			chainInfo, _ := cr.GetChain(context.Background(), chainName)
 			AllLCDEndpoints, _ := GetAllLCDEndpoints(chainInfo)
 			validLCDEndpoint, _ := GetValidLCDEndpoint(AllLCDEndpoints)

@@ -39,7 +39,7 @@ func (v *Vote) GetChainName(chainID string, cr registry.ChainRegistry) (string, 
 			return chainName, nil
 		}
 	}
-	log.Printf("chain name not found")
+	log.Fatalf("chain name not found")
 	return "", nil
 }
 
@@ -158,8 +158,8 @@ func (v *Vote) stringToVoteOption(str string) (v1.VoteOption, error) {
 	case "no_with_veto":
 		return v1.OptionNoWithVeto, nil
 	default:
-		log.Printf("invalid vote option: %s", str)
-		return v1.VoteOption(0), nil
+		return v1.VoteOption(0), fmt.Errorf("invalid vote option: %s", str)
+
 	}
 }
 
@@ -178,8 +178,8 @@ func (v *Vote) GetValidV1Endpoint(chainInfo registry.ChainInfo) (bool, error) {
 			case "http":
 				port = "80"
 			default:
-				log.Printf("invalid or unsupported url scheme: %v", u.Scheme)
-				return false, nil
+				return false, fmt.Errorf("invalid or unsupported url scheme: %v", u.Scheme)
+
 			}
 		} else {
 			port = u.Port()

@@ -36,37 +36,39 @@ func NewBotClient(config *config.Config, db *database.Sqlitedb) *Slackbot {
 // Creates and initialises commands
 func (a *Slackbot) Initializecommands() error {
 
-	//Command to Register validator
+	// Command to register validator address with chain name
 	a.bot.Command("register-validator <chainname> <validator_address>", &slacker.CommandDefinition{
 		Description: "register a new validator",
 		Examples:    []string{"/register-validator cosmoshub cosmos1a..."},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			chainname := request.Param("chainname")
+			chainname := request.Param("chain_name")
 			validatorAddress := request.Param("validator_address")
-			isExist := a.db.HasValidator(validatorAddress)
-			if isExist {
+			isExists := a.db.HasValidator(validatorAddress)
+			if isExists {
 				response.Reply("Validator is already registered")
 			} else {
 				a.db.AddValidator(chainname, validatorAddress)
-				r := fmt.Sprintf("Your response has been recorded %s", validatorAddress)
+				r := fmt.Sprintf("Your validator %s is successfully registered", validatorAddress)
 				response.Reply(r)
 			}
 		},
 	})
+	//Creates keys which need to be funded and will vote in the place of validators
 	a.bot.Command("create-key <chain_name> <key_name_optional>", &slacker.CommandDefinition{
 		Description: "create a new account with key name",
 		Examples:    []string{"create-key my_key"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			key_name := request.StringParam("key_name_optional", "default")
-			chain_name := request.Param("chain_name")
-			err := a.key.CreateKeys(chain_name, key_name)
+			keyName := request.StringParam("key_name_optional", "default")
+			chainName := request.Param("chain_name")
+			err := a.key.CreateKeys(chainName, keyName)
 			if err != nil {
 				response.Reply(err.Error())
 			} else {
-				NewSlackAlerter().Send(fmt.Sprintf("Successfully created your key with name %s", key_name), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
+				NewSlackAlerter().Send(fmt.Sprintf("Successfully created your key with name %s", keyName), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
 			}
 		},
 	})
+	//votes on proposals based on proposalid,validator address,vote and key
 	a.bot.Command(
 		"vote <chain_id> <proposal_id> <validator_address> <vote_option> <from_key> <metadata_optional> <memo_optional> <gas_units_optional> <fees_optional>",
 		&slacker.CommandDefinition{
@@ -91,6 +93,7 @@ func (a *Slackbot) Initializecommands() error {
 			},
 		},
 	)
+	//Lists all the keys stored in the database
 	a.bot.Command("list-keys", &slacker.CommandDefinition{
 		Description: "lists all keys",
 		Examples:    []string{"list-all"},
@@ -159,12 +162,6 @@ func (a *Slackbot) Initializecommands() error {
 	return err
 }
 
-// type MissedProposal struct {
-// 	accAdd     string
-// 	pID        string
-// 	votEndTime string
-// }
-
 // Send allows bot to send a slack alert to the configured channelID
 func (s slackAlert) Send(msgText, botToken string, channelID string) error {
 	// Create a new client to slack by giving token
@@ -188,9 +185,6 @@ func (s slackAlert) Send(msgText, botToken string, channelID string) error {
 	// First parameter is just the channelID, makes no sense to accept it
 	_, timestamp, err := client.PostMessage(
 		channelID,
-		// uncomment the item below to add a extra Header to the message, try it out :)
-		// slack.MsgOptionText("New message from bot", false),
-		// slack.MsgOptionText(msgText, false),
 		slack.MsgOptionAttachments(attachment),
 	)
 	if err != nil {

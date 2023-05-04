@@ -21,7 +21,7 @@ type Data struct {
 	//bot *alerting.Slackbot
 }
 
-// Gets Proposals,valid LCD endpoints and alerts on proposals.
+// Gets proposals
 
 func (a *Data) GetProposals(db *database.Sqlitedb) {
 
@@ -56,7 +56,7 @@ func (a *Data) AlertOnProposals(networks []string) error {
 	for _, val := range validators {
 		validEndpoints, err := GetValidLCDEndpoints(val.ChainName)
 		if err != nil {
-			log.Printf("Error in getting%s validator's proposals endpoint : %v\n", val.Address, err)
+			log.Printf("Error in getting valid LCD endpoints for %s chain", val.ChainName)
 		}
 		for _, endpoint := range validEndpoints {
 			ops := HTTPOptions{
@@ -108,8 +108,8 @@ func (a *Data) AlertOnProposals(networks []string) error {
 
 func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) string {
 
-	ValAddr, _ := sdk.ValAddressFromBech32(valAddr)
-	accAddr, _ := sdk.AccAddressFromHexUnsafe(hex.EncodeToString(ValAddr.Bytes()))
+	addr, _ := sdk.ValAddressFromBech32(valAddr)
+	accAddr, _ := sdk.AccAddressFromHexUnsafe(hex.EncodeToString(addr.Bytes()))
 	ops := HTTPOptions{
 		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + proposalID + "/votes/" + accAddr.String(),
 		Method:   http.MethodGet,
@@ -136,8 +136,6 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) string {
 
 // SendVotingPeriodProposalAlerts which send alerts of voting period proposals
 func (a *Data) SendVotingPeriodProposalAlerts(proposals []MissedProposal) error {
-	//err := alerting.NewSlackAlerter().Send(fmt.Sprintf("you have not voted on proposal %s with address %s", proposalID, accountAddress), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
-	// var botCtx slacker.BotContext
 	api := slack.New(a.cfg.Slack.BotToken)
 	var blocks []slack.Block
 
