@@ -8,15 +8,19 @@ import (
 
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
+	"github.com/likhita-809/lens-bot/keyshandler"
+	"github.com/likhita-809/lens-bot/voting"
 
 	"github.com/shomali11/slacker"
 	"github.com/slack-go/slack"
 )
 
 type Slackbot struct {
-	bot *slacker.Slacker
-	db  *database.Sqlitedb
-	cfg *config.Config
+	bot  *slacker.Slacker
+	db   *database.Sqlitedb
+	cfg  *config.Config
+	key  *keyshandler.Keys
+	vote *voting.Vote
 }
 
 // Creates a new bot client
@@ -49,70 +53,70 @@ func (a *Slackbot) Initializecommands() error {
 			}
 		},
 	})
-	// a.bot.Command("create-key <chain_name> <key_name_optional>", &slacker.CommandDefinition{
-	// 	Description: "create a new account with key name",
-	// 	Examples:    []string{"create-key my_key"},
-	// 	Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-	// 		key_name := request.StringParam("key_name_optional", "default")
-	// 		chain_name := request.Param("chain_name")
-	// 		err := keyshandler.CreateKeys(chain_name, key_name)
-	// 		if err != nil {
-	// 			response.Reply(err.Error())
-	// 		} else {
-	// 			NewSlackAlerter().Send(log.Sprintf("Successfully created your key with name %s", key_name), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
-	// 		}
-	// 	},
-	// })
-	// a.bot.Command(
-	// 	"vote <chain_id> <proposal_id> <validator_address> <vote_option> <from_key> <metadata_optional> <memo_optional> <gas_units_optional> <fees_optional>",
-	// 	&slacker.CommandDefinition{
-	// 		Description: "vote",
-	// 		Examples:    []string{"/vote cosmoshub 123 YES memodata 300000 0.25uatom "},
-	// 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-	// 			chainID := request.Param("chain_id")
-	// 			pID := request.Param("proposal_id")
-	// 			valAddr := request.Param("validator_address")
-	// 			voteOption := request.Param("vote_option")
-	// 			fromKey := request.Param("from_key")
-	// 			metadata := request.StringParam("metadata_optional", "")
-	// 			memo := request.StringParam("memo_optional", "")
-	// 			gas := request.StringParam("gas_units_optional", "")
-	// 			fees := request.StringParam("fees_optional", "")
-	// 			err := voting.ExecVote(chainID, pID, valAddr, voteOption, fromKey, metadata, memo, gas, fees)
-	// 			if err != nil {
-	// 				log.Printf("error on executing vote: %v", err)
-	// 			}
-	// 			a := log.Sprintf("%v", err.Error())
-	// 			response.Reply(a)
-	// 		},
-	// 	},
-	// )
-	// a.bot.Command("list-keys", &slacker.CommandDefinition{
-	// 	Description: "lists all keys",
-	// 	Examples:    []string{"list-all"},
-	// 	Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-	// 		r, err := sqldata.ListKeys()
-	// 		if err != nil {
-	// 			response.ReportError(err)
-	// 		} else {
-	// 			data := log.Sprintf("%v", r)
+	a.bot.Command("create-key <chain_name> <key_name_optional>", &slacker.CommandDefinition{
+		Description: "create a new account with key name",
+		Examples:    []string{"create-key my_key"},
+		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+			key_name := request.StringParam("key_name_optional", "default")
+			chain_name := request.Param("chain_name")
+			err := a.key.CreateKeys(chain_name, key_name)
+			if err != nil {
+				response.Reply(err.Error())
+			} else {
+				NewSlackAlerter().Send(fmt.Sprintf("Successfully created your key with name %s", key_name), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
+			}
+		},
+	})
+	a.bot.Command(
+		"vote <chain_id> <proposal_id> <validator_address> <vote_option> <from_key> <metadata_optional> <memo_optional> <gas_units_optional> <fees_optional>",
+		&slacker.CommandDefinition{
+			Description: "vote",
+			Examples:    []string{"/vote cosmoshub 123 YES memodata 300000 0.25uatom "},
+			Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+				chainID := request.Param("chain_id")
+				pID := request.Param("proposal_id")
+				valAddr := request.Param("validator_address")
+				voteOption := request.Param("vote_option")
+				fromKey := request.Param("from_key")
+				metadata := request.StringParam("metadata_optional", "")
+				memo := request.StringParam("memo_optional", "")
+				gas := request.StringParam("gas_units_optional", "")
+				fees := request.StringParam("fees_optional", "")
+				err := a.vote.ExecVote(chainID, pID, valAddr, voteOption, fromKey, metadata, memo, gas, fees)
+				if err != nil {
+					log.Printf("error on executing vote: %v", err)
+				}
+				a := fmt.Sprintf("%v", err.Error())
+				response.Reply(a)
+			},
+		},
+	)
+	a.bot.Command("list-keys", &slacker.CommandDefinition{
+		Description: "lists all keys",
+		Examples:    []string{"list-all"},
+		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+			r, err := a.db.GetKeys()
+			if err != nil {
+				response.ReportError(err)
+			} else {
+				data := fmt.Sprintf("%v", r)
 
-	// 			apiClient := botCtx.APIClient()
-	// 			event := botCtx.Event()
+				apiClient := botCtx.APIClient()
+				event := botCtx.Event()
 
-	// 			attachment := slack.Attachment{
-	// 				Title: "List of all keys",
-	// 				Text:  data,
-	// 			}
-	// 			if event.ChannelID != "" {
-	// 				_, _, err := apiClient.PostMessage(event.ChannelID, slack.MsgOptionAttachments(attachment))
-	// 				if err != nil {
-	// 					response.ReportError(err)
-	// 				}
-	// 			}
-	// 		}
-	// 	},
-	// })
+				attachment := slack.Attachment{
+					Title: "List of all keys",
+					Text:  data,
+				}
+				if event.ChannelID != "" {
+					_, _, err := apiClient.PostMessage(event.ChannelID, slack.MsgOptionAttachments(attachment))
+					if err != nil {
+						response.ReportError(err)
+					}
+				}
+			}
+		},
+	})
 
 	//Command to list all registered validators
 	a.bot.Command("list-validators", &slacker.CommandDefinition{

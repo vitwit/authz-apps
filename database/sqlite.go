@@ -141,7 +141,7 @@ func (s *Sqlitedb) GetValidatorAddress() (ValidatorAddress []string, err error) 
 	defer rows.Close()
 	for rows.Next() {
 		var Address string
-		if err := rows.Scan(Address); err != nil {
+		if err := rows.Scan(&Address); err != nil {
 			return nil, err
 		}
 		ValidatorAddress = append(ValidatorAddress, Address)

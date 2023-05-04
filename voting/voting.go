@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
 	lensclient "github.com/strangelove-ventures/lens/client"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
@@ -24,12 +23,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 )
 
-type vote struct {
-	db  *database.Sqlitedb
-	cfg *config.Config
+type Vote struct {
+	db *database.Sqlitedb
 }
 
-func (v *vote) GetChainName(chainID string, cr registry.ChainRegistry) (string, error) {
+func (v *Vote) GetChainName(chainID string, cr registry.ChainRegistry) (string, error) {
 	chains, err := cr.ListChains(context.Background())
 	if err != nil {
 		return "", err
@@ -45,7 +43,7 @@ func (v *vote) GetChainName(chainID string, cr registry.ChainRegistry) (string, 
 	return "", nil
 }
 
-func (v *vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, gas, fees string) error {
+func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, gas, fees string) error {
 	// Fetch chain info from chain registry
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
@@ -148,7 +146,7 @@ func (v *vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, ga
 	return nil
 }
 
-func (v *vote) stringToVoteOption(str string) (v1.VoteOption, error) {
+func (v *Vote) stringToVoteOption(str string) (v1.VoteOption, error) {
 	str = strings.ToLower(str)
 	switch str {
 	case "yes":
@@ -165,7 +163,7 @@ func (v *vote) stringToVoteOption(str string) (v1.VoteOption, error) {
 	}
 }
 
-func (v *vote) GetValidV1Endpoint(chainInfo registry.ChainInfo) (bool, error) {
+func (v *Vote) GetValidV1Endpoint(chainInfo registry.ChainInfo) (bool, error) {
 	var out []string
 	for _, endpoint := range chainInfo.Apis.Rest {
 		u, err := url.Parse(endpoint.Address)

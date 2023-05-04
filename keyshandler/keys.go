@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/likhita-809/lens-bot/database"
-	"github.com/likhita-809/lens-bot/targets"
 	lensclient "github.com/strangelove-ventures/lens/client"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
 	"go.uber.org/zap"
@@ -15,12 +14,11 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type keys struct {
-	db   *database.Sqlitedb
-	trgt *targets.Data
+type Keys struct {
+	db *database.Sqlitedb
 }
 
-func (k keys) CreateKeys(chainName, keyName string) error {
+func (k Keys) CreateKeys(chainName, keyName string) error {
 	// Fetch chain info from chain registry
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 

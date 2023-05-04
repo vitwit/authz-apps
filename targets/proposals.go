@@ -1,11 +1,14 @@
 package targets
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/likhita-809/lens-bot/alerting"
 	"github.com/likhita-809/lens-bot/config"
@@ -13,98 +16,86 @@ import (
 )
 
 type Data struct {
-	db *database.Sqlitedb
+	db  *database.Sqlitedb
+	cfg *config.Config
 }
 
 // Gets Proposals,valid LCD endpoints and alerts on proposals.
 
-func (a *Data) GetProposals(cfg *config.Config) {
+func (a *Data) GetProposals(db *database.Sqlitedb) {
 
-	validEndpoints, err := GetValidLCDEndpoints()
+	var networksMap map[string]bool
+	var networks []string
+	vals, err := db.GetValidators()
 	if err != nil {
-		log.Printf("Error in getting proposals endpoint : %v\n", err)
+		panic(err)
 	}
-	for _, proposalsEndpoint := range validEndpoints {
-		err = a.AlertOnProposals(proposalsEndpoint, cfg)
-		if err != nil {
-			log.Printf("Error in sending proposals alert : %v\n", err)
+
+	for _, val := range vals {
+		if !networksMap[val.ChainName] {
+			networks = append(networks, val.ChainName)
 		}
 	}
+	a.AlertOnProposals(networks)
+
 }
 
 // Alerts on Active Proposals
-func (a *Data) AlertOnProposals(endpoint string, cfg *config.Config) error {
-	ops := HTTPOptions{
-		Endpoint:    endpoint + "/cosmos/gov/v1beta1/proposals",
-		Method:      http.MethodGet,
-		QueryParams: QueryParams{"proposal_status": "2"},
-	}
-	resp, err := HitHTTPTarget(ops)
+func (a *Data) AlertOnProposals(networks []string) error {
+	validators, err := a.db.GetValidators()
 	if err != nil {
-		log.Printf("Error while getting http response: %v", err)
 		return err
 	}
-
-	var p Proposals
-	err = json.Unmarshal(resp.Body, &p)
-	if err != nil {
-		log.Printf("Error while unmarshalling the proposals: %v", err)
-		return err
-	}
-
-	for _, proposal := range p.Proposals {
-		valAddrs, err := a.db.GetValidatorAddress()
+	for _, val := range validators {
+		validEndpoints, err := GetValidLCDEndpoints(val.ChainName)
 		if err != nil {
-			return err
+			log.Printf("Error in getting%s validator's proposals endpoint : %v\n", val.Address, err)
 		}
-		for _, valAddr := range valAddrs {
-			validatorVote := GetValidatorVote(endpoint, proposal.ProposalID, valAddr)
-			if validatorVote == "" {
-				err := SendVotingPeriodProposalAlerts(valAddr, proposal.ProposalID, proposal.VotingEndTime, cfg)
-				if err != nil {
-					log.Printf("error on sending voting period proposals alert: %v", err)
-				}
-			} // else {
-			//StoreValidatorVote(endpoint, proposal.ProposalID, valAddr)
-			//}
+		for _, endpoint := range validEndpoints {
+			ops := HTTPOptions{
+				Endpoint:    endpoint + "/cosmos/gov/v1beta1/proposals",
+				Method:      http.MethodGet,
+				QueryParams: QueryParams{"proposal_status": "2"},
+			}
+			resp, err := HitHTTPTarget(ops)
+			if err != nil {
+				log.Printf("Error while getting http response: %v", err)
+				return err
+			}
+			var p Proposals
+			err = json.Unmarshal(resp.Body, &p)
+			if err != nil {
+				log.Printf("Error while unmarshalling the proposals: %v", err)
+				return err
+			}
 
+			for _, proposal := range p.Proposals {
+
+				validatorVote := a.GetValidatorVote(endpoint, proposal.ProposalID, val.Address)
+				if validatorVote == "" {
+					err := a.SendVotingPeriodProposalAlerts(val.Address, proposal.ProposalID, proposal.VotingEndTime)
+					if err != nil {
+						log.Printf("error on sending voting period proposals alert: %v", err)
+					}
+				}
+
+			}
 		}
 	}
-
 	return nil
 }
 
-// // StoreValidatorVote to store the validator vote information.
-// func (a *Data) StoreValidatorVote(endpoint, proposalID, valAddr string) {
-// 	ops := HTTPOptions{
-// 		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + proposalID + "/votes/" + valAddr,
-// 		Method:   http.MethodGet,
-// 	}
-// 	resp, err := HitHTTPTarget(ops)
-// 	if err != nil {
-// 		log.Printf("Error while getting http response: %v", err)
-// 	}
-
-// 	var v Vote
-// 	err = json.Unmarshal(resp.Body, &v)
-// 	if err != nil {
-// 		log.Printf("Error while unmarshalling the proposal votes: %v", err)
-// 	}
-// 	var voteOption string
-// 	for _, v := range v.Vote.Options {
-// 		voteOption = v.Option
-// 	}
-// 	a.db.VotesDataInsert(v.Vote.ProposalID, v.Vote.Voter, voteOption)
-// }
-
 // GetValidatorVote to check validator voted for the proposal or not.
 
-// Checks whether validator has voted or not
-func GetValidatorVote(endpoint, proposalID, valAddr string) string {
+func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) string {
+
+	ValAddr, _ := sdk.ValAddressFromBech32(valAddr)
+	accAddr, _ := sdk.AccAddressFromHexUnsafe(hex.EncodeToString(ValAddr.Bytes()))
 	ops := HTTPOptions{
-		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + proposalID + "/votes/" + valAddr,
+		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + proposalID + "/votes/" + accAddr.String(),
 		Method:   http.MethodGet,
 	}
+	log.Println(ops.Endpoint)
 	resp, err := HitHTTPTarget(ops)
 	if err != nil {
 		log.Printf("Error while getting http response: %v", err)
@@ -114,6 +105,7 @@ func GetValidatorVote(endpoint, proposalID, valAddr string) string {
 	if err != nil {
 		log.Printf("Error while unmarshalling the proposal votes: %v", err)
 	}
+	log.Println(v)
 
 	validatorVoted := ""
 	for _, value := range v.Vote.Options {
@@ -124,15 +116,17 @@ func GetValidatorVote(endpoint, proposalID, valAddr string) string {
 }
 
 // SendVotingPeriodProposalAlerts which send alerts of voting period proposals
-func SendVotingPeriodProposalAlerts(accountAddress, proposalID, votingEndTime string, cfg *config.Config) error {
+func (a *Data) SendVotingPeriodProposalAlerts(accountAddress, proposalID, votingEndTime string) error {
 	now := time.Now().UTC()
 	endTime, _ := time.Parse(time.RFC3339, votingEndTime)
 	timeDiff := now.Sub(endTime)
 	log.Println("timeDiff...", timeDiff.Hours())
 
-	err := alerting.NewSlackAlerter().Send(fmt.Sprintf("you have not voted on proposal %s with address %s", proposalID, accountAddress), cfg.Slack.BotToken, cfg.Slack.ChannelID)
-	if err != nil {
-		return err
+	if timeDiff.Hours() <= 24 {
+		err := alerting.NewSlackAlerter().Send(fmt.Sprintf("you have not voted on proposal %s with address %s", proposalID, accountAddress), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
+		if err != nil {
+			return err
+		}
 	} else {
 		log.Println("Sent alert of voting period proposals")
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/likhita-809/lens-bot/alerting"
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
+	"github.com/likhita-809/lens-bot/targets"
 )
 
 func main() {
@@ -14,13 +15,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	db.InitializeTables()
 
 	cfg, err := config.ReadConfigFromFile()
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	alerter := alerting.NewBotClient(cfg, db)
+	cron := targets.NewCron(db, cfg, alerter)
+	cron.Start()
 	alerter.Initializecommands()
 
 	// m := targets.InitTargets()
