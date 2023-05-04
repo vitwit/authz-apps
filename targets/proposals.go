@@ -9,8 +9,8 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/slack-go/slack"
 
-	"github.com/likhita-809/lens-bot/alerting"
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
 )
@@ -18,6 +18,7 @@ import (
 type Data struct {
 	db  *database.Sqlitedb
 	cfg *config.Config
+	//bot *alerting.Slackbot
 }
 
 // Gets Proposals,valid LCD endpoints and alerts on proposals.
@@ -38,6 +39,12 @@ func (a *Data) GetProposals(db *database.Sqlitedb) {
 	}
 	a.AlertOnProposals(networks)
 
+}
+
+type MissedProposal struct {
+	accAdd     string
+	pID        string
+	votEndTime string
 }
 
 // Alerts on Active Proposals
@@ -68,17 +75,29 @@ func (a *Data) AlertOnProposals(networks []string) error {
 				log.Printf("Error while unmarshalling the proposals: %v", err)
 				return err
 			}
+			log.Println("alert1")
+
+			var missedProposals []MissedProposal
 
 			for _, proposal := range p.Proposals {
+				log.Println("alert2")
 
 				validatorVote := a.GetValidatorVote(endpoint, proposal.ProposalID, val.Address)
 				if validatorVote == "" {
-					err := a.SendVotingPeriodProposalAlerts(val.Address, proposal.ProposalID, proposal.VotingEndTime)
-					if err != nil {
-						log.Printf("error on sending voting period proposals alert: %v", err)
-					}
+					log.Println("alert3")
+					missedProposals = append(missedProposals, MissedProposal{
+						accAdd:     val.Address,
+						pID:        proposal.ProposalID,
+						votEndTime: proposal.VotingEndTime,
+					})
 				}
 
+			}
+
+			// err = a.SendVotingPeriodProposalAlerts(val.Address, proposal.ProposalID, proposal.VotingEndTime)
+			err = a.SendVotingPeriodProposalAlerts(missedProposals)
+			if err != nil {
+				log.Printf("error on sending voting period proposals alert: %v", err)
 			}
 		}
 	}
@@ -116,19 +135,37 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) string {
 }
 
 // SendVotingPeriodProposalAlerts which send alerts of voting period proposals
-func (a *Data) SendVotingPeriodProposalAlerts(accountAddress, proposalID, votingEndTime string) error {
-	now := time.Now().UTC()
-	endTime, _ := time.Parse(time.RFC3339, votingEndTime)
-	timeDiff := now.Sub(endTime)
-	log.Println("timeDiff...", timeDiff.Hours())
+func (a *Data) SendVotingPeriodProposalAlerts(proposals []MissedProposal) error {
+	//err := alerting.NewSlackAlerter().Send(fmt.Sprintf("you have not voted on proposal %s with address %s", proposalID, accountAddress), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
+	// var botCtx slacker.BotContext
+	api := slack.New(a.cfg.Slack.BotToken)
+	var blocks []slack.Block
 
-	if timeDiff.Hours() <= 24 {
-		err := alerting.NewSlackAlerter().Send(fmt.Sprintf("you have not voted on proposal %s with address %s", proposalID, accountAddress), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
-		if err != nil {
-			return err
+	for _, p := range proposals {
+		now := time.Now().UTC()
+		endTime, _ := time.Parse(time.RFC3339, p.votEndTime)
+		timeDiff := now.Sub(endTime)
+		log.Println("timeDiff...", timeDiff.Hours())
+
+		if timeDiff.Hours() <= 24 {
+			blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* ---*%s*--- *%s*", p.accAdd, p.pID, p.votEndTime), false, false),
+				nil, nil))
+		} else {
+			log.Println("Sent alert of voting period proposals")
 		}
-	} else {
-		log.Println("Sent alert of voting period proposals")
 	}
+	attachment := []slack.Block{
+		slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Account Address ---Proposal ID--- Voting End Time", false, false)),
+	}
+	attachment = append(attachment, blocks...)
+
+	_, _, err := api.PostMessage(
+		a.cfg.Slack.ChannelID,
+		slack.MsgOptionBlocks(attachment...),
+	)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

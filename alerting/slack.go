@@ -159,6 +159,12 @@ func (a *Slackbot) Initializecommands() error {
 	return err
 }
 
+// type MissedProposal struct {
+// 	accAdd     string
+// 	pID        string
+// 	votEndTime string
+// }
+
 // Send allows bot to send a slack alert to the configured channelID
 func (s slackAlert) Send(msgText, botToken string, channelID string) error {
 	// Create a new client to slack by giving token
