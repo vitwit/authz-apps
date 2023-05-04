@@ -46,7 +46,7 @@ func GetAllLCDEndpoints(c registry.ChainInfo) (out []string, err error) {
 			case "http":
 				port = "80"
 			default:
-				return nil, fmt.Errorf("invalid or unsupported url scheme: %v", u.Scheme)
+				log.Printf("invalid or unsupported url scheme: %v", u.Scheme)
 			}
 		} else {
 			port = u.Port()
@@ -77,7 +77,7 @@ func GetStatus(endpoint string) bool {
 	resp, err := HitHTTPTarget(ops)
 	if err != nil {
 		log.Printf("Error in external rpc: %v", err)
-		fmt.Printf("⛔⛔ Unreachable to EXTERNAL RPC :: %s and the ERROR is : %v\n\n", ops.Endpoint, err.Error())
+		log.Printf("⛔⛔ Unreachable to EXTERNAL RPC :: %s and the ERROR is : %v\n\n", ops.Endpoint, err.Error())
 		return false
 	}
 	return resp.StatusCode == http.StatusOK

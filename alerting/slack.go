@@ -19,6 +19,7 @@ type Slackbot struct {
 	cfg *config.Config
 }
 
+// Creates a new bot client
 func NewBotClient(config *config.Config, db *database.Sqlitedb) *Slackbot {
 	bot := slacker.NewClient(config.Slack.BotToken, config.Slack.AppToken)
 	return &Slackbot{
@@ -27,19 +28,23 @@ func NewBotClient(config *config.Config, db *database.Sqlitedb) *Slackbot {
 		cfg: config,
 	}
 }
+
+// Creates and initialises commands
 func (a *Slackbot) Initializecommands() error {
+
+	//Command to Register validator
 	a.bot.Command("register-validator <chainname> <validator_address>", &slacker.CommandDefinition{
 		Description: "register a new validator",
 		Examples:    []string{"/register-validator cosmoshub cosmos1a..."},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			chainname := request.Param("chainname")
-			validator_address := request.Param("validator_address")
-			n := a.db.CheckValidator(validator_address)
-			a.db.AddValidator(chainname, validator_address)
-			if n != "" {
-				response.Reply(n)
+			validatorAddress := request.Param("validator_address")
+			isExist := a.db.HasValidator(validatorAddress)
+			if isExist {
+				response.Reply("Validator is already registered")
 			} else {
-				r := fmt.Sprintf("your respose has been recorded %s", validator_address)
+				a.db.AddValidator(chainname, validatorAddress)
+				r := fmt.Sprintf("Your response has been recorded %s", validatorAddress)
 				response.Reply(r)
 			}
 		},
@@ -54,7 +59,7 @@ func (a *Slackbot) Initializecommands() error {
 	// 		if err != nil {
 	// 			response.Reply(err.Error())
 	// 		} else {
-	// 			NewSlackAlerter().Send(fmt.Sprintf("Successfully created your key with name %s", key_name), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
+	// 			NewSlackAlerter().Send(log.Sprintf("Successfully created your key with name %s", key_name), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
 	// 		}
 	// 	},
 	// })
@@ -75,9 +80,9 @@ func (a *Slackbot) Initializecommands() error {
 	// 			fees := request.StringParam("fees_optional", "")
 	// 			err := voting.ExecVote(chainID, pID, valAddr, voteOption, fromKey, metadata, memo, gas, fees)
 	// 			if err != nil {
-	// 				fmt.Printf("error on executing vote: %v", err)
+	// 				log.Printf("error on executing vote: %v", err)
 	// 			}
-	// 			a := fmt.Sprintf("%v", err.Error())
+	// 			a := log.Sprintf("%v", err.Error())
 	// 			response.Reply(a)
 	// 		},
 	// 	},
@@ -90,7 +95,7 @@ func (a *Slackbot) Initializecommands() error {
 	// 		if err != nil {
 	// 			response.ReportError(err)
 	// 		} else {
-	// 			data := fmt.Sprintf("%v", r)
+	// 			data := log.Sprintf("%v", r)
 
 	// 			apiClient := botCtx.APIClient()
 	// 			event := botCtx.Event()
@@ -108,6 +113,8 @@ func (a *Slackbot) Initializecommands() error {
 	// 		}
 	// 	},
 	// })
+
+	//Command to list all registered validators
 	a.bot.Command("list-validators", &slacker.CommandDefinition{
 		Description: "lists all chains with associated validator addresses",
 		Examples:    []string{"list-validators"},
@@ -179,6 +186,6 @@ func (s slackAlert) Send(msgText, botToken string, channelID string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Message sent at %s", timestamp)
+	log.Printf("Message sent at %s", timestamp)
 	return nil
 }

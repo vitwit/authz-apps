@@ -9,23 +9,31 @@ import (
 
 	"github.com/likhita-809/lens-bot/alerting"
 	"github.com/likhita-809/lens-bot/config"
-	"github.com/likhita-809/lens-bot/sqldata"
+	"github.com/likhita-809/lens-bot/database"
 )
 
-func GetProposals(cfg *config.Config) {
+type Data struct {
+	db *database.Sqlitedb
+}
+
+// Gets Proposals,valid LCD endpoints and alerts on proposals.
+
+func (a *Data) GetProposals(cfg *config.Config) {
+
 	validEndpoints, err := GetValidLCDEndpoints()
 	if err != nil {
-		fmt.Printf("Error in getting proposals endpoint : %v\n", err)
+		log.Printf("Error in getting proposals endpoint : %v\n", err)
 	}
 	for _, proposalsEndpoint := range validEndpoints {
-		err = AlertOnProposals(proposalsEndpoint, cfg)
+		err = a.AlertOnProposals(proposalsEndpoint, cfg)
 		if err != nil {
-			fmt.Printf("Error in sending proposals alert : %v\n", err)
+			log.Printf("Error in sending proposals alert : %v\n", err)
 		}
 	}
 }
 
-func AlertOnProposals(endpoint string, cfg *config.Config) error {
+// Alerts on Active Proposals
+func (a *Data) AlertOnProposals(endpoint string, cfg *config.Config) error {
 	ops := HTTPOptions{
 		Endpoint:    endpoint + "/cosmos/gov/v1beta1/proposals",
 		Method:      http.MethodGet,
@@ -45,7 +53,7 @@ func AlertOnProposals(endpoint string, cfg *config.Config) error {
 	}
 
 	for _, proposal := range p.Proposals {
-		valAddrs, err := sqldata.GetAllValAddrs()
+		valAddrs, err := a.db.GetValidatorAddress()
 		if err != nil {
 			return err
 		}
@@ -54,11 +62,11 @@ func AlertOnProposals(endpoint string, cfg *config.Config) error {
 			if validatorVote == "" {
 				err := SendVotingPeriodProposalAlerts(valAddr, proposal.ProposalID, proposal.VotingEndTime, cfg)
 				if err != nil {
-					return fmt.Errorf("error on sending voting period proposals alert: %v", err)
+					log.Printf("error on sending voting period proposals alert: %v", err)
 				}
-			} else {
-				StoreValidatorVote(endpoint, proposal.ProposalID, valAddr)
-			}
+			} // else {
+			//StoreValidatorVote(endpoint, proposal.ProposalID, valAddr)
+			//}
 
 		}
 	}
@@ -66,30 +74,32 @@ func AlertOnProposals(endpoint string, cfg *config.Config) error {
 	return nil
 }
 
-// StoreValidatorVote to store the validator vote information.
-func StoreValidatorVote(endpoint, proposalID, valAddr string) {
-	ops := HTTPOptions{
-		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + proposalID + "/votes/" + valAddr,
-		Method:   http.MethodGet,
-	}
-	resp, err := HitHTTPTarget(ops)
-	if err != nil {
-		log.Printf("Error while getting http response: %v", err)
-	}
+// // StoreValidatorVote to store the validator vote information.
+// func (a *Data) StoreValidatorVote(endpoint, proposalID, valAddr string) {
+// 	ops := HTTPOptions{
+// 		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + proposalID + "/votes/" + valAddr,
+// 		Method:   http.MethodGet,
+// 	}
+// 	resp, err := HitHTTPTarget(ops)
+// 	if err != nil {
+// 		log.Printf("Error while getting http response: %v", err)
+// 	}
 
-	var v Vote
-	err = json.Unmarshal(resp.Body, &v)
-	if err != nil {
-		log.Printf("Error while unmarshalling the proposal votes: %v", err)
-	}
-	var voteOption string
-	for _, v := range v.Vote.Options {
-		voteOption = v.Option
-	}
-	sqldata.VotesDataInsert(v.Vote.ProposalID, v.Vote.Voter, voteOption)
-}
+// 	var v Vote
+// 	err = json.Unmarshal(resp.Body, &v)
+// 	if err != nil {
+// 		log.Printf("Error while unmarshalling the proposal votes: %v", err)
+// 	}
+// 	var voteOption string
+// 	for _, v := range v.Vote.Options {
+// 		voteOption = v.Option
+// 	}
+// 	a.db.VotesDataInsert(v.Vote.ProposalID, v.Vote.Voter, voteOption)
+// }
 
 // GetValidatorVote to check validator voted for the proposal or not.
+
+// Checks whether validator has voted or not
 func GetValidatorVote(endpoint, proposalID, valAddr string) string {
 	ops := HTTPOptions{
 		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + proposalID + "/votes/" + valAddr,

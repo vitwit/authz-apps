@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"log"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -13,10 +14,16 @@ type Validator struct {
 	Address   string
 }
 
+type keys struct {
+	ChainName string
+	KeyName   string
+}
+
 type Sqlitedb struct {
 	db *sql.DB
 }
 
+// Opens connection to SQLite database
 func NewDatabase() (*Sqlitedb, error) {
 	db, err := sql.Open("sqlite3", "./slackbot.db")
 	return &Sqlitedb{
@@ -24,15 +31,27 @@ func NewDatabase() (*Sqlitedb, error) {
 	}, err
 }
 
+// Closes the connection
 func (a *Sqlitedb) Close() error {
 	return a.db.Close()
 }
 
+// Creates all the required tables in database
 func (a *Sqlitedb) InitializeTables() error {
 	_, err := a.db.Exec("CREATE TABLE IF NOT EXISTS validators (chainname VARCHAR, address VARCHAR PRIMARY KEY)")
+	if err != nil {
+		return err
+	}
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS votes (proposalID VARCHAR, validatorAddress VARCHAR, voteOption VARCHAR)")
+	if err != nil {
+		return err
+	}
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainname VARCHAR, keyname VARCHAR, keyAddress VARCHAR)")
 	return err
+
 }
 
+// Stores validator information
 func (s *Sqlitedb) AddValidator(name, address string) error {
 	stmt, err := s.db.Prepare("INSERT INTO validators(chainname, address) values(?,?)")
 	if err != nil {
@@ -44,24 +63,51 @@ func (s *Sqlitedb) AddValidator(name, address string) error {
 	_, err = stmt.Exec(name, address)
 	return err
 }
-func (s *Sqlitedb) CheckValidator(inputaddress string) string {
-	rows, err := s.db.Query("SELECT address FROM validators")
-	if err != nil {
-		panic(err)
-	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var validator Validator
-		if err := rows.Scan(&validator.Address); err != nil {
-			panic(err)
-		}
-		if validator.Address == inputaddress {
-			return "Validator is already registered"
-		}
+// Stores validator votes
+func (a *Sqlitedb) AddVotes(proposalID, validatorAddress, voteOption string) error {
+	stmt, err := a.db.Prepare("INSERT INTO votes(proposalID, validatorAddress, voteOption) values(?,?,?)")
+	if err != nil {
+		return err
 	}
-	return ""
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(proposalID, validatorAddress, voteOption)
+	return err
 }
+
+// Stores Keys information
+func (a *Sqlitedb) AddKey(chainname, keyname, keyAddress string) error {
+	stmt, err := a.db.Prepare("INSERT INTO keys(chainname, keyname, keyAddress) values(?,?,?)")
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(chainname, keyname, keyAddress)
+	return err
+}
+
+// Checks whether the validator already exists in the database
+func (s *Sqlitedb) HasValidator(validatorAddress string) bool {
+	stmt, err := s.db.Prepare("SELECT EXISTS(SELECT 1 FROM validators WHERE address = ?)")
+	if err != nil {
+		log.Println(err)
+	}
+	defer stmt.Close()
+
+	var exists bool
+	err = stmt.QueryRow(validatorAddress).Scan(&exists)
+	if err != nil {
+		log.Println(err)
+
+	}
+	return exists
+}
+
+// Gets all the data stored regarding the validators
 func (s *Sqlitedb) GetValidators() ([]Validator, error) {
 	rows, err := s.db.Query("SELECT chainname, address FROM validators")
 
@@ -85,176 +131,67 @@ func (s *Sqlitedb) GetValidators() ([]Validator, error) {
 	return validators, nil
 }
 
-// type (
-// 	keys struct {
-// 		chain_name string
-// 		key_name   string
-// 	}
+// Gets all the validator address stored in validators
+func (s *Sqlitedb) GetValidatorAddress() (ValidatorAddress []string, err error) {
+	rows, err := s.db.Query("SELECT address FROM validators")
 
-// 	chaindata struct {
-// 		chain_name        string
-// 		validator_address string
-// 	}
-// )
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var Address string
+		if err := rows.Scan(Address); err != nil {
+			return nil, err
+		}
+		ValidatorAddress = append(ValidatorAddress, Address)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
 
-// func NewChainData() (db *sql.DB) {
-// 	_, err = db.Exec("CREATE TABLE IF NOT EXISTS chaindata (chain_name VARCHAR, validator_address VARCHAR)")
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	return db
-// }
+	return ValidatorAddress, nil
+}
 
-// func NewVotesData() (db *sql.DB) {
-// 	_, err = db.Exec("CREATE TABLE IF NOT EXISTS votesdata (proposal_ID VARCHAR, validator_address VARCHAR, vote_option VARCHAR)")
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	return db
-// }
+// Gets Key address of a specific key
+func (a *Sqlitedb) GetKeyAddress(key string) (string, error) {
+	var addr string
+	stmt, err := a.db.Prepare("SELECT key_address FROM keysdata WHERE key_name=?")
+	checkErr(err)
+	defer stmt.Close()
 
-// func NewKeysData() (db *sql.DB) {
-// 	_, err = db.Exec("CREATE TABLE IF NOT EXISTS keysdata (chain_name VARCHAR, key_name VARCHAR, key_address VARCHAR)")
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	return db
-// }
+	err = stmt.QueryRow(key).Scan(&addr)
+	checkErr(err)
 
-// func VotesDataInsert(proposal_ID, validator_address, vote_option string) {
-// 	db := NewVotesData()
+	return addr, nil
+}
 
-// 	stmt, err := db.Prepare("INSERT INTO votesdata(proposal_ID, validator_address, vote_option) values(?,?,?)")
-// 	checkErr(err)
-// 	defer stmt.Close()
+// Gets required data regarding keys
+func (a *Sqlitedb) GetKeys() ([]keys, error) {
+	log.Printf("Fetching keys...")
 
-// 	res, err := stmt.Exec(proposal_ID, validator_address, vote_option)
-// 	checkErr(err)
+	rows, err := a.db.Query("SELECT chain_name, key_name FROM keysdata")
+	checkErr(err)
+	defer rows.Close()
 
-// 	Id, err := res.LastInsertId()
-// 	checkErr(err)
+	var k []keys
+	for rows.Next() {
+		var data keys
+		if err := rows.Scan(&data.ChainName, &data.KeyName); err != nil {
+			return k, err
+		}
+		k = append(k, data)
+	}
+	if err = rows.Err(); err != nil {
+		return k, err
+	}
 
-// 	fmt.Printf("Successfully added votes data to the db with ID: %v\n", Id)
-// 	db.Close()
-// }
+	return k, nil
+}
 
-// func InsertKey(chain_name, key_name, key_address string) {
-// 	db := NewKeysData()
-
-// 	stmt, err := db.Prepare("INSERT INTO keysdata(chain_name, key_name, key_address) values(?,?,?)")
-// 	checkErr(err)
-// 	defer stmt.Close()
-
-// 	res, err := stmt.Exec(chain_name, key_name, key_address)
-// 	checkErr(err)
-
-// 	Id, err := res.LastInsertId()
-// 	checkErr(err)
-
-// 	fmt.Printf("Successfully added key to the db with ID: %v\n", Id)
-// 	db.Close()
-// }
-
-// func GetKeyAddress(key string) (string, error) {
-// 	db := NewKeysData()
-
-// 	var addr string
-// 	stmt, err := db.Prepare("SELECT key_address FROM keysdata WHERE key_name=?")
-// 	checkErr(err)
-// 	defer stmt.Close()
-
-// 	err = stmt.QueryRow(key).Scan(&addr)
-// 	checkErr(err)
-
-// 	return addr, nil
-// }
-
-// func ChainDataInsert(chain_name string, validator_address string) {
-// 	db := NewChainData()
-
-// 	stmt, err := db.Prepare("INSERT INTO chaindata(chain_name, validator_address) values(?,?)")
-// 	checkErr(err)
-// 	defer stmt.Close()
-
-// 	res, err := stmt.Exec(chain_name, validator_address)
-// 	checkErr(err)
-
-// 	Id, err := res.LastInsertId()
-// 	checkErr(err)
-
-// 	fmt.Printf("Successfully added validator address and chain name to the db with ID: %v\n", Id)
-// 	db.Close()
-// }
-
-// func ListKeys() ([]keys, error) {
-// 	log.Printf("Fetching keys...")
-// 	db := NewKeysData()
-
-// 	rows, err := db.Query("SELECT chain_name, key_name FROM keysdata")
-// 	checkErr(err)
-// 	defer rows.Close()
-
-// 	var k []keys
-// 	for rows.Next() {
-// 		var data keys
-// 		if err := rows.Scan(&data.chain_name, &data.key_name); err != nil {
-// 			return k, err
-// 		}
-// 		k = append(k, data)
-// 	}
-// 	if err = rows.Err(); err != nil {
-// 		return k, err
-// 	}
-
-// 	return k, nil
-// }
-
-// func ChainDataList() ([]chaindata, error) {
-// 	log.Printf("Getting list...")
-// 	db := NewChainData()
-
-// 	rows, err := db.Query("SELECT chain_name, validator_address FROM chaindata")
-// 	checkErr(err)
-// 	defer rows.Close()
-
-// 	var data []chaindata
-// 	for rows.Next() {
-// 		var chain chaindata
-// 		if err := rows.Scan(&chain.chain_name, &chain.validator_address); err != nil {
-// 			return data, err
-// 		}
-// 		data = append(data, chain)
-// 	}
-// 	if err = rows.Err(); err != nil {
-// 		return data, err
-// 	}
-
-// 	return data, nil
-// }
-
-// func GetAllValAddrs() (valAddrs []string, err error) {
-// 	log.Printf("Getting Validator addresses")
-// 	db := NewChainData()
-
-// 	rows, err := db.Query("SELECT validator_address FROM chaindata")
-// 	checkErr(err)
-// 	defer rows.Close()
-
-// 	for rows.Next() {
-// 		var chain chaindata
-// 		if err := rows.Scan(&chain.validator_address); err != nil {
-// 			return []string{}, err
-// 		}
-// 		valAddrs = append(valAddrs, chain.validator_address)
-// 	}
-// 	if err = rows.Err(); err != nil {
-// 		return []string{}, err
-// 	}
-// 	return valAddrs, nil
-// }
-
-// func checkErr(err error) {
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// }
+// checks for an error
+func checkErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}

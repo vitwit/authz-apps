@@ -6,11 +6,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/likhita-809/lens-bot/alerting"
 	"github.com/likhita-809/lens-bot/config"
 )
 
-type targetRunner struct{}
+type targetRunner struct {
+	data *Data
+	cfg  *config.Config
+}
 
 // NewRunner returns targetRunner
 func NewRunner() *targetRunner {
@@ -18,11 +20,11 @@ func NewRunner() *targetRunner {
 }
 
 // Run to run the request
-func (m targetRunner) Run(function func(cfg *config.Config), cfg *config.Config) {
-	function(cfg)
+func (m targetRunner) Run(function func(cfg *config.Config)) {
+	function(m.cfg)
 }
 
-func InitTargets() *Targets {
+func (m targetRunner) InitTargets() *Targets {
 	return &Targets{List: []Target{
 		{
 			ExecutionType: "http",
@@ -30,17 +32,17 @@ func InitTargets() *Targets {
 			HTTPOptions: HTTPOptions{
 				Method: http.MethodGet,
 			},
-			Func:        GetProposals,
+			Func:        m.data.GetProposals,
 			ScraperRate: "2h",
 		},
-		{
-			Name: "Slack cmds",
-			HTTPOptions: HTTPOptions{
-				Method: http.MethodGet,
-			},
-			Func:        alerting.RegisterSlack,
-			ScraperRate: "3s",
-		},
+		// {
+		// 	Name: "Slack cmds",
+		// 	HTTPOptions: HTTPOptions{
+		// 		Method: http.MethodGet,
+		// 	},
+		// 	Func:        alerting.RegisterSlack,
+		// 	ScraperRate: "3s",
+		// },
 	}}
 }
 

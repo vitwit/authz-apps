@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/likhita-809/lens-bot/sqldata"
-
+	"github.com/likhita-809/lens-bot/config"
+	"github.com/likhita-809/lens-bot/database"
 	lensclient "github.com/strangelove-ventures/lens/client"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
 	"go.uber.org/zap"
@@ -24,7 +24,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 )
 
-func GetChainName(chainID string, cr registry.ChainRegistry) (string, error) {
+type vote struct {
+	db  *database.Sqlitedb
+	cfg *config.Config
+}
+
+func (v *vote) GetChainName(chainID string, cr registry.ChainRegistry) (string, error) {
 	chains, err := cr.ListChains(context.Background())
 	if err != nil {
 		return "", err
@@ -36,14 +41,15 @@ func GetChainName(chainID string, cr registry.ChainRegistry) (string, error) {
 			return chainName, nil
 		}
 	}
-	return "", fmt.Errorf("chain name not found")
+	log.Printf("chain name not found")
+	return "", nil
 }
 
-func ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, gas, fees string) error {
+func (v *vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, gas, fees string) error {
 	// Fetch chain info from chain registry
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
-	chainName, err := GetChainName(chainID, cr)
+	chainName, err := v.GetChainName(chainID, cr)
 	if err != nil {
 		log.Fatalf("chain name not found")
 	}
@@ -82,7 +88,7 @@ func ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, gas, fees st
 		log.Fatalf("failed to build new chain client for %s. Err: %v", chainInfo.ChainID, err)
 	}
 
-	keyAddr, err := sqldata.GetKeyAddress(fromKey)
+	keyAddr, err := v.db.GetKeyAddress(fromKey)
 	if err != nil {
 		log.Fatalf("error while getting address of %s key", fromKey)
 	}
@@ -91,14 +97,14 @@ func ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, gas, fees st
 	if err != nil {
 		log.Fatalf("unable to convert string to uint64. Err: %v", err)
 	}
-	voteOption, err := stringToVoteOption(vote)
+	voteOption, err := v.stringToVoteOption(vote)
 	if err != nil {
 		log.Fatalf("unable to convert vote option string to sdk vote option. Err: %v", err)
 	}
 
 	var msgAny *cdctypes.Any
 
-	validV1Endpoint, err := GetValidV1Endpoint(chainInfo)
+	validV1Endpoint, err := v.GetValidV1Endpoint(chainInfo)
 	if err != nil {
 		log.Fatalf("error while getting valid gov v1 endpoint: %v", err)
 	}
@@ -142,7 +148,7 @@ func ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, gas, fees st
 	return nil
 }
 
-func stringToVoteOption(str string) (v1.VoteOption, error) {
+func (v *vote) stringToVoteOption(str string) (v1.VoteOption, error) {
 	str = strings.ToLower(str)
 	switch str {
 	case "yes":
@@ -154,11 +160,12 @@ func stringToVoteOption(str string) (v1.VoteOption, error) {
 	case "no_with_veto":
 		return v1.OptionNoWithVeto, nil
 	default:
-		return v1.VoteOption(0), fmt.Errorf("invalid vote option: %s", str)
+		log.Printf("invalid vote option: %s", str)
+		return v1.VoteOption(0), nil
 	}
 }
 
-func GetValidV1Endpoint(chainInfo registry.ChainInfo) (bool, error) {
+func (v *vote) GetValidV1Endpoint(chainInfo registry.ChainInfo) (bool, error) {
 	var out []string
 	for _, endpoint := range chainInfo.Apis.Rest {
 		u, err := url.Parse(endpoint.Address)
@@ -173,7 +180,8 @@ func GetValidV1Endpoint(chainInfo registry.ChainInfo) (bool, error) {
 			case "http":
 				port = "80"
 			default:
-				return false, fmt.Errorf("invalid or unsupported url scheme: %v", u.Scheme)
+				log.Printf("invalid or unsupported url scheme: %v", u.Scheme)
+				return false, nil
 			}
 		} else {
 			port = u.Port()

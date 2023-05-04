@@ -1,5 +1,0 @@
-# Configure slack bot details to  get alerts
-[slack]
-slack_channel_id = "C0551NPBGTW"
-slack_bot_token = "xoxb-5192976590416-5170323504898-Z5RwjjXxaiqz9SaQIauTuPVg"
-slack_app_token = "xapp-1-A055BTNEYAD-5162715820838-57b8fa2188c719e1c13d296ef785479baedfebc3fa1a8b82330298252af007c1"
