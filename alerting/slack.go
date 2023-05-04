@@ -3,7 +3,6 @@ package alerting
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/likhita-809/lens-bot/config"
@@ -15,25 +14,12 @@ import (
 	"github.com/slack-go/slack"
 )
 
-func printCommandEvents(analyticsChannel <-chan *slacker.CommandEvent) {
-	for event := range analyticsChannel {
-		fmt.Println("Command Events")
-		fmt.Println(event.Timestamp)
-		fmt.Println(event.Command)
-		fmt.Println(event.Parameters)
-		fmt.Println(event.Event)
-	}
-}
-
 // Send allows bot to send a slack alert to the configured channelID
 func RegisterSlack(config *config.Config) {
 	// Create a new client to slack by giving token
 	// Set debug to true while developing
 
 	bot := slacker.NewClient(config.Slack.BotToken, config.Slack.AppToken)
-
-	// show logs of command events
-	go printCommandEvents(bot.CommandEvents())
 
 	bot.Command("register <chain_id> <validator_address>", &slacker.CommandDefinition{
 		Description: "register",
@@ -142,7 +128,7 @@ func RegisterSlack(config *config.Config) {
 
 	err := bot.Listen(ctx)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Errorf("%s", err)
 	}
 }
 

@@ -3,7 +3,6 @@ package targets
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -33,14 +32,14 @@ func AlertOnProposals(endpoint string, cfg *config.Config) error {
 	}
 	resp, err := HitHTTPTarget(ops)
 	if err != nil {
-		log.Printf("Error while getting http response: %v", err)
+		fmt.Printf("Error while getting http response: %v", err)
 		return err
 	}
 
 	var p Proposals
 	err = json.Unmarshal(resp.Body, &p)
 	if err != nil {
-		log.Printf("Error while unmarshalling the proposals: %v", err)
+		fmt.Printf("Error while unmarshalling the proposals: %v", err)
 		return err
 	}
 
@@ -74,13 +73,13 @@ func StoreValidatorVote(endpoint, proposalID, valAddr string) {
 	}
 	resp, err := HitHTTPTarget(ops)
 	if err != nil {
-		log.Printf("Error while getting http response: %v", err)
+		fmt.Printf("Error while getting http response: %v", err)
 	}
 
 	var v Vote
 	err = json.Unmarshal(resp.Body, &v)
 	if err != nil {
-		log.Printf("Error while unmarshalling the proposal votes: %v", err)
+		fmt.Printf("Error while unmarshalling the proposal votes: %v", err)
 	}
 	var voteOption string
 	for _, v := range v.Vote.Options {
@@ -97,12 +96,12 @@ func GetValidatorVote(endpoint, proposalID, valAddr string) string {
 	}
 	resp, err := HitHTTPTarget(ops)
 	if err != nil {
-		log.Printf("Error while getting http response: %v", err)
+		fmt.Printf("Error while getting http response: %v", err)
 	}
 	var v Vote
 	err = json.Unmarshal(resp.Body, &v)
 	if err != nil {
-		log.Printf("Error while unmarshalling the proposal votes: %v", err)
+		fmt.Printf("Error while unmarshalling the proposal votes: %v", err)
 	}
 
 	validatorVoted := ""
@@ -118,13 +117,13 @@ func SendVotingPeriodProposalAlerts(accountAddress, proposalID, votingEndTime st
 	now := time.Now().UTC()
 	endTime, _ := time.Parse(time.RFC3339, votingEndTime)
 	timeDiff := now.Sub(endTime)
-	log.Println("timeDiff...", timeDiff.Hours())
+	fmt.Println("timeDiff...", timeDiff.Hours())
 
 	err := alerting.NewSlackAlerter().Send(fmt.Sprintf("you have not voted on proposal %s with address %s", proposalID, accountAddress), cfg.Slack.BotToken, cfg.Slack.ChannelID)
 	if err != nil {
 		return err
 	} else {
-		log.Println("Sent alert of voting period proposals")
+		fmt.Println("Sent alert of voting period proposals")
 	}
 	return nil
 }

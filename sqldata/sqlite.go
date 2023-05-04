@@ -3,7 +3,6 @@ package sqldata
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -118,7 +117,7 @@ func ChainDataInsert(chain_name string, validator_address string) {
 }
 
 func ListKeys() ([]keys, error) {
-	log.Printf("Fetching keys...")
+	fmt.Printf("Fetching keys...")
 	db := NewKeysData()
 
 	rows, err := db.Query("SELECT chain_name, key_name FROM keysdata")
@@ -141,7 +140,7 @@ func ListKeys() ([]keys, error) {
 }
 
 func ChainDataList() ([]chaindata, error) {
-	log.Printf("Getting list...")
+	fmt.Printf("Getting list...")
 	db := NewChainData()
 
 	rows, err := db.Query("SELECT chain_name, validator_address FROM chaindata")
@@ -164,7 +163,7 @@ func ChainDataList() ([]chaindata, error) {
 }
 
 func GetAllValAddrs() (valAddrs []string, err error) {
-	log.Printf("Getting Validator addresses")
+	fmt.Printf("Getting Validator addresses")
 	db := NewChainData()
 
 	rows, err := db.Query("SELECT validator_address FROM chaindata")
