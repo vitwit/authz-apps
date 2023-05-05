@@ -18,6 +18,7 @@ type Keys struct {
 	db *database.Sqlitedb
 }
 
+// Creates keys using chain name and chain registry
 func (k Keys) CreateKeys(chainName, keyName string) error {
 	// Fetch chain info from chain registry
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))

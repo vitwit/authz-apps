@@ -43,7 +43,7 @@ func (a *Sqlitedb) InitializeTables() error {
 		return err
 	}
 
-	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR, keyname VARCHAR, keyAddress VARCHAR)")
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR, keyName VARCHAR, keyAddress VARCHAR)")
 	return err
 
 }
@@ -62,15 +62,15 @@ func (s *Sqlitedb) AddValidator(name, address string) error {
 }
 
 // Stores Keys information
-func (a *Sqlitedb) AddKey(chainName, keyname, keyAddress string) error {
-	stmt, err := a.db.Prepare("INSERT INTO keys(chainName, keyname, keyAddress) values(?,?,?)")
+func (a *Sqlitedb) AddKey(chainName, keyName, keyAddress string) error {
+	stmt, err := a.db.Prepare("INSERT INTO keys(chainName, keyName, keyAddress) values(?,?,?)")
 	if err != nil {
 		return err
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(chainName, keyname, keyAddress)
+	_, err = stmt.Exec(chainName, keyName, keyAddress)
 	return err
 }
 

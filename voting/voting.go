@@ -3,7 +3,6 @@ package voting
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -27,6 +26,7 @@ type Vote struct {
 	db *database.Sqlitedb
 }
 
+// Gets various chain names from Chain registry
 func (v *Vote) GetChainName(chainID string, cr registry.ChainRegistry) (string, error) {
 	chains, err := cr.ListChains(context.Background())
 	if err != nil {
@@ -39,27 +39,27 @@ func (v *Vote) GetChainName(chainID string, cr registry.ChainRegistry) (string, 
 			return chainName, nil
 		}
 	}
-	log.Fatalf("chain name not found")
-	return "", nil
+	return "", fmt.Errorf("chain name not found")
 }
 
+// Votes on the proposal using the given data and key
 func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, gas, fees string) error {
 	// Fetch chain info from chain registry
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
 	chainName, err := v.GetChainName(chainID, cr)
 	if err != nil {
-		fmt.Errorf("chain name not found")
+		return fmt.Errorf("chain name not found")
 	}
 	chainInfo, err := cr.GetChain(context.Background(), chainName)
 	if err != nil {
-		fmt.Errorf("Failed to get chain info. Err: %v \n", err)
+		return fmt.Errorf("failed to get chain info. Err: %v ", err)
 	}
 
 	//	Use Chain info to select random endpoint
 	rpc, err := chainInfo.GetRandomRPCEndpoint(context.Background())
 	if err != nil {
-		fmt.Errorf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
+		return fmt.Errorf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
 	}
 
 	chainConfig := lensclient.ChainClientConfig{
@@ -78,33 +78,33 @@ func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, ga
 
 	curDir, err := os.Getwd()
 	if err != nil {
-		fmt.Errorf("error while getting current directory: %v", err)
+		return fmt.Errorf("error while getting current directory: %v", err)
 	}
 	// Create client object to pull chain info
 	chainClient, err := lensclient.NewChainClient(zap.L(), &chainConfig, curDir, os.Stdin, os.Stdout)
 	if err != nil {
-		fmt.Errorf("failed to build new chain client for %s. Err: %v", chainInfo.ChainID, err)
+		return fmt.Errorf("failed to build new chain client for %s. Err: %v", chainInfo.ChainID, err)
 	}
 
 	keyAddr, err := v.db.GetKeyAddress(fromKey)
 	if err != nil {
-		fmt.Errorf("error while getting address of %s key", fromKey)
+		return fmt.Errorf("error while getting address of %s key", fromKey)
 	}
 
 	proposalID, err := strconv.ParseUint(pID, 10, 64)
 	if err != nil {
-		fmt.Errorf("unable to convert string to uint64. Err: %v", err)
+		return fmt.Errorf("unable to convert string to uint64. Err: %v", err)
 	}
 	voteOption, err := v.stringToVoteOption(vote)
 	if err != nil {
-		fmt.Errorf("unable to convert vote option string to sdk vote option. Err: %v", err)
+		return fmt.Errorf("unable to convert vote option string to sdk vote option. Err: %v", err)
 	}
 
 	var msgAny *cdctypes.Any
 
 	validV1Endpoint, err := v.GetValidV1Endpoint(chainInfo)
 	if err != nil {
-		fmt.Errorf("error while getting valid gov v1 endpoint: %v", err)
+		return fmt.Errorf("error while getting valid gov v1 endpoint: %v", err)
 	}
 	if validV1Endpoint {
 		msgVote := v1.MsgVote{
@@ -115,7 +115,7 @@ func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, ga
 		}
 		msgAny, err = cdctypes.NewAnyWithValue(&msgVote)
 		if err != nil {
-			fmt.Errorf("error on converting msg to Any: %v", err)
+			return fmt.Errorf("error on converting msg to Any: %v", err)
 		}
 
 	} else {
@@ -126,7 +126,7 @@ func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, ga
 		}
 		msgAny, err = cdctypes.NewAnyWithValue(&msgVote)
 		if err != nil {
-			fmt.Errorf("error on converting msg to Any: %v", err)
+			return fmt.Errorf("error on converting msg to Any: %v", err)
 		}
 	}
 
@@ -139,13 +139,14 @@ func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, ga
 	res, err := chainClient.SendMsg(context.Background(), req, memo)
 	if err != nil {
 		if res != nil {
-			fmt.Errorf("failed to vote on proposal: code(%d) msg(%s)", res.Code, res.Logs)
+			return fmt.Errorf("failed to vote on proposal: code(%d) msg(%s)", res.Code, res.Logs)
 		}
-		fmt.Errorf("Failed to vote.Err: %v", err)
+		return fmt.Errorf("failed to vote.Err: %v", err)
 	}
 	return nil
 }
 
+// Converts the string to a acceptable vote format
 func (v *Vote) stringToVoteOption(str string) (v1.VoteOption, error) {
 	str = strings.ToLower(str)
 	switch str {
@@ -163,6 +164,7 @@ func (v *Vote) stringToVoteOption(str string) (v1.VoteOption, error) {
 	}
 }
 
+// Gets valid v1 endpoints from Chain registry
 func (v *Vote) GetValidV1Endpoint(chainInfo registry.ChainInfo) (bool, error) {
 	var out []string
 	for _, endpoint := range chainInfo.Apis.Rest {

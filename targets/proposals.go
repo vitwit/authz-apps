@@ -18,11 +18,9 @@ import (
 type Data struct {
 	db  *database.Sqlitedb
 	cfg *config.Config
-	//bot *alerting.Slackbot
 }
 
-// Gets proposals
-
+// Gets proposals from the Registered chains and validators
 func (a *Data) GetProposals(db *database.Sqlitedb) {
 
 	var networksMap map[string]bool
@@ -91,7 +89,6 @@ func (a *Data) AlertOnProposals(networks []string) error {
 
 			}
 
-			// err = a.SendVotingPeriodProposalAlerts(val.Address, proposal.ProposalID, proposal.VotingEndTime)
 			err = a.SendVotingPeriodProposalAlerts(val.ChainName, missedProposals)
 			if err != nil {
 				log.Printf("error on sending voting period proposals alert: %v", err)
@@ -102,7 +99,6 @@ func (a *Data) AlertOnProposals(networks []string) error {
 }
 
 // GetValidatorVote to check validator voted for the proposal or not.
-
 func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) string {
 
 	addr, _ := sdk.ValAddressFromBech32(valAddr)
@@ -135,21 +131,13 @@ func (a *Data) SendVotingPeriodProposalAlerts(chainName string, proposals []Miss
 	var blocks []slack.Block
 
 	for _, p := range proposals {
-		// now := time.Now().UTC()
-		// timeDiff := now.Sub(endTime)
-		// log.Println("timeDiff...", timeDiff.Hours())
-
 		endTime, _ := time.Parse(time.RFC3339, p.votEndTime)
 		daysLeft := int(time.Until(endTime).Hours() / 24)
 		if daysLeft == 0 {
 			daysLeft = 1
 		}
-		// if timeDiff.Hours() <= 24 {
 		blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* has not voted on proposal *%s* . Voting ends in *%d days.* ", p.accAdd, p.pID, daysLeft), false, false),
 			nil, nil))
-		// } else {
-		// 	log.Println("Sent alert of voting period proposals")
-		// }
 	}
 	attachment := []slack.Block{
 		slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", fmt.Sprintf(" %s ", chainName), false, false)),

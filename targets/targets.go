@@ -51,6 +51,7 @@ func (c *Cron) Start() error {
 	return nil
 }
 
+// Adds the Query parameters
 func addQueryParameters(req *http.Request, queryParams QueryParams) {
 	q := req.URL.Query()
 	for key, value := range queryParams {
@@ -75,6 +76,7 @@ func newHTTPRequest(ops HTTPOptions) (*http.Request, error) {
 	return req, nil
 }
 
+// Creates response
 func makeResponse(res *http.Response) (*PingResp, error) {
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {

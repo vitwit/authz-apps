@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// Gets all valid LCd endpoints from a Chain
 func GetValidLCDEndpoints(chainName string) (validEndpoints []string, err error) {
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
@@ -34,6 +35,7 @@ func GetValidLCDEndpoints(chainName string) (validEndpoints []string, err error)
 	return validEndpoints, nil
 }
 
+// Gets all lCD endpoints present in a chain
 func GetAllLCDEndpoints(c registry.ChainInfo) (out []string, err error) {
 	for _, endpoint := range c.Apis.Rest {
 		u, err := url.Parse(endpoint.Address)
@@ -59,6 +61,7 @@ func GetAllLCDEndpoints(c registry.ChainInfo) (out []string, err error) {
 	return
 }
 
+// Gets only valid LCD endpoints from the total LCD endpoints
 func GetValidLCDEndpoint(endpoints []string) (string, error) {
 	var validEndpoint bool
 	for _, endpoint := range endpoints {
@@ -70,6 +73,7 @@ func GetValidLCDEndpoint(endpoints []string) (string, error) {
 	return "", nil
 }
 
+// Gets proposals current stauts
 func GetStatus(endpoint string) bool {
 	ops := HTTPOptions{
 		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals",

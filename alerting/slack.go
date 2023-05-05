@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
@@ -37,29 +36,29 @@ func NewBotClient(config *config.Config, db *database.Sqlitedb) *Slackbot {
 func (a *Slackbot) Initializecommands() error {
 
 	// Command to register validator address with chain name
-	a.bot.Command("register-validator <chainname> <validator_address>", &slacker.CommandDefinition{
+	a.bot.Command("register-validator <chainName> <validatorAddress>", &slacker.CommandDefinition{
 		Description: "register a new validator",
 		Examples:    []string{"/register-validator cosmoshub cosmos1a..."},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			chainname := request.Param("chainname")
-			validatorAddress := request.Param("validator_address")
+			chainName := request.Param("chainName")
+			validatorAddress := request.Param("validatorAddress")
 			isExists := a.db.HasValidator(validatorAddress)
 			if isExists {
 				response.Reply("Validator is already registered")
 			} else {
-				a.db.AddValidator(chainname, validatorAddress)
+				a.db.AddValidator(chainName, validatorAddress)
 				r := fmt.Sprintf("Your validator %s is successfully registered", validatorAddress)
 				response.Reply(r)
 			}
 		},
 	})
 	//Creates keys which need to be funded and will vote in the place of validators
-	a.bot.Command("create-key <chain_name> <key_name_optional>", &slacker.CommandDefinition{
+	a.bot.Command("create-key <chainName> <keyName_Optional>", &slacker.CommandDefinition{
 		Description: "create a new account with key name",
 		Examples:    []string{"create-key my_key"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			keyName := request.StringParam("key_name_optional", "default")
-			chainName := request.Param("chain_name")
+			keyName := request.StringParam("keyName_Optional", "default")
+			chainName := request.Param("chainName")
 			err := a.key.CreateKeys(chainName, keyName)
 			if err != nil {
 				response.Reply(err.Error())
@@ -163,7 +162,7 @@ func (a *Slackbot) Initializecommands() error {
 
 	err := a.bot.Listen(ctx)
 	if err != nil {
-		fmt.Errorf("%s", err)
+		return fmt.Errorf("%s", err)
 	}
 	return err
 }
@@ -178,13 +177,6 @@ func (s slackAlert) Send(msgText, botToken string, channelID string) error {
 	attachment := slack.Attachment{
 		Pretext: "Lens Bot Message",
 		Title:   msgText,
-		// Fields are Optional extra data!
-		Fields: []slack.AttachmentField{
-			{
-				Title: "Date",
-				Value: time.Now().String(),
-			},
-		},
 	}
 
 	// PostMessage will send the message away.
