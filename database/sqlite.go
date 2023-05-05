@@ -63,6 +63,19 @@ func (s *Sqlitedb) AddValidator(name, address string) error {
 	return err
 }
 
+// Removes validator information
+func (s *Sqlitedb) DeleteValidator(address string) error {
+	stmt, err := s.db.Prepare("DELETE FROM validators WHERE address=?")
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(address)
+	return err
+}
+
 // Stores Keys information
 func (a *Sqlitedb) AddKey(chainName, keyName, keyAddress string) error {
 	stmt, err := a.db.Prepare("INSERT INTO keys(chainName, keyName, keyAddress) values(?,?,?)")

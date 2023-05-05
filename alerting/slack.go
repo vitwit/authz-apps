@@ -59,7 +59,27 @@ func (a *Slackbot) Initializecommands() error {
 			}
 		},
 	})
-
+	// Command to register validator address with chain name
+	a.bot.Command("delete-validator <validatorAddress>", &slacker.CommandDefinition{
+		Description: "delete an existing validator",
+		Examples:    []string{"delete-validator cosmos1a..."},
+		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+			validatorAddress := request.Param("validatorAddress")
+			_, err := sdk.ValAddressFromBech32(validatorAddress)
+			if err != nil {
+				response.Reply("Invalid validator address")
+			} else {
+				isExists := a.db.HasValidator(validatorAddress)
+				if !isExists {
+					response.Reply("Validator is not registered")
+				} else {
+					a.db.DeleteValidator(validatorAddress)
+					r := fmt.Sprintf("Your validator %s is successfully removed", validatorAddress)
+					response.Reply(r)
+				}
+			}
+		},
+	})
 	// Creates keys which are used for voting
 	a.bot.Command("create-key <chainName> <keyNameOptional>", &slacker.CommandDefinition{
 		Description: "create a new account with key name",
