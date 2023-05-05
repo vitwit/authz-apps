@@ -80,7 +80,7 @@ func (a *Slackbot) Initializecommands() error {
 	a.bot.Command(
 		"vote <chainId> <proposalId> <validatorAddress> <voteOption> <fromKey> <metadataOptional> <memoOptional> <gasUnitsOptional> <feesOptional>",
 		&slacker.CommandDefinition{
-			Description: "vote",
+			Description: "votes on the proposal",
 			Examples:    []string{"vote cosmoshub 123 YES memodata 300000 0.25uatom "},
 			Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 				chainID := request.Param("chainId")
