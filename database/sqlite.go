@@ -42,10 +42,7 @@ func (a *Sqlitedb) InitializeTables() error {
 	if err != nil {
 		return err
 	}
-	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS votes (proposalID VARCHAR, validatorAddress VARCHAR, voteOption VARCHAR)")
-	if err != nil {
-		return err
-	}
+
 	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR, keyname VARCHAR, keyAddress VARCHAR)")
 	return err
 
@@ -61,19 +58,6 @@ func (s *Sqlitedb) AddValidator(name, address string) error {
 	defer stmt.Close()
 
 	_, err = stmt.Exec(name, address)
-	return err
-}
-
-// Stores validator votes
-func (a *Sqlitedb) AddVotes(proposalID, validatorAddress, voteOption string) error {
-	stmt, err := a.db.Prepare("INSERT INTO votes(proposalID, validatorAddress, voteOption) values(?,?,?)")
-	if err != nil {
-		return err
-	}
-
-	defer stmt.Close()
-
-	_, err = stmt.Exec(proposalID, validatorAddress, voteOption)
 	return err
 }
 
