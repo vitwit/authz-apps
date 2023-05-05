@@ -13,24 +13,15 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// Gets all valid LCD endpoints from given chain
+// Gets all valid LCD endpoints for given chain
 func GetValidLCDEndpoints(chainName string) (validEndpoints []string, err error) {
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
-	chains, err := cr.ListChains(context.Background())
-	if err != nil {
-		return []string{}, err
-	}
-
-	for _, name := range chains {
-		if name == chainName {
-			chainInfo, _ := cr.GetChain(context.Background(), chainName)
-			AllLCDEndpoints, _ := GetAllLCDEndpoints(chainInfo)
-			validLCDEndpoint, _ := GetValidLCDEndpoint(AllLCDEndpoints)
-			validLCDEndpoint = strings.TrimSuffix(validLCDEndpoint, "/")
-			validEndpoints = append(validEndpoints, validLCDEndpoint)
-		}
-	}
+	chainInfo, _ := cr.GetChain(context.Background(), chainName)
+	AllLCDEndpoints, _ := GetAllLCDEndpoints(chainInfo)
+	validLCDEndpoint, _ := GetValidLCDEndpoint(AllLCDEndpoints)
+	validLCDEndpoint = strings.TrimSuffix(validLCDEndpoint, "/")
+	validEndpoints = append(validEndpoints, validLCDEndpoint)
 	return validEndpoints, nil
 }
 
