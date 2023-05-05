@@ -13,15 +13,6 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
 func GetValidLCDEndpoints(chainName string) (validEndpoints []string, err error) {
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
@@ -29,7 +20,6 @@ func GetValidLCDEndpoints(chainName string) (validEndpoints []string, err error)
 	if err != nil {
 		return []string{}, err
 	}
-	log.Println(chains)
 
 	for _, name := range chains {
 		if name == chainName {

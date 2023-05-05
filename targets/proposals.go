@@ -75,16 +75,13 @@ func (a *Data) AlertOnProposals(networks []string) error {
 				log.Printf("Error while unmarshalling the proposals: %v", err)
 				return err
 			}
-			log.Println("alert1")
 
 			var missedProposals []MissedProposal
 
 			for _, proposal := range p.Proposals {
-				log.Println("alert2")
 
 				validatorVote := a.GetValidatorVote(endpoint, proposal.ProposalID, val.Address)
 				if validatorVote == "" {
-					log.Println("alert3")
 					missedProposals = append(missedProposals, MissedProposal{
 						accAdd:     val.Address,
 						pID:        proposal.ProposalID,
@@ -95,7 +92,7 @@ func (a *Data) AlertOnProposals(networks []string) error {
 			}
 
 			// err = a.SendVotingPeriodProposalAlerts(val.Address, proposal.ProposalID, proposal.VotingEndTime)
-			err = a.SendVotingPeriodProposalAlerts(missedProposals)
+			err = a.SendVotingPeriodProposalAlerts(val.ChainName, missedProposals)
 			if err != nil {
 				log.Printf("error on sending voting period proposals alert: %v", err)
 			}
@@ -114,7 +111,6 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) string {
 		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + proposalID + "/votes/" + accAddr.String(),
 		Method:   http.MethodGet,
 	}
-	log.Println(ops.Endpoint)
 	resp, err := HitHTTPTarget(ops)
 	if err != nil {
 		log.Printf("Error while getting http response: %v", err)
@@ -124,7 +120,6 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) string {
 	if err != nil {
 		log.Printf("Error while unmarshalling the proposal votes: %v", err)
 	}
-	log.Println(v)
 
 	validatorVoted := ""
 	for _, value := range v.Vote.Options {
@@ -135,25 +130,29 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) string {
 }
 
 // SendVotingPeriodProposalAlerts which send alerts of voting period proposals
-func (a *Data) SendVotingPeriodProposalAlerts(proposals []MissedProposal) error {
+func (a *Data) SendVotingPeriodProposalAlerts(chainName string, proposals []MissedProposal) error {
 	api := slack.New(a.cfg.Slack.BotToken)
 	var blocks []slack.Block
 
 	for _, p := range proposals {
-		now := time.Now().UTC()
-		endTime, _ := time.Parse(time.RFC3339, p.votEndTime)
-		timeDiff := now.Sub(endTime)
-		log.Println("timeDiff...", timeDiff.Hours())
+		// now := time.Now().UTC()
+		// timeDiff := now.Sub(endTime)
+		// log.Println("timeDiff...", timeDiff.Hours())
 
-		if timeDiff.Hours() <= 24 {
-			blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* ---*%s*--- *%s*", p.accAdd, p.pID, p.votEndTime), false, false),
-				nil, nil))
-		} else {
-			log.Println("Sent alert of voting period proposals")
+		endTime, _ := time.Parse(time.RFC3339, p.votEndTime)
+		daysLeft := int(time.Until(endTime).Hours() / 24)
+		if daysLeft == 0 {
+			daysLeft = 1
 		}
+		// if timeDiff.Hours() <= 24 {
+		blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* has not voted on proposal *%s* . Voting ends in *%d days.* ", p.accAdd, p.pID, daysLeft), false, false),
+			nil, nil))
+		// } else {
+		// 	log.Println("Sent alert of voting period proposals")
+		// }
 	}
 	attachment := []slack.Block{
-		slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Account Address ---Proposal ID--- Voting End Time", false, false)),
+		slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", fmt.Sprintf(" %s ", chainName), false, false)),
 	}
 	attachment = append(attachment, blocks...)
 

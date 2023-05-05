@@ -41,7 +41,7 @@ func (a *Slackbot) Initializecommands() error {
 		Description: "register a new validator",
 		Examples:    []string{"/register-validator cosmoshub cosmos1a..."},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			chainname := request.Param("chain_name")
+			chainname := request.Param("chainname")
 			validatorAddress := request.Param("validator_address")
 			isExists := a.db.HasValidator(validatorAddress)
 			if isExists {
@@ -102,17 +102,23 @@ func (a *Slackbot) Initializecommands() error {
 			if err != nil {
 				response.ReportError(err)
 			} else {
-				data := fmt.Sprintf("%v", r)
 
 				apiClient := botCtx.APIClient()
 				event := botCtx.Event()
 
-				attachment := slack.Attachment{
-					Title: "List of all keys",
-					Text:  data,
+				var blocks []slack.Block
+				for _, val := range r {
+					blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* ---- *%s*", val.ChainName, val.KeyName), false, false),
+						nil, nil))
 				}
+
+				attachment := []slack.Block{
+					slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Network ---- Key name", false, false)),
+				}
+				attachment = append(attachment, blocks...)
+
 				if event.ChannelID != "" {
-					_, _, err := apiClient.PostMessage(event.ChannelID, slack.MsgOptionAttachments(attachment))
+					_, _, err := apiClient.PostMessage(event.ChannelID, slack.MsgOptionBlocks(attachment...))
 					if err != nil {
 						response.ReportError(err)
 					}
