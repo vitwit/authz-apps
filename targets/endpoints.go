@@ -17,11 +17,24 @@ import (
 func GetValidLCDEndpoints(chainName string) (validEndpoints []string, err error) {
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
-	chainInfo, _ := cr.GetChain(context.Background(), chainName)
-	AllLCDEndpoints, _ := GetAllLCDEndpoints(chainInfo)
-	validLCDEndpoint, _ := GetValidLCDEndpoint(AllLCDEndpoints)
+	chainInfo, err := cr.GetChain(context.Background(), chainName)
+	if err != nil {
+		return nil, err
+	}
+
+	AllLCDEndpoints, err := GetAllLCDEndpoints(chainInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	validLCDEndpoint, err := GetValidLCDEndpoint(AllLCDEndpoints)
+	if err != nil {
+		return nil, err
+	}
+
 	validLCDEndpoint = strings.TrimSuffix(validLCDEndpoint, "/")
 	validEndpoints = append(validEndpoints, validLCDEndpoint)
+
 	return validEndpoints, nil
 }
 

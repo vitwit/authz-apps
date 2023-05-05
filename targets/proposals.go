@@ -55,10 +55,12 @@ func (a *Data) AlertOnProposals(networks []string) error {
 	if err != nil {
 		return err
 	}
+
 	for _, val := range validators {
 		validEndpoints, err := GetValidLCDEndpoints(val.ChainName)
 		if err != nil {
 			log.Printf("Error in getting valid LCD endpoints for %s chain", val.ChainName)
+
 			return err
 		}
 		for _, endpoint := range validEndpoints {
@@ -72,6 +74,7 @@ func (a *Data) AlertOnProposals(networks []string) error {
 				log.Printf("Error while getting http response: %v", err)
 				return err
 			}
+
 			var p Proposals
 			err = json.Unmarshal(resp.Body, &p)
 			if err != nil {
@@ -82,8 +85,11 @@ func (a *Data) AlertOnProposals(networks []string) error {
 			var missedProposals []MissedProposal
 
 			for _, proposal := range p.Proposals {
+				validatorVote, err := a.GetValidatorVote(endpoint, proposal.ProposalID, val.Address)
+				if err != nil {
+					return err
+				}
 
-				validatorVote := a.GetValidatorVote(endpoint, proposal.ProposalID, val.Address)
 				if validatorVote == "" {
 					missedProposals = append(missedProposals, MissedProposal{
 						accAddr:       val.Address,
@@ -105,9 +111,17 @@ func (a *Data) AlertOnProposals(networks []string) error {
 }
 
 // GetValidatorVote to check validator voted for the proposal or not.
-func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) string {
-	addr, _ := sdk.ValAddressFromBech32(valAddr)
-	accAddr, _ := sdk.AccAddressFromHexUnsafe(hex.EncodeToString(addr.Bytes()))
+func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) (string, error) {
+	addr, err := sdk.ValAddressFromBech32(valAddr)
+	if err != nil {
+		return "", err
+	}
+
+	accAddr, err := sdk.AccAddressFromHexUnsafe(hex.EncodeToString(addr.Bytes()))
+	if err != nil {
+		return "", err
+	}
+
 	ops := HTTPOptions{
 		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + proposalID + "/votes/" + accAddr.String(),
 		Method:   http.MethodGet,
@@ -115,11 +129,14 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) string {
 	resp, err := HitHTTPTarget(ops)
 	if err != nil {
 		log.Printf("Error while getting http response: %v", err)
+		return "", err
 	}
+
 	var v Vote
 	err = json.Unmarshal(resp.Body, &v)
 	if err != nil {
 		log.Printf("Error while unmarshalling the proposal votes: %v", err)
+		return "", err
 	}
 
 	validatorVoted := ""
@@ -127,7 +144,7 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) string {
 		validatorVoted = value.Option
 	}
 
-	return validatorVoted
+	return validatorVoted, nil
 }
 
 // SendVotingPeriodProposalAlerts which send alerts of voting period proposals
@@ -141,7 +158,12 @@ func (a *Data) SendVotingPeriodProposalAlerts(chainName string, proposals []Miss
 		if daysLeft == 0 {
 			daysLeft = 1
 		}
-		blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* has not voted on proposal *%s* . Voting ends in *%d days.* ", p.accAddr, p.pID, daysLeft), false, false),
+		blocks = append(blocks, slack.NewSectionBlock(
+			slack.NewTextBlockObject(
+				"mrkdwn",
+				fmt.Sprintf("*%s* has not voted on proposal *%s* . Voting ends in *%d days.* ", p.accAddr, p.pID, daysLeft),
+				false, false,
+			),
 			nil, nil))
 	}
 	attachment := []slack.Block{
