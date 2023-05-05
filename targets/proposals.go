@@ -35,7 +35,7 @@ func (a *Data) GetProposals(db *database.Sqlitedb) {
 	var networks []string
 	vals, err := db.GetValidators()
 	if err != nil {
-		panic(err)
+		log.Fatalf("Error while getting validators: %v", err)
 	}
 
 	for _, val := range vals {

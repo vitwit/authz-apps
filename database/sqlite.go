@@ -47,7 +47,6 @@ func (a *Sqlitedb) InitializeTables() error {
 
 	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR, keyName VARCHAR, keyAddress VARCHAR)")
 	return err
-
 }
 
 // Stores validator information
@@ -88,7 +87,6 @@ func (s *Sqlitedb) HasValidator(validatorAddress string) bool {
 	err = stmt.QueryRow(validatorAddress).Scan(&exists)
 	if err != nil {
 		log.Println(err)
-
 	}
 	return exists
 }
@@ -96,7 +94,6 @@ func (s *Sqlitedb) HasValidator(validatorAddress string) bool {
 // Gets all the stored validators data
 func (s *Sqlitedb) GetValidators() ([]Validator, error) {
 	rows, err := s.db.Query("SELECT chainName, address FROM validators")
-
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +117,6 @@ func (s *Sqlitedb) GetValidators() ([]Validator, error) {
 // Gets all the validator address stored in validators
 func (s *Sqlitedb) GetValidatorAddress() (ValidatorAddress []string, err error) {
 	rows, err := s.db.Query("SELECT address FROM validators")
-
 	if err != nil {
 		return nil, err
 	}
@@ -143,11 +139,15 @@ func (s *Sqlitedb) GetValidatorAddress() (ValidatorAddress []string, err error) 
 func (a *Sqlitedb) GetKeyAddress(key string) (string, error) {
 	var addr string
 	stmt, err := a.db.Prepare("SELECT keyAddress FROM keys WHERE keyName=?")
-	checkErr(err)
+	if err != nil {
+		return "", err
+	}
 	defer stmt.Close()
 
 	err = stmt.QueryRow(key).Scan(&addr)
-	checkErr(err)
+	if err != nil {
+		return "", err
+	}
 
 	return addr, nil
 }
@@ -157,7 +157,9 @@ func (a *Sqlitedb) GetKeys() ([]keys, error) {
 	log.Printf("Fetching keys...")
 
 	rows, err := a.db.Query("SELECT chainName, keyName FROM keys")
-	checkErr(err)
+	if err != nil {
+		return []keys{}, err
+	}
 	defer rows.Close()
 
 	var k []keys
@@ -173,11 +175,4 @@ func (a *Sqlitedb) GetKeys() ([]keys, error) {
 	}
 
 	return k, nil
-}
-
-// checks for an error
-func checkErr(err error) {
-	if err != nil {
-		panic(err)
-	}
 }
