@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"log"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
 	"github.com/likhita-809/lens-bot/keyshandler"
 	"github.com/likhita-809/lens-bot/voting"
-
 	"github.com/shomali11/slacker"
 	"github.com/slack-go/slack"
 )
@@ -38,26 +38,31 @@ func (a *Slackbot) Initializecommands() error {
 	// Command to register validator address with chain name
 	a.bot.Command("register-validator <chainName> <validatorAddress>", &slacker.CommandDefinition{
 		Description: "register a new validator",
-		Examples:    []string{"/register-validator cosmoshub cosmos1a..."},
+		Examples:    []string{"register-validator cosmoshub cosmos1a..."},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			chainName := request.Param("chainName")
 			validatorAddress := request.Param("validatorAddress")
-			isExists := a.db.HasValidator(validatorAddress)
-			if isExists {
-				response.Reply("Validator is already registered")
+			_, err := sdk.ValAddressFromBech32(validatorAddress)
+			if err != nil {
+				response.Reply("Invalid validator address")
 			} else {
-				a.db.AddValidator(chainName, validatorAddress)
-				r := fmt.Sprintf("Your validator %s is successfully registered", validatorAddress)
-				response.Reply(r)
+				isExists := a.db.HasValidator(validatorAddress)
+				if isExists {
+					response.Reply("Validator is already registered")
+				} else {
+					a.db.AddValidator(chainName, validatorAddress)
+					r := fmt.Sprintf("Your validator %s is successfully registered", validatorAddress)
+					response.Reply(r)
+				}
 			}
 		},
 	})
-	//Creates keys which need to be funded and will vote in the place of validators
-	a.bot.Command("create-key <chainName> <keyName_Optional>", &slacker.CommandDefinition{
+	// Creates keys which are used for voting
+	a.bot.Command("create-key <chainName> <keyNameOptional>", &slacker.CommandDefinition{
 		Description: "create a new account with key name",
-		Examples:    []string{"create-key my_key"},
+		Examples:    []string{"create-key myKey"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			keyName := request.StringParam("keyName_Optional", "default")
+			keyName := request.StringParam("keyNameOptional", "default")
 			chainName := request.Param("chainName")
 			err := a.key.CreateKeys(chainName, keyName)
 			if err != nil {
@@ -67,22 +72,22 @@ func (a *Slackbot) Initializecommands() error {
 			}
 		},
 	})
-	//votes on proposals based on proposalid,validator address,vote and key
+	// Vote command is used to vote on the proposals based on proposal Id, validator address with vote option using keys stored from db.
 	a.bot.Command(
-		"vote <chain_id> <proposal_id> <validator_address> <vote_option> <from_key> <metadata_optional> <memo_optional> <gas_units_optional> <fees_optional>",
+		"vote <chainId> <proposalId> <validatorAddress> <voteOption> <fromKey> <metaDataOptional> <memoOptional> <gasUnitsOptional> <feesOptional>",
 		&slacker.CommandDefinition{
 			Description: "vote",
-			Examples:    []string{"/vote cosmoshub 123 YES memodata 300000 0.25uatom "},
+			Examples:    []string{"vote cosmoshub 123 YES memodata 300000 0.25uatom "},
 			Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-				chainID := request.Param("chain_id")
-				pID := request.Param("proposal_id")
-				valAddr := request.Param("validator_address")
-				voteOption := request.Param("vote_option")
-				fromKey := request.Param("from_key")
-				metadata := request.StringParam("metadata_optional", "")
-				memo := request.StringParam("memo_optional", "")
-				gas := request.StringParam("gas_units_optional", "")
-				fees := request.StringParam("fees_optional", "")
+				chainID := request.Param("chainId")
+				pID := request.Param("proposalId")
+				valAddr := request.Param("validatorAddress")
+				voteOption := request.Param("voteOption")
+				fromKey := request.Param("fromKey")
+				metadata := request.StringParam("metaDataOptional", "")
+				memo := request.StringParam("memoOptional", "")
+				gas := request.StringParam("gasUnitsOptional", "")
+				fees := request.StringParam("feesOptional", "")
 				err := a.vote.ExecVote(chainID, pID, valAddr, voteOption, fromKey, metadata, memo, gas, fees)
 				if err != nil {
 					log.Printf("error on executing vote: %v", err)
@@ -95,7 +100,7 @@ func (a *Slackbot) Initializecommands() error {
 	//Lists all the keys stored in the database
 	a.bot.Command("list-keys", &slacker.CommandDefinition{
 		Description: "lists all keys",
-		Examples:    []string{"list-all"},
+		Examples:    []string{"list-keys"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			r, err := a.db.GetKeys()
 			if err != nil {
@@ -128,7 +133,7 @@ func (a *Slackbot) Initializecommands() error {
 
 	//Command to list all registered validators
 	a.bot.Command("list-validators", &slacker.CommandDefinition{
-		Description: "lists all chains with associated validator addresses",
+		Description: "lists all validators addresses with associated chains",
 		Examples:    []string{"list-validators"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			validators, err := a.db.GetValidators()

@@ -15,10 +15,17 @@ import (
 	"github.com/likhita-809/lens-bot/database"
 )
 
-type Data struct {
-	db  *database.Sqlitedb
-	cfg *config.Config
-}
+type (
+	Data struct {
+		db  *database.Sqlitedb
+		cfg *config.Config
+	}
+	MissedProposal struct {
+		accAddr       string
+		pID           string
+		votingEndTime string
+	}
+)
 
 // Gets proposals from the Registered chains and validators
 func (a *Data) GetProposals(db *database.Sqlitedb) {
@@ -35,14 +42,11 @@ func (a *Data) GetProposals(db *database.Sqlitedb) {
 			networks = append(networks, val.ChainName)
 		}
 	}
-	a.AlertOnProposals(networks)
+	err = a.AlertOnProposals(networks)
+	if err != nil {
+		log.Printf("alerrton prop err%s", err)
+	}
 
-}
-
-type MissedProposal struct {
-	accAdd     string
-	pID        string
-	votEndTime string
 }
 
 // Alerts on Active Proposals
@@ -55,6 +59,7 @@ func (a *Data) AlertOnProposals(networks []string) error {
 		validEndpoints, err := GetValidLCDEndpoints(val.ChainName)
 		if err != nil {
 			log.Printf("Error in getting valid LCD endpoints for %s chain", val.ChainName)
+			return err
 		}
 		for _, endpoint := range validEndpoints {
 			ops := HTTPOptions{
@@ -81,9 +86,9 @@ func (a *Data) AlertOnProposals(networks []string) error {
 				validatorVote := a.GetValidatorVote(endpoint, proposal.ProposalID, val.Address)
 				if validatorVote == "" {
 					missedProposals = append(missedProposals, MissedProposal{
-						accAdd:     val.Address,
-						pID:        proposal.ProposalID,
-						votEndTime: proposal.VotingEndTime,
+						accAddr:       val.Address,
+						pID:           proposal.ProposalID,
+						votingEndTime: proposal.VotingEndTime,
 					})
 				}
 
@@ -92,6 +97,7 @@ func (a *Data) AlertOnProposals(networks []string) error {
 			err = a.SendVotingPeriodProposalAlerts(val.ChainName, missedProposals)
 			if err != nil {
 				log.Printf("error on sending voting period proposals alert: %v", err)
+				return err
 			}
 		}
 	}
@@ -109,12 +115,12 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) string {
 	}
 	resp, err := HitHTTPTarget(ops)
 	if err != nil {
-		fmt.Printf("Error while getting http response: %v", err)
+		log.Printf("Error while getting http response: %v", err)
 	}
 	var v Vote
 	err = json.Unmarshal(resp.Body, &v)
 	if err != nil {
-		fmt.Printf("Error while unmarshalling the proposal votes: %v", err)
+		log.Printf("Error while unmarshalling the proposal votes: %v", err)
 	}
 
 	validatorVoted := ""
@@ -131,12 +137,12 @@ func (a *Data) SendVotingPeriodProposalAlerts(chainName string, proposals []Miss
 	var blocks []slack.Block
 
 	for _, p := range proposals {
-		endTime, _ := time.Parse(time.RFC3339, p.votEndTime)
+		endTime, _ := time.Parse(time.RFC3339, p.votingEndTime)
 		daysLeft := int(time.Until(endTime).Hours() / 24)
 		if daysLeft == 0 {
 			daysLeft = 1
 		}
-		blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* has not voted on proposal *%s* . Voting ends in *%d days.* ", p.accAdd, p.pID, daysLeft), false, false),
+		blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* has not voted on proposal *%s* . Voting ends in *%d days.* ", p.accAddr, p.pID, daysLeft), false, false),
 			nil, nil))
 	}
 	attachment := []slack.Block{

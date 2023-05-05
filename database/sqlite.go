@@ -9,19 +9,21 @@ import (
 
 var Id int
 
-type Validator struct {
-	ChainName string
-	Address   string
-}
+type (
+	Validator struct {
+		ChainName string
+		Address   string
+	}
 
-type keys struct {
-	ChainName string
-	KeyName   string
-}
+	keys struct {
+		ChainName string
+		KeyName   string
+	}
 
-type Sqlitedb struct {
-	db *sql.DB
-}
+	Sqlitedb struct {
+		db *sql.DB
+	}
+)
 
 // Opens connection to SQLite database
 func NewDatabase() (*Sqlitedb, error) {

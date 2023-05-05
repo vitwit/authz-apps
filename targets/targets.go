@@ -29,8 +29,7 @@ func NewCron(db *database.Sqlitedb, config *config.Config, bot *alerting.Slackbo
 	}
 }
 
-// Start starts to create cron jobs which fetches chosen asset list information and
-// store them in database every hour and every 24 hours.
+// Start starts to create cron jobs which sends alerts on proposal alerts which have not been voted
 func (c *Cron) Start() error {
 	log.Println("Starting cron jobs...")
 
@@ -41,11 +40,14 @@ func (c *Cron) Start() error {
 		cfg: c.cfg,
 	}
 
-	// Every 15 minute
-	cron.AddFunc("1 * * * *", func() {
+	// Every  2 hours
+	err := cron.AddFunc("0 */2 * * *", func() {
 		d.GetProposals(c.db)
 	})
-
+	if err != nil {
+		log.Println("Error adding cron job:", err)
+		return err
+	}
 	go cron.Start()
 
 	return nil
