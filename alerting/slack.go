@@ -39,7 +39,7 @@ func NewBotClient(config *config.Config, db *database.Sqlitedb, key *keyshandler
 func (a *Slackbot) Initializecommands() error {
 	// Command to register validator address with chain name
 	a.bot.Command("register-validator <chainName> <validatorAddress>", &slacker.CommandDefinition{
-		Description: "register a new validator",
+		Description: "registers a new validator",
 		Examples:    []string{"register-validator cosmoshub cosmos1a..."},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			chainName := request.Param("chainName")

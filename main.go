@@ -17,6 +17,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("Recovered from panic:", r)
+		}
+	}()
+
 	db.InitializeTables()
 
 	cfg, err := config.ReadConfigFromFile()
