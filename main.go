@@ -1,37 +1,49 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"sync"
-	"time"
 
+	"github.com/likhita-809/lens-bot/alerting"
 	"github.com/likhita-809/lens-bot/config"
+	"github.com/likhita-809/lens-bot/database"
+	"github.com/likhita-809/lens-bot/keyshandler"
 	"github.com/likhita-809/lens-bot/targets"
+	"github.com/likhita-809/lens-bot/voting"
 )
 
 func main() {
+	db, err := database.NewDatabase()
+	if err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("Recovered from panic:", r)
+		}
+	}()
+
+	db.InitializeTables()
+
 	cfg, err := config.ReadConfigFromFile()
 	if err != nil {
-		fmt.Errorf("%s", err)
+		log.Printf("%s", err)
 	}
 
-	m := targets.InitTargets()
-	runner := targets.NewRunner()
+	keys := keyshandler.Keys{
+		Db: db,
+	}
+	votes := voting.Vote{
+		Db: db,
+	}
+	alerter := alerting.NewBotClient(cfg, db, &keys, &votes)
 
-	fmt.Printf("targets initialized")
+	cron := targets.NewCron(db, cfg, alerter)
+	cron.Start()
+	alerter.Initializecommands()
+
 	var wg sync.WaitGroup
-	for _, tg := range m.List {
-		wg.Add(1)
-		go func(target targets.Target) {
-			scrapeRate, err := time.ParseDuration(target.ScraperRate)
-			if err != nil {
-				fmt.Errorf("%s", err)
-			}
-			for {
-				runner.Run(target.Func, cfg)
-				time.Sleep(scrapeRate)
-			}
-		}(tg)
-	}
+	wg.Add(1)
 	wg.Wait()
 }

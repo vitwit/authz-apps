@@ -3,47 +3,57 @@ package targets
 import (
 	"bytes"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/likhita-809/lens-bot/alerting"
 	"github.com/likhita-809/lens-bot/config"
+	"github.com/likhita-809/lens-bot/database"
+	"github.com/robfig/cron"
 )
 
-type targetRunner struct{}
-
-// NewRunner returns targetRunner
-func NewRunner() *targetRunner {
-	return &targetRunner{}
+// Cron wraps all required parameters to create cron jobs
+type Cron struct {
+	db  *database.Sqlitedb
+	cfg *config.Config
+	bot *alerting.Slackbot
 }
 
-// Run to run the request
-func (m targetRunner) Run(function func(cfg *config.Config), cfg *config.Config) {
-	function(cfg)
+// NewCron sets necessary config and clients to begin cron jobs
+func NewCron(db *database.Sqlitedb, config *config.Config, bot *alerting.Slackbot) *Cron {
+	return &Cron{
+		db:  db,
+		cfg: config,
+		bot: bot,
+	}
 }
 
-func InitTargets() *Targets {
-	return &Targets{List: []Target{
-		{
-			ExecutionType: "http",
-			Name:          "Proposals",
-			HTTPOptions: HTTPOptions{
-				Method: http.MethodGet,
-			},
-			Func:        GetProposals,
-			ScraperRate: "2h",
-		},
-		{
-			Name: "Slack cmds",
-			HTTPOptions: HTTPOptions{
-				Method: http.MethodGet,
-			},
-			Func:        alerting.RegisterSlack,
-			ScraperRate: "3s",
-		},
-	}}
+// Start starts to create cron jobs which sends alerts on proposal alerts which have not been voted
+func (c *Cron) Start() error {
+	log.Println("Starting cron jobs...")
+
+	cron := cron.New()
+
+	d := Data{
+		db:  c.db,
+		cfg: c.cfg,
+	}
+
+	// Every 2 hours
+	err := cron.AddFunc("0 */2 * * *", func() {
+		d.GetProposals(c.db)
+	})
+	if err != nil {
+		log.Println("Error adding cron job:", err)
+		return err
+	}
+	go cron.Start()
+
+	return nil
 }
 
+// Adds the Query parameters
 func addQueryParameters(req *http.Request, queryParams QueryParams) {
 	q := req.URL.Query()
 	for key, value := range queryParams {
@@ -68,6 +78,7 @@ func newHTTPRequest(ops HTTPOptions) (*http.Request, error) {
 	return req, nil
 }
 
+// Creates response
 func makeResponse(res *http.Response) (*PingResp, error) {
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {

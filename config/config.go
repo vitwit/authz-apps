@@ -28,16 +28,16 @@ func ReadConfigFromFile() (*Config, error) {
 	v.AddConfigPath("./config/")
 	v.SetConfigName("config")
 	if err := v.ReadInConfig(); err != nil {
-		fmt.Errorf("error while reading config.toml: %v", err)
+		return nil, fmt.Errorf("error while reading config.toml: %v", err)
 	}
 
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
-		fmt.Errorf("error unmarshaling config.toml to application config: %v", err)
+		return nil, fmt.Errorf("error unmarshaling config.toml to application config: %v", err)
 	}
 
 	if err := cfg.Validate(); err != nil {
-		fmt.Errorf("error occurred in config validation: %v", err)
+		return nil, fmt.Errorf("error occurred in config validation: %v", err)
 	}
 
 	return &cfg, nil

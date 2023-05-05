@@ -7,6 +7,7 @@ replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alp
 require (
 	github.com/cosmos/cosmos-sdk v0.46.4
 	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/robfig/cron v1.2.0
 	github.com/shomali11/slacker v1.4.1
 	github.com/slack-go/slack v0.12.1
 	github.com/spf13/viper v1.15.0
@@ -118,7 +119,6 @@ require (
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/regen-network/cosmos-proto v0.3.1 // indirect
-	github.com/robfig/cron v1.2.0 // indirect
 	github.com/sasha-s/go-deadlock v0.3.1 // indirect
 	github.com/shomali11/commander v0.0.0-20220716022157-b5248c76541a // indirect
 	github.com/shomali11/proper v0.0.0-20180607004733-233a9a872c30 // indirect

@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/likhita-809/lens-bot/sqldata"
-
+	"github.com/likhita-809/lens-bot/database"
 	lensclient "github.com/strangelove-ventures/lens/client"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
 	"go.uber.org/zap"
@@ -15,7 +14,12 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func CreateKeys(chainName, keyName string) error {
+type Keys struct {
+	Db *database.Sqlitedb
+}
+
+// Creates keys using chain name and chain registry
+func (k Keys) CreateKeys(chainName, keyName string) error {
 	// Fetch chain info from chain registry
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
@@ -60,6 +64,6 @@ func CreateKeys(chainName, keyName string) error {
 
 	chainConfig.Key = keyName
 
-	sqldata.InsertKey(chainName, keyName, res.Address)
+	k.Db.AddKey(chainName, keyName, res.Address)
 	return nil
 }
