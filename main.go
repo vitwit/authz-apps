@@ -7,7 +7,9 @@ import (
 	"github.com/likhita-809/lens-bot/alerting"
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
+	"github.com/likhita-809/lens-bot/keyshandler"
 	"github.com/likhita-809/lens-bot/targets"
+	"github.com/likhita-809/lens-bot/voting"
 )
 
 func main() {
@@ -21,7 +23,7 @@ func main() {
 	if err != nil {
 		log.Printf("%s", err)
 	}
-	alerter := alerting.NewBotClient(cfg, db)
+	alerter := alerting.NewBotClient(cfg, db, &keyshandler.Keys{}, &voting.Vote{})
 	cron := targets.NewCron(db, cfg, alerter)
 	cron.Start()
 	alerter.Initializecommands()

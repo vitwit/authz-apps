@@ -23,12 +23,14 @@ type Slackbot struct {
 }
 
 // Creates a new bot client
-func NewBotClient(config *config.Config, db *database.Sqlitedb) *Slackbot {
+func NewBotClient(config *config.Config, db *database.Sqlitedb, key *keyshandler.Keys, vote *voting.Vote) *Slackbot {
 	bot := slacker.NewClient(config.Slack.BotToken, config.Slack.AppToken)
 	return &Slackbot{
-		bot: bot,
-		db:  db,
-		cfg: config,
+		bot:  bot,
+		db:   db,
+		cfg:  config,
+		key:  key,
+		vote: vote,
 	}
 }
 
