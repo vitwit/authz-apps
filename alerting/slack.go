@@ -163,7 +163,7 @@ func (a *Slackbot) Initializecommands() error {
 
 	err := a.bot.Listen(ctx)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Errorf("%s", err)
 	}
 	return err
 }

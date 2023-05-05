@@ -113,12 +113,12 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) string {
 	}
 	resp, err := HitHTTPTarget(ops)
 	if err != nil {
-		log.Printf("Error while getting http response: %v", err)
+		fmt.Printf("Error while getting http response: %v", err)
 	}
 	var v Vote
 	err = json.Unmarshal(resp.Body, &v)
 	if err != nil {
-		log.Printf("Error while unmarshalling the proposal votes: %v", err)
+		fmt.Printf("Error while unmarshalling the proposal votes: %v", err)
 	}
 
 	validatorVoted := ""

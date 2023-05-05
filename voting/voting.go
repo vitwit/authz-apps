@@ -3,7 +3,6 @@ package voting
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -49,17 +48,17 @@ func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, ga
 
 	chainName, err := v.GetChainName(chainID, cr)
 	if err != nil {
-		log.Fatalf("chain name not found")
+		fmt.Errorf("chain name not found")
 	}
 	chainInfo, err := cr.GetChain(context.Background(), chainName)
 	if err != nil {
-		log.Fatalf("Failed to get chain info. Err: %v \n", err)
+		fmt.Errorf("Failed to get chain info. Err: %v \n", err)
 	}
 
 	//	Use Chain info to select random endpoint
 	rpc, err := chainInfo.GetRandomRPCEndpoint(context.Background())
 	if err != nil {
-		log.Fatalf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
+		fmt.Errorf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
 	}
 
 	chainConfig := lensclient.ChainClientConfig{
@@ -78,33 +77,33 @@ func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, ga
 
 	curDir, err := os.Getwd()
 	if err != nil {
-		log.Fatalf("error while getting current directory: %v", err)
+		fmt.Errorf("error while getting current directory: %v", err)
 	}
 	// Create client object to pull chain info
 	chainClient, err := lensclient.NewChainClient(zap.L(), &chainConfig, curDir, os.Stdin, os.Stdout)
 	if err != nil {
-		log.Fatalf("failed to build new chain client for %s. Err: %v", chainInfo.ChainID, err)
+		fmt.Errorf("failed to build new chain client for %s. Err: %v", chainInfo.ChainID, err)
 	}
 
 	keyAddr, err := v.db.GetKeyAddress(fromKey)
 	if err != nil {
-		log.Fatalf("error while getting address of %s key", fromKey)
+		fmt.Errorf("error while getting address of %s key", fromKey)
 	}
 
 	proposalID, err := strconv.ParseUint(pID, 10, 64)
 	if err != nil {
-		log.Fatalf("unable to convert string to uint64. Err: %v", err)
+		fmt.Errorf("unable to convert string to uint64. Err: %v", err)
 	}
 	voteOption, err := v.stringToVoteOption(vote)
 	if err != nil {
-		log.Fatalf("unable to convert vote option string to sdk vote option. Err: %v", err)
+		fmt.Errorf("unable to convert vote option string to sdk vote option. Err: %v", err)
 	}
 
 	var msgAny *cdctypes.Any
 
 	validV1Endpoint, err := v.GetValidV1Endpoint(chainInfo)
 	if err != nil {
-		log.Fatalf("error while getting valid gov v1 endpoint: %v", err)
+		fmt.Errorf("error while getting valid gov v1 endpoint: %v", err)
 	}
 	if validV1Endpoint {
 		msgVote := v1.MsgVote{
@@ -115,7 +114,7 @@ func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, ga
 		}
 		msgAny, err = cdctypes.NewAnyWithValue(&msgVote)
 		if err != nil {
-			log.Fatalf("error on converting msg to Any: %v", err)
+			fmt.Errorf("error on converting msg to Any: %v", err)
 		}
 
 	} else {
@@ -126,7 +125,7 @@ func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, ga
 		}
 		msgAny, err = cdctypes.NewAnyWithValue(&msgVote)
 		if err != nil {
-			log.Fatalf("error on converting msg to Any: %v", err)
+			fmt.Errorf("error on converting msg to Any: %v", err)
 		}
 	}
 
@@ -139,9 +138,9 @@ func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, ga
 	res, err := chainClient.SendMsg(context.Background(), req, memo)
 	if err != nil {
 		if res != nil {
-			log.Fatalf("failed to vote on proposal: code(%d) msg(%s)", res.Code, res.Logs)
+			fmt.Errorf("failed to vote on proposal: code(%d) msg(%s)", res.Code, res.Logs)
 		}
-		log.Fatalf("Failed to vote.Err: %v", err)
+		fmt.Errorf("Failed to vote.Err: %v", err)
 	}
 	return nil
 }

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"sync"
 
 	"github.com/likhita-809/lens-bot/alerting"
@@ -19,7 +19,7 @@ func main() {
 
 	cfg, err := config.ReadConfigFromFile()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Errorf("%s", err)
 	}
 	alerter := alerting.NewBotClient(cfg, db)
 	cron := targets.NewCron(db, cfg, alerter)
