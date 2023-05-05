@@ -8,8 +8,9 @@ import (
 	"net/http"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/slack-go/slack"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
@@ -20,6 +21,7 @@ type (
 		db  *database.Sqlitedb
 		cfg *config.Config
 	}
+
 	MissedProposal struct {
 		accAddr       string
 		pID           string
@@ -29,7 +31,6 @@ type (
 
 // Gets proposals from the Registered chains and validators
 func (a *Data) GetProposals(db *database.Sqlitedb) {
-
 	var networksMap map[string]bool
 	var networks []string
 	vals, err := db.GetValidators()
@@ -44,9 +45,8 @@ func (a *Data) GetProposals(db *database.Sqlitedb) {
 	}
 	err = a.AlertOnProposals(networks)
 	if err != nil {
-		log.Printf("alerrton prop err%s", err)
+		log.Printf("Error while alerting on proposals: %s", err)
 	}
-
 }
 
 // Alerts on Active Proposals
@@ -106,7 +106,6 @@ func (a *Data) AlertOnProposals(networks []string) error {
 
 // GetValidatorVote to check validator voted for the proposal or not.
 func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) string {
-
 	addr, _ := sdk.ValAddressFromBech32(valAddr)
 	accAddr, _ := sdk.AccAddressFromHexUnsafe(hex.EncodeToString(addr.Bytes()))
 	ops := HTTPOptions{

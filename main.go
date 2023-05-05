@@ -23,7 +23,15 @@ func main() {
 	if err != nil {
 		log.Printf("%s", err)
 	}
-	alerter := alerting.NewBotClient(cfg, db, &keyshandler.Keys{}, &voting.Vote{})
+
+	keys := keyshandler.Keys{
+		Db: db,
+	}
+	votes := voting.Vote{
+		Db: db,
+	}
+	alerter := alerting.NewBotClient(cfg, db, &keys, &votes)
+
 	cron := targets.NewCron(db, cfg, alerter)
 	cron.Start()
 	alerter.Initializecommands()

@@ -23,10 +23,10 @@ import (
 )
 
 type Vote struct {
-	db *database.Sqlitedb
+	Db *database.Sqlitedb
 }
 
-// Gets various chain names from Chain registry
+// Gets chain name related to chain ID
 func (v *Vote) GetChainName(chainID string, cr registry.ChainRegistry) (string, error) {
 	chains, err := cr.ListChains(context.Background())
 	if err != nil {
@@ -80,13 +80,14 @@ func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, ga
 	if err != nil {
 		return fmt.Errorf("error while getting current directory: %v", err)
 	}
+	
 	// Create client object to pull chain info
 	chainClient, err := lensclient.NewChainClient(zap.L(), &chainConfig, curDir, os.Stdin, os.Stdout)
 	if err != nil {
 		return fmt.Errorf("failed to build new chain client for %s. Err: %v", chainInfo.ChainID, err)
 	}
 
-	keyAddr, err := v.db.GetKeyAddress(fromKey)
+	keyAddr, err := v.Db.GetKeyAddress(fromKey)
 	if err != nil {
 		return fmt.Errorf("error while getting address of %s key", fromKey)
 	}

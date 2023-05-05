@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"log"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
 	"github.com/likhita-809/lens-bot/keyshandler"
 	"github.com/likhita-809/lens-bot/voting"
 	"github.com/shomali11/slacker"
 	"github.com/slack-go/slack"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 type Slackbot struct {
@@ -36,7 +37,6 @@ func NewBotClient(config *config.Config, db *database.Sqlitedb, key *keyshandler
 
 // Creates and initialises commands
 func (a *Slackbot) Initializecommands() error {
-
 	// Command to register validator address with chain name
 	a.bot.Command("register-validator <chainName> <validatorAddress>", &slacker.CommandDefinition{
 		Description: "register a new validator",
@@ -59,6 +59,7 @@ func (a *Slackbot) Initializecommands() error {
 			}
 		},
 	})
+
 	// Creates keys which are used for voting
 	a.bot.Command("create-key <chainName> <keyNameOptional>", &slacker.CommandDefinition{
 		Description: "create a new account with key name",
@@ -74,9 +75,10 @@ func (a *Slackbot) Initializecommands() error {
 			}
 		},
 	})
+
 	// Vote command is used to vote on the proposals based on proposal Id, validator address with vote option using keys stored from db.
 	a.bot.Command(
-		"vote <chainId> <proposalId> <validatorAddress> <voteOption> <fromKey> <metaDataOptional> <memoOptional> <gasUnitsOptional> <feesOptional>",
+		"vote <chainId> <proposalId> <validatorAddress> <voteOption> <fromKey> <metadataOptional> <memoOptional> <gasUnitsOptional> <feesOptional>",
 		&slacker.CommandDefinition{
 			Description: "vote",
 			Examples:    []string{"vote cosmoshub 123 YES memodata 300000 0.25uatom "},
@@ -86,7 +88,7 @@ func (a *Slackbot) Initializecommands() error {
 				valAddr := request.Param("validatorAddress")
 				voteOption := request.Param("voteOption")
 				fromKey := request.Param("fromKey")
-				metadata := request.StringParam("metaDataOptional", "")
+				metadata := request.StringParam("metadataOptional", "")
 				memo := request.StringParam("memoOptional", "")
 				gas := request.StringParam("gasUnitsOptional", "")
 				fees := request.StringParam("feesOptional", "")
@@ -99,7 +101,8 @@ func (a *Slackbot) Initializecommands() error {
 			},
 		},
 	)
-	//Lists all the keys stored in the database
+
+	// Lists all keys stored in the database
 	a.bot.Command("list-keys", &slacker.CommandDefinition{
 		Description: "lists all keys",
 		Examples:    []string{"list-keys"},
@@ -133,7 +136,7 @@ func (a *Slackbot) Initializecommands() error {
 		},
 	})
 
-	//Command to list all registered validators
+	// Command to list all registered validators
 	a.bot.Command("list-validators", &slacker.CommandDefinition{
 		Description: "lists all validators addresses with associated chains",
 		Examples:    []string{"list-validators"},

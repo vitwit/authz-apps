@@ -15,7 +15,7 @@ import (
 )
 
 type Keys struct {
-	db *database.Sqlitedb
+	Db *database.Sqlitedb
 }
 
 // Creates keys using chain name and chain registry
@@ -64,6 +64,6 @@ func (k Keys) CreateKeys(chainName, keyName string) error {
 
 	chainConfig.Key = keyName
 
-	k.db.AddKey(chainName, keyName, res.Address)
+	k.Db.AddKey(chainName, keyName, res.Address)
 	return nil
 }
