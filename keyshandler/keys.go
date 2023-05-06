@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/likhita-809/lens-bot/database"
 	lensclient "github.com/strangelove-ventures/lens/client"
@@ -90,7 +91,7 @@ func (k Keys) CreateKeys(chainName, keyName string) error {
 	return nil
 }
 
-const SEED_FILE = "keys/seed.txt"
+var SEED_FILE = filepath.Join("keys", "seed.txt")
 
 func (k Keys) readSeedFile() (string, error) {
 	stream, err := os.ReadFile(SEED_FILE)
@@ -112,8 +113,8 @@ func (k Keys) hasMnemonicSeed() bool {
 
 // storeMnemonicSeed stores mnemonic seed string the SEED_FILE.
 func (k Keys) storeMnemonicSeed(seed string) error {
-	if _, err := os.Stat(SEED_FILE); errors.Is(err, os.ErrNotExist) {
-		err := os.Mkdir(SEED_FILE, os.ModePerm)
+	if _, err := os.Stat("keys"); errors.Is(err, os.ErrNotExist) {
+		err := os.Mkdir("keys", os.ModePerm)
 		if err != nil {
 			return err
 		}
