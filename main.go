@@ -17,14 +17,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	db.InitializeTables()
 
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("Recovered from panic:", r)
 		}
 	}()
-
-	db.InitializeTables()
 
 	cfg, err := config.ReadConfigFromFile()
 	if err != nil {
@@ -41,6 +40,7 @@ func main() {
 
 	cron := targets.NewCron(db, cfg, alerter)
 	cron.Start()
+
 	alerter.Initializecommands()
 
 	var wg sync.WaitGroup

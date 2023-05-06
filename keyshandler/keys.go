@@ -2,6 +2,7 @@ package keyshandler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -10,8 +11,6 @@ import (
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 type Keys struct {
@@ -57,13 +56,77 @@ func (k Keys) CreateKeys(chainName, keyName string) error {
 		return fmt.Errorf("failed to build new chain client for %s. Err: %v", chainInfo.ChainID, err)
 	}
 
-	res, err := chainClient.AddKey(keyName, sdk.CoinType)
-	if err != nil {
-		return fmt.Errorf("error while adding key: %v", err)
+	// If a mnemonic seed phrase exists, use the same seed phrase for all accounts.
+	var address string
+	if k.hasMnemonicSeed() {
+		seed, err := k.readSeedFile()
+		if err != nil {
+			return err
+		}
+
+		address, err = chainClient.RestoreKey(keyName, seed, uint32(chainInfo.Slip44))
+		if err != nil {
+			return fmt.Errorf("error while adding key: %v", err)
+		}
+	} else {
+		res, err := chainClient.AddKey(keyName, uint32(chainInfo.Slip44))
+		if err != nil {
+			return fmt.Errorf("error while adding key: %v", err)
+		}
+
+		// store Mnemonic seed
+		if err := k.storeMnemonicSeed(res.Mnemonic); err != nil {
+			return err
+		}
+
+		address = res.Address
 	}
 
 	chainConfig.Key = keyName
+	if err := k.Db.AddKey(chainName, keyName, address); err != nil {
+		return err
+	}
 
-	k.Db.AddKey(chainName, keyName, res.Address)
 	return nil
+}
+
+const SEED_FILE = "keys/seed.txt"
+
+func (k Keys) readSeedFile() (string, error) {
+	stream, err := os.ReadFile(SEED_FILE)
+	if err != nil {
+		return "", err
+	}
+
+	return string(stream), err
+}
+
+// hasMnemonicSeed returns true if SEED_FILE exists
+func (k Keys) hasMnemonicSeed() bool {
+	if _, err := os.Stat(SEED_FILE); errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+
+	return true
+}
+
+// storeMnemonicSeed stores mnemonic seed string the SEED_FILE.
+func (k Keys) storeMnemonicSeed(seed string) error {
+	if _, err := os.Stat(SEED_FILE); errors.Is(err, os.ErrNotExist) {
+		err := os.Mkdir(SEED_FILE, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+
+	f, err := os.Create(SEED_FILE)
+
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	_, err = f.WriteString(seed)
+	return err
 }
