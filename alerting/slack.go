@@ -60,6 +60,28 @@ func (a *Slackbot) Initializecommands() error {
 		},
 	})
 
+	// Command to remove validator address from db
+	a.bot.Command("remove-validator <validatorAddress>", &slacker.CommandDefinition{
+		Description: "remove an existing validator",
+		Examples:    []string{"remove-validator cosmos1a..."},
+		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+			validatorAddress := request.Param("validatorAddress")
+			_, err := sdk.ValAddressFromBech32(validatorAddress)
+			if err != nil {
+				response.Reply("Invalid validator address")
+			} else {
+				isExists := a.db.HasValidator(validatorAddress)
+				if !isExists {
+					response.Reply("Cannot delete a validator which is not in the registered validators")
+				} else {
+					a.db.RemoveValidator(validatorAddress)
+					r := fmt.Sprintf("Your validator %s is successfully removed", validatorAddress)
+					response.Reply(r)
+				}
+			}
+		},
+	})
+
 	// Creates keys which are used for voting
 	a.bot.Command("create-key <chainName> <keyNameOptional>", &slacker.CommandDefinition{
 		Description: "create a new account with key name",
@@ -107,7 +129,7 @@ func (a *Slackbot) Initializecommands() error {
 		Description: "lists all keys",
 		Examples:    []string{"list-keys"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			r, err := a.db.GetKeys()
+			keys, err := a.db.GetKeys()
 			if err != nil {
 				response.ReportError(err)
 			} else {
@@ -116,13 +138,13 @@ func (a *Slackbot) Initializecommands() error {
 				event := botCtx.Event()
 
 				var blocks []slack.Block
-				for _, val := range r {
-					blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* ---- *%s*", val.ChainName, val.KeyName), false, false),
+				for _, key := range keys {
+					blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* ---- *%s* ---- *%s*", key.ChainName, key.KeyName, key.KeyAddress), false, false),
 						nil, nil))
 				}
 
 				attachment := []slack.Block{
-					slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Network ---- Key name", false, false)),
+					slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Network ---- Key name---- Key address", false, false)),
 				}
 				attachment = append(attachment, blocks...)
 

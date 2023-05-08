@@ -16,8 +16,9 @@ type (
 	}
 
 	keys struct {
-		ChainName string
-		KeyName   string
+		ChainName  string
+		KeyName    string
+		KeyAddress string
 	}
 
 	Sqlitedb struct {
@@ -59,6 +60,19 @@ func (s *Sqlitedb) AddValidator(name, address string) error {
 	defer stmt.Close()
 
 	_, err = stmt.Exec(name, address)
+	return err
+}
+
+// Removes validator information
+func (s *Sqlitedb) RemoveValidator(address string) error {
+	stmt, err := s.db.Prepare("DELETE FROM validators WHERE address=?")
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(address)
 	return err
 }
 
@@ -156,7 +170,7 @@ func (a *Sqlitedb) GetKeyAddress(key string) (string, error) {
 func (a *Sqlitedb) GetKeys() ([]keys, error) {
 	log.Printf("Fetching keys...")
 
-	rows, err := a.db.Query("SELECT chainName, keyName FROM keys")
+	rows, err := a.db.Query("SELECT chainName, keyName, keyAddress FROM keys")
 	if err != nil {
 		return []keys{}, err
 	}
@@ -165,7 +179,7 @@ func (a *Sqlitedb) GetKeys() ([]keys, error) {
 	var k []keys
 	for rows.Next() {
 		var data keys
-		if err := rows.Scan(&data.ChainName, &data.KeyName); err != nil {
+		if err := rows.Scan(&data.ChainName, &data.KeyName, &data.KeyAddress); err != nil {
 			return k, err
 		}
 		k = append(k, data)
