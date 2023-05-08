@@ -80,7 +80,7 @@ func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, ga
 	if err != nil {
 		return fmt.Errorf("error while getting current directory: %v", err)
 	}
-	
+
 	// Create client object to pull chain info
 	chainClient, err := lensclient.NewChainClient(zap.L(), &chainConfig, curDir, os.Stdin, os.Stdout)
 	if err != nil {
@@ -160,7 +160,7 @@ func (v *Vote) stringToVoteOption(str string) (v1.VoteOption, error) {
 	case "no_with_veto":
 		return v1.OptionNoWithVeto, nil
 	default:
-		return v1.VoteOption(0), fmt.Errorf("invalid vote option: %s", str)
+		return v1.OptionEmpty, fmt.Errorf("invalid vote option: %s", str)
 
 	}
 }
@@ -192,6 +192,7 @@ func (v *Vote) GetValidV1Endpoint(chainInfo registry.ChainInfo) (bool, error) {
 	}
 	validEndpoint := false
 	for _, endpoint := range out {
+		endpoint = endpoint + "/cosmos/gov/v1/proposals"
 		req, err := http.NewRequest(http.MethodGet, endpoint, nil)
 		if err != nil {
 			return false, err
