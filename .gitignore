@@ -1,4 +1,5 @@
+slackbot.db
+keys
 config.toml
-slackbot.dbkeys
 *.db
 build

@@ -16,9 +16,9 @@ type (
 	}
 
 	keys struct {
-		ChainName string
-		KeyName   string
-		Address   string
+		ChainName  string
+		KeyName    string
+		KeyAddress string
 	}
 
 	Sqlitedb struct {
@@ -179,7 +179,7 @@ func (a *Sqlitedb) GetKeys() ([]keys, error) {
 	var k []keys
 	for rows.Next() {
 		var data keys
-		if err := rows.Scan(&data.ChainName, &data.KeyName, &data.Address); err != nil {
+		if err := rows.Scan(&data.ChainName, &data.KeyName, &data.KeyAddress); err != nil {
 			return k, err
 		}
 		k = append(k, data)

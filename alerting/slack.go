@@ -127,7 +127,7 @@ func (a *Slackbot) Initializecommands() error {
 		Description: "lists all keys",
 		Examples:    []string{"list-keys"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			r, err := a.db.GetKeys()
+			keys, err := a.db.GetKeys()
 			if err != nil {
 				response.ReportError(err)
 			} else {
@@ -136,8 +136,8 @@ func (a *Slackbot) Initializecommands() error {
 				event := botCtx.Event()
 
 				var blocks []slack.Block
-				for _, val := range r {
-					blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* ---- *%s* ---- *%s*", val.ChainName, val.KeyName, val.Address), false, false),
+				for _, key := range keys {
+					blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* ---- *%s* ---- *%s*", key.ChainName, key.KeyName, key.KeyAddress), false, false),
 						nil, nil))
 				}
 
