@@ -59,10 +59,10 @@ func (a *Slackbot) Initializecommands() error {
 			}
 		},
 	})
-	// Command to register validator address with chain name
+	// Command to remove validator address from db
 	a.bot.Command("remove-validator <validatorAddress>", &slacker.CommandDefinition{
 		Description: "remove an existing validator",
-		Examples:    []string{"delete-validator cosmos1a..."},
+		Examples:    []string{"remove-validator cosmos1a..."},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			validatorAddress := request.Param("validatorAddress")
 			_, err := sdk.ValAddressFromBech32(validatorAddress)
@@ -71,7 +71,7 @@ func (a *Slackbot) Initializecommands() error {
 			} else {
 				isExists := a.db.HasValidator(validatorAddress)
 				if !isExists {
-					response.Reply("Validator is not registered yet")
+					response.Reply("Cannot delete a validator which is not in the registered validators")
 				} else {
 					a.db.RemoveValidator(validatorAddress)
 					r := fmt.Sprintf("Your validator %s is successfully removed", validatorAddress)

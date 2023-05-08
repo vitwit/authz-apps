@@ -67,12 +67,12 @@ func (k Keys) CreateKeys(chainName, keyName string) error {
 
 		address, err = chainClient.RestoreKey(keyName, seed, uint32(chainInfo.Slip44))
 		if err != nil {
-			return fmt.Errorf("account already exist for this network")
+			return fmt.Errorf("account already exists for this network")
 		}
 	} else {
 		res, err := chainClient.AddKey(keyName, uint32(chainInfo.Slip44))
 		if err != nil {
-			return fmt.Errorf("account already exist for this network")
+			return fmt.Errorf("error while adding key: %v", err)
 		}
 
 		// store Mnemonic seed
