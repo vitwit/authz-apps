@@ -170,7 +170,7 @@ func (a *Sqlitedb) GetKeyAddress(key string) (string, error) {
 func (a *Sqlitedb) GetKeys() ([]keys, error) {
 	log.Printf("Fetching keys...")
 
-	rows, err := a.db.Query("SELECT chainName, keyName,keyAddress FROM keys")
+	rows, err := a.db.Query("SELECT chainName, keyName, keyAddress FROM keys")
 	if err != nil {
 		return []keys{}, err
 	}

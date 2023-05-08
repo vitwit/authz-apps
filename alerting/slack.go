@@ -59,6 +59,7 @@ func (a *Slackbot) Initializecommands() error {
 			}
 		},
 	})
+
 	// Command to remove validator address from db
 	a.bot.Command("remove-validator <validatorAddress>", &slacker.CommandDefinition{
 		Description: "remove an existing validator",
@@ -80,6 +81,7 @@ func (a *Slackbot) Initializecommands() error {
 			}
 		},
 	})
+
 	// Creates keys which are used for voting
 	a.bot.Command("create-key <chainName> <keyNameOptional>", &slacker.CommandDefinition{
 		Description: "create a new account with key name",
