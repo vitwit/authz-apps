@@ -60,8 +60,8 @@ func (a *Slackbot) Initializecommands() error {
 		},
 	})
 	// Command to register validator address with chain name
-	a.bot.Command("delete-validator <validatorAddress>", &slacker.CommandDefinition{
-		Description: "delete an existing validator",
+	a.bot.Command("remove-validator <validatorAddress>", &slacker.CommandDefinition{
+		Description: "remove an existing validator",
 		Examples:    []string{"delete-validator cosmos1a..."},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			validatorAddress := request.Param("validatorAddress")
@@ -71,9 +71,9 @@ func (a *Slackbot) Initializecommands() error {
 			} else {
 				isExists := a.db.HasValidator(validatorAddress)
 				if !isExists {
-					response.Reply("Validator is not registered")
+					response.Reply("Validator is not registered yet")
 				} else {
-					a.db.DeleteValidator(validatorAddress)
+					a.db.RemoveValidator(validatorAddress)
 					r := fmt.Sprintf("Your validator %s is successfully removed", validatorAddress)
 					response.Reply(r)
 				}
@@ -137,12 +137,12 @@ func (a *Slackbot) Initializecommands() error {
 
 				var blocks []slack.Block
 				for _, val := range r {
-					blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* ---- *%s*", val.ChainName, val.KeyName), false, false),
+					blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* ---- *%s* ---- *%s*", val.ChainName, val.KeyName, val.Address), false, false),
 						nil, nil))
 				}
 
 				attachment := []slack.Block{
-					slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Network ---- Key name", false, false)),
+					slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Network ---- Key name---- Key address", false, false)),
 				}
 				attachment = append(attachment, blocks...)
 
