@@ -2,6 +2,7 @@ package voting
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -205,6 +206,21 @@ func (v *Vote) GetValidV1Endpoint(chainInfo registry.ChainInfo) (bool, error) {
 		if err != nil {
 			return false, err
 		}
+
+		var params v1.Params
+		req, err = http.NewRequest(http.MethodGet, endpoint+"/cosmos/gov/v1/params", nil)
+		if err != nil {
+			return false, err
+		}
+		resp, err = client.Do(req)
+		if err != nil {
+			return false, err
+		}
+
+		if err := json.NewDecoder(resp.Body).Decode(&params); err != nil {
+			return false, err
+		}
+
 		defer resp.Body.Close()
 		validEndpoint = true
 		if validEndpoint {
