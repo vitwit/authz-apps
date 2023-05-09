@@ -41,7 +41,7 @@ func (c *Cron) Start() error {
 	}
 
 	// Every 2 hours
-	err := cron.AddFunc("0 */2 * * *", func() {
+	err := cron.AddFunc("@every 2h", func() {
 		d.GetProposals(c.db)
 	})
 	if err != nil {
