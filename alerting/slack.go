@@ -11,6 +11,9 @@ import (
 	"github.com/likhita-809/lens-bot/voting"
 	"github.com/shomali11/slacker"
 	"github.com/slack-go/slack"
+	registry "github.com/strangelove-ventures/lens/client/chain_registry"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -44,7 +47,20 @@ func (a *Slackbot) Initializecommands() error {
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			chainName := request.Param("chainName")
 			validatorAddress := request.Param("validatorAddress")
-			_, err := sdk.ValAddressFromBech32(validatorAddress)
+
+			cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
+			chainInfo, err := cr.GetChain(context.Background(), chainName)
+			if err != nil {
+				response.Reply(fmt.Sprintf("failed to get chain information from registry: %s", err.Error()))
+				panic(err)
+			}
+
+			config := sdk.GetConfig()
+			config.SetBech32PrefixForAccount(chainInfo.Bech32Prefix, chainInfo.Bech32Prefix+"pub")
+			config.SetBech32PrefixForValidator(chainInfo.Bech32Prefix+"valoper", chainInfo.Bech32Prefix+"valoperpub")
+			config.Seal()
+
+			_, err = sdk.ValAddressFromBech32(validatorAddress)
 			if err != nil {
 				response.Reply("Invalid validator address")
 			} else {
