@@ -82,18 +82,12 @@ func (a *Slackbot) Initializecommands() error {
 		Examples:    []string{"remove-validator cosmos1a..."},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			validatorAddress := request.Param("validatorAddress")
-			_, err := sdk.ValAddressFromBech32(validatorAddress)
-			if err != nil {
-				response.Reply("Invalid validator address")
+			if !a.db.HasValidator(validatorAddress) {
+				response.Reply("Cannot delete a validator which is not in the registered validators")
 			} else {
-				isExists := a.db.HasValidator(validatorAddress)
-				if !isExists {
-					response.Reply("Cannot delete a validator which is not in the registered validators")
-				} else {
-					a.db.RemoveValidator(validatorAddress)
-					r := fmt.Sprintf("Your validator %s is successfully removed", validatorAddress)
-					response.Reply(r)
-				}
+				a.db.RemoveValidator(validatorAddress)
+				r := fmt.Sprintf("Your validator %s is successfully removed", validatorAddress)
+				response.Reply(r)
 			}
 		},
 	})
