@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
@@ -110,25 +111,33 @@ func (a *Slackbot) Initializecommands() error {
 
 	// Vote command is used to vote on the proposals based on proposal Id, validator address with vote option using keys stored from db.
 	a.bot.Command(
-		"vote <chainId> <proposalId> <validatorAddress> <voteOption> <fromKey> <gas> <metadataOptional> <memoOptional>",
+		"vote <chainId> <proposalId> <granterAddress> <voteOption> <granteeKeyname> <gasPrices> <memoOptional> <metadataOptional>",
 		&slacker.CommandDefinition{
 			Description: "votes on the proposal",
-			Examples:    []string{"vote cosmoshub 123 YES 0.25uatom metadata memo"},
+			Examples:    []string{"vote cosmoshub-4 12 YES 0.25uatom example_memo example_metadata"},
 			Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 				chainID := request.Param("chainId")
 				pID := request.Param("proposalId")
-				valAddr := request.Param("validatorAddress")
+				granter := request.Param("granterAddress")
 				voteOption := request.Param("voteOption")
-				fromKey := request.Param("fromKey")
+				fromKey := request.Param("granteeKeyname")
 				metadata := request.StringParam("metadataOptional", "")
 				memo := request.StringParam("memoOptional", "")
-				gas := request.StringParam("gasUnitsOptional", "")
-				err := a.vote.ExecVote(chainID, pID, valAddr, voteOption, fromKey, metadata, memo, gas)
+				gasPrices := request.StringParam("gasPrices", "")
+				if len(memo) > 1 {
+					memo = strings.Replace(memo, "_", " ", -1)
+				}
+
+				if len(metadata) > 1 {
+					metadata = strings.Replace(metadata, "_", " ", -1)
+				}
+
+				result, err := a.vote.ExecVote(chainID, pID, granter, voteOption, fromKey, metadata, memo, gasPrices)
 				if err != nil {
 					log.Printf("error on executing vote: %v", err)
 				}
-				a := fmt.Sprintf("%v", err.Error())
-				response.Reply(a)
+
+				response.Reply(result)
 			},
 		},
 	)
