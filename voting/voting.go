@@ -2,7 +2,6 @@ package voting
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -44,7 +43,7 @@ func (v *Vote) GetChainName(chainID string, cr registry.ChainRegistry) (string, 
 }
 
 // Votes on the proposal using the given data and key
-func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, gas, fees string) error {
+func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, gas string) error {
 	// Fetch chain info from chain registry
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
@@ -72,6 +71,7 @@ func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, ga
 		GasPrices:      gas,
 		Debug:          true,
 		Timeout:        "20s",
+		GasAdjustment:  1.4,
 		OutputFormat:   "json",
 		SignModeStr:    "direct",
 		Modules:        lensclient.ModuleBasics,
@@ -104,33 +104,34 @@ func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, ga
 
 	var msgAny *cdctypes.Any
 
-	validV1Endpoint, err := v.GetValidV1Endpoint(chainInfo)
-	if err != nil {
-		return fmt.Errorf("error while getting valid gov v1 endpoint: %v", err)
-	}
-	if validV1Endpoint {
-		msgVote := v1.MsgVote{
-			ProposalId: proposalID,
-			Voter:      valAddr,
-			Option:     voteOption,
-			Metadata:   metadata,
-		}
-		msgAny, err = cdctypes.NewAnyWithValue(&msgVote)
-		if err != nil {
-			return fmt.Errorf("error on converting msg to Any: %v", err)
-		}
+	// TODO: handle v1beta1 and v1 types
+	// validV1Endpoint, err := v.GetValidV1Endpoint(chainInfo)
+	// if err != nil {
+	// 	return fmt.Errorf("error while getting valid gov v1 endpoint: %v", err)
+	// }
+	// if validV1Endpoint {
+	// 	msgVote := v1.MsgVote{
+	// 		ProposalId: proposalID,
+	// 		Voter:      valAddr,
+	// 		Option:     voteOption,
+	// 		Metadata:   metadata,
+	// 	}
+	// 	msgAny, err = cdctypes.NewAnyWithValue(&msgVote)
+	// 	if err != nil {
+	// 		return fmt.Errorf("error on converting msg to Any: %v", err)
+	// 	}
 
-	} else {
-		msgVote := v1beta1.MsgVote{
-			ProposalId: proposalID,
-			Voter:      valAddr,
-			Option:     v1beta1.VoteOption(voteOption),
-		}
-		msgAny, err = cdctypes.NewAnyWithValue(&msgVote)
-		if err != nil {
-			return fmt.Errorf("error on converting msg to Any: %v", err)
-		}
+	// } else {
+	msgVote := v1beta1.MsgVote{
+		ProposalId: proposalID,
+		Voter:      valAddr,
+		Option:     v1beta1.VoteOption(voteOption),
 	}
+	msgAny, err = cdctypes.NewAnyWithValue(&msgVote)
+	if err != nil {
+		return fmt.Errorf("error on converting msg to Any: %v", err)
+	}
+	// }
 
 	req := &authz.MsgExec{
 		Grantee: keyAddr,
@@ -161,7 +162,7 @@ func (v *Vote) stringToVoteOption(str string) (v1.VoteOption, error) {
 	case "no_with_veto":
 		return v1.OptionNoWithVeto, nil
 	default:
-		return v1.OptionEmpty, fmt.Errorf("invalid vote option: %s", str)
+		return v1.VoteOption(0), fmt.Errorf("invalid vote option: %s", str)
 
 	}
 }
@@ -193,7 +194,6 @@ func (v *Vote) GetValidV1Endpoint(chainInfo registry.ChainInfo) (bool, error) {
 	}
 	validEndpoint := false
 	for _, endpoint := range out {
-		endpoint = endpoint + "/cosmos/gov/v1/proposals"
 		req, err := http.NewRequest(http.MethodGet, endpoint, nil)
 		if err != nil {
 			return false, err
@@ -206,21 +206,6 @@ func (v *Vote) GetValidV1Endpoint(chainInfo registry.ChainInfo) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-
-		var params v1.Params
-		req, err = http.NewRequest(http.MethodGet, endpoint+"/cosmos/gov/v1/params", nil)
-		if err != nil {
-			return false, err
-		}
-		resp, err = client.Do(req)
-		if err != nil {
-			return false, err
-		}
-
-		if err := json.NewDecoder(resp.Body).Decode(&params); err != nil {
-			return false, err
-		}
-
 		defer resp.Body.Close()
 		validEndpoint = true
 		if validEndpoint {

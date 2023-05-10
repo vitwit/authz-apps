@@ -110,10 +110,10 @@ func (a *Slackbot) Initializecommands() error {
 
 	// Vote command is used to vote on the proposals based on proposal Id, validator address with vote option using keys stored from db.
 	a.bot.Command(
-		"vote <chainId> <proposalId> <validatorAddress> <voteOption> <fromKey> <metadataOptional> <memoOptional> <gasUnitsOptional> <feesOptional>",
+		"vote <chainId> <proposalId> <validatorAddress> <voteOption> <fromKey> <gas> <metadataOptional> <memoOptional>",
 		&slacker.CommandDefinition{
 			Description: "votes on the proposal",
-			Examples:    []string{"vote cosmoshub 123 YES memodata 300000 0.25uatom "},
+			Examples:    []string{"vote cosmoshub 123 YES 0.25uatom metadata memo"},
 			Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 				chainID := request.Param("chainId")
 				pID := request.Param("proposalId")
@@ -123,8 +123,7 @@ func (a *Slackbot) Initializecommands() error {
 				metadata := request.StringParam("metadataOptional", "")
 				memo := request.StringParam("memoOptional", "")
 				gas := request.StringParam("gasUnitsOptional", "")
-				fees := request.StringParam("feesOptional", "")
-				err := a.vote.ExecVote(chainID, pID, valAddr, voteOption, fromKey, metadata, memo, gas, fees)
+				err := a.vote.ExecVote(chainID, pID, valAddr, voteOption, fromKey, metadata, memo, gas)
 				if err != nil {
 					log.Printf("error on executing vote: %v", err)
 				}
