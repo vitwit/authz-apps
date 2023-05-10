@@ -50,6 +50,8 @@ To install SQLite on Linux, follow these steps:
 * Add a bot user: In your app's settings, click the Bot Users tab and click the Add a Bot User button. Give your bot a display name and default username, then click Add Bot User.
 
 * Install the app: In your app's settings, click the Install App tab and click the Install App to Workspace button. Follow the prompts to authorize the app and install it in your workspace.
+    * Before installing it into the work space try to add scopes which are located under the OAuth & Permissions.some of the basic scopes which can be added are app_mention:read channel:history,channel:read,chat:write,im:history ,user:read
+    * If required events can also be initialised to make the bot more efficient .Some of the basic events are app_mention,message.channel,message.im,im_history_changed.
 
 * Obtain the bot token: After the app is installed, you can obtain the bot token from the OAuth & Permissions tab in your app's settings. Copy the bot token to use it in your bot's code.
 
@@ -104,13 +106,27 @@ To install SQLite on Linux, follow these steps:
 * Alert on new proposals
 * Alert for every 2 hours if the voting period ends in less than 24 hours 
    
-   ### List of avaliable telegram commands
+### List of avaliable slack commands
 
 To get response from these commands you can just use `@<bot-name> <command_name>` or `/<command_name>` from your slack workspace/channel. You will be getting response to your slack workspace/channel based on the bot token/channel ID you have configured in config.toml
 
-    register : registers the validator using chain id and validator address
-    create-key : Create a new account with key name
-    vote : vote on proposals 
-         !note!: keys are an attribute which are added and need to be funded in order for the voting to progress. The grantee must give the voter authorization before the voting can proceed 
+    register-validator : registers the validator using chain id and validator address
+    remove-validator : removes the validator data using validator address
     list-keys : List of all the key names
-    list-all : List of all registered chain id & validators address
+    list-validators : List of all registered validators addresses with chains
+    vote : votes on a proposal
+    create-key : Create a new account with key name. This key name is used while voting.
+
+## Granting authorization and funds to keys
+Keys need to be funded manually and given authorization to vote in order to use them while voting.
+    The granter must give the vote authorization to the grantee key before the voting can proceed.  
+    The authorization to a grantee can be given by using the following command:
+
+    For Cosmos chain:
+    Usage: simd tx authz grant <grantee> <authorization_type> --msg-type <msg_type> --from <granter> [flags]
+    Example: simd tx authz grant cosmos1... --msg-type /cosmos.gov.v1beta1.MsgVote --from granter
+
+    The authorized keys can then be funded to have the ability to vote on behalf of the granter.
+    The following command can be used to fund the key:
+   
+    simd tx bank send [from_key_or_address] [to_address] [amount] [flags]

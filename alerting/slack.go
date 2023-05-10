@@ -95,7 +95,7 @@ func (a *Slackbot) Initializecommands() error {
 
 	// Creates keys which are used for voting
 	a.bot.Command("create-key <chainName> <keyNameOptional>", &slacker.CommandDefinition{
-		Description: "create a new account with key name",
+		Description: "create a new account with key name.\nKeys need to be funded manually and given authorization to vote in order to use them while voting.\nThe granter must give the vote authorization to the grantee key before the voting can proceed.\nThe authorization to a grantee can be given by using the following command:\nFor Cosmos chain:\nUsage: simd tx authz grant <grantee> <authorization_type> --msg-type <msg_type> --from <granter> [flags]\nExample: simd tx authz grant cosmos1... --msg-type /cosmos.gov.v1beta1.MsgVote --from granter\nThe authorized keys can then be funded to have the ability to vote on behalf of the granter.\nThe following command can be used to fund the key:\nsimd tx bank send [from_key_or_address] [to_address] [amount] [flags]",
 		Examples:    []string{"create-key myKey"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			keyName := request.StringParam("keyNameOptional", "default")
@@ -104,7 +104,7 @@ func (a *Slackbot) Initializecommands() error {
 			if err != nil {
 				response.Reply(err.Error())
 			} else {
-				NewSlackAlerter().Send(fmt.Sprintf("Successfully created your key with name %s", keyName), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
+				NewSlackAlerter().Send(fmt.Sprintf("Successfully created your key with name %s.\n *NOTE*\n *This key cannot be used in voting until it has the vote authorization from granter and got funded. The vote authorization can be given using the following command:*\n ```simd tx authz grant <grantee> <authorization_type=generic> --msg-type /cosmos.gov.v1beta1.MsgVote  --from <granter> [flags]```\n\n *The authorized keys can be funded using the following command:* \n ```simd tx bank send [from_key_or_address] [to_address] [amount] [flags]```\n", keyName), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
 			}
 		},
 	})
