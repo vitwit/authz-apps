@@ -96,7 +96,7 @@ func (a *Slackbot) Initializecommands() error {
 	// Creates keys which are used for voting
 	a.bot.Command("create-key <chainName> <keyNameOptional>", &slacker.CommandDefinition{
 		Description: "create a new account with key name.\nKeys need to be funded manually and given authorization to vote in order to use them while voting.\nThe granter must give the vote authorization to the grantee key before the voting can proceed.\nThe authorization to a grantee can be given by using the following command:\nFor Cosmos chain:\nUsage: simd tx authz grant <grantee> <authorization_type> --msg-type <msg_type> --from <granter> [flags]\nExample: simd tx authz grant cosmos1... --msg-type /cosmos.gov.v1beta1.MsgVote --from granter\nThe authorized keys can then be funded to have the ability to vote on behalf of the granter.\nThe following command can be used to fund the key:\nsimd tx bank send [from_key_or_address] [to_address] [amount] [flags]",
-		Examples:    []string{"create-key myKey"},
+		Examples:    []string{"create-key cosmoshub myKey"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			keyName := request.StringParam("keyNameOptional", "default")
 			chainName := request.Param("chainName")
@@ -112,8 +112,8 @@ func (a *Slackbot) Initializecommands() error {
 		Description: "Lists all commands",
 		Examples:    []string{"list-commands"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-
-			NewSlackAlerter().Send("SLACK BOT COMMANDS \n\n register-validator: registers the validator using chain name and validator address\n remove-validator : removes an existing validator data using validator address\n list-keys : Lists all keys\n list-validators : List of all registered validators addresses with associated chains\n vote : votes on a proposal\n create-key : Create a new account with key name. This key name is used while voting.", a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
+			r := " *SLACK BOT COMMANDS* \n\n *• register-validator*: registers the validator using chain name and validator address\n```Command : register-validator <chainName> <validatorAddress>```\n *• remove-validator* : removes an existing validator data using validator address\n```Command:remove-validator <validatorAddress>```\n *• list-keys* : Lists all keys\n```Command:list-keys```\n *• list-validators* : List of all registered validators addresses with associated chains\n```Command:list-validators```\n* • vote* : votes on a proposal\n```Command:vote <chainId> <proposalId> <granterAddress> <voteOption> <granteeKeyname> <gasPrices> <memoOptional> <metadataOptional>\n```\n *• create-key* : Create a new account with key name. This key name is used while voting\n```Command:create-key <chainName> <keyNameOptional>```\n"
+			response.Reply(r)
 		},
 	})
 
