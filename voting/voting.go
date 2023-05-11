@@ -26,34 +26,19 @@ type Vote struct {
 	Db *database.Sqlitedb
 }
 
-// Gets chain name related to chain ID
-func (v *Vote) GetChainName(chainID string, cr registry.ChainRegistry) (string, error) {
-	chains, err := cr.ListChains(context.Background())
-	if err != nil {
-		return "", err
-	}
-
-	for _, chainName := range chains {
-		chainInfo, _ := cr.GetChain(context.Background(), chainName)
-		if chainInfo.ChainID == chainID {
-			return chainName, nil
-		}
-	}
-	return "", fmt.Errorf("chain name not found")
+// GetChainInfo related to chain Name
+func (v *Vote) GetChainInfo(name string, cr registry.ChainRegistry) (registry.ChainInfo, error) {
+	return cr.GetChain(context.Background(), name)
 }
 
 // Votes on the proposal using the given data and key
-func (v *Vote) ExecVote(chainID, pID, valAddr, vote, fromKey, metadata, memo, gasPrices string) (string, error) {
+func (v *Vote) ExecVote(chainName, pID, valAddr, vote, fromKey, metadata, memo, gasPrices string) (string, error) {
 	// Fetch chain info from chain registry
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
-	chainName, err := v.GetChainName(chainID, cr)
+	chainInfo, err := v.GetChainInfo(chainName, cr)
 	if err != nil {
-		return "", fmt.Errorf("chain name not found")
-	}
-	chainInfo, err := cr.GetChain(context.Background(), chainName)
-	if err != nil {
-		return "", fmt.Errorf("failed to get chain info. Err: %v ", err)
+		return "", fmt.Errorf("chain id not found: %v", err)
 	}
 
 	//	Use Chain info to select random endpoint

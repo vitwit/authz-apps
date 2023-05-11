@@ -41,12 +41,12 @@ func (a *Sqlitedb) Close() error {
 
 // Creates all the required tables in database
 func (a *Sqlitedb) InitializeTables() error {
-	_, err := a.db.Exec("CREATE TABLE IF NOT EXISTS validators (chainName VARCHAR, address VARCHAR PRIMARY KEY)")
+	_, err := a.db.Exec("CREATE TABLE IF NOT EXISTS validators (chainName VARCHAR PRIMARY KEY, address VARCHAR )")
 	if err != nil {
 		return err
 	}
 
-	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR, keyName VARCHAR, keyAddress VARCHAR)")
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR PRIMARY KEY, keyName VARCHAR, keyAddress VARCHAR)")
 	return err
 }
 
@@ -159,6 +159,36 @@ func (a *Sqlitedb) GetKeyAddress(key string) (string, error) {
 	defer stmt.Close()
 
 	err = stmt.QueryRow(key).Scan(&addr)
+	if err != nil {
+		return "", err
+	}
+
+	return addr, nil
+}
+func (a *Sqlitedb) GetChainKey(ChainName string) (string, error) {
+	var addr string
+	stmt, err := a.db.Prepare("SELECT keyAddress FROM keys WHERE chainName=?")
+	if err != nil {
+		return "", err
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRow(ChainName).Scan(&addr)
+	if err != nil {
+		return "", err
+	}
+
+	return addr, nil
+}
+func (a *Sqlitedb) GetChainValidator(ChainName string) (string, error) {
+	var addr string
+	stmt, err := a.db.Prepare("SELECT address FROM validators WHERE chainName=?")
+	if err != nil {
+		return "", err
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRow(ChainName).Scan(&addr)
 	if err != nil {
 		return "", err
 	}

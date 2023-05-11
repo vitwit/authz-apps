@@ -108,19 +108,33 @@ func (a *Slackbot) Initializecommands() error {
 			}
 		},
 	})
+	a.bot.Command("list-commands", &slacker.CommandDefinition{
+		Description: "Lists all commands",
+		Examples:    []string{"list-commands"},
+		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+
+			NewSlackAlerter().Send("SLACK BOT COMMANDS \n\n register-validator: registers the validator using chain id and validator address\n remove-validator : removes the validator data using validator address\n list-keys : List of all the key names\n list-validators : List of all registered validators addresses with chains\n vote : votes on a proposal\n create-key : Create a new account with key name. This key name is used while voting.", a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
+		},
+	})
 
 	// Vote command is used to vote on the proposals based on proposal Id, validator address with vote option using keys stored from db.
 	a.bot.Command(
-		"vote <chainId> <proposalId> <granterAddress> <voteOption> <granteeKeyname> <gasPrices> <memoOptional> <metadataOptional>",
+		"vote <chainName> <proposalId> <voteOption> <gasPrices> <memoOptional> <metadataOptional>",
 		&slacker.CommandDefinition{
 			Description: "votes on the proposal",
 			Examples:    []string{"vote cosmoshub-4 12 YES 0.25uatom example_memo example_metadata"},
 			Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-				chainID := request.Param("chainId")
+				chainName := request.Param("chainName")
 				pID := request.Param("proposalId")
-				granter := request.Param("granterAddress")
+				granter, err := a.db.GetChainValidator(chainName)
+				if err != nil {
+					log.Printf("Error while getting validator address of chain %s", chainName)
+				}
 				voteOption := request.Param("voteOption")
-				fromKey := request.Param("granteeKeyname")
+				fromKey, err := a.db.GetChainKey(chainName)
+				if err != nil {
+					log.Printf("Error while getting key address of chain %s", chainName)
+				}
 				metadata := request.StringParam("metadataOptional", "")
 				memo := request.StringParam("memoOptional", "")
 				gasPrices := request.StringParam("gasPrices", "")
@@ -132,7 +146,7 @@ func (a *Slackbot) Initializecommands() error {
 					metadata = strings.Replace(metadata, "_", " ", -1)
 				}
 
-				result, err := a.vote.ExecVote(chainID, pID, granter, voteOption, fromKey, metadata, memo, gasPrices)
+				result, err := a.vote.ExecVote(chainName, pID, granter, voteOption, fromKey, metadata, memo, gasPrices)
 				if err != nil {
 					log.Printf("error on executing vote: %v", err)
 				}
@@ -225,8 +239,7 @@ func (s slackAlert) Send(msgText, botToken string, channelID string) error {
 
 	// Create the Slack attachment that we will send to the channel
 	attachment := slack.Attachment{
-		Pretext: "Lens Bot Message",
-		Title:   msgText,
+		Title: msgText,
 	}
 
 	// PostMessage will send the message away.
