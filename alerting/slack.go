@@ -113,7 +113,7 @@ func (a *Slackbot) Initializecommands() error {
 		Examples:    []string{"list-commands"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 
-			NewSlackAlerter().Send("SLACK BOT COMMANDS \n\n register-validator: registers the validator using chain id and validator address\n remove-validator : removes the validator data using validator address\n list-keys : List of all the key names\n list-validators : List of all registered validators addresses with chains\n vote : votes on a proposal\n create-key : Create a new account with key name. This key name is used while voting.", a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
+			NewSlackAlerter().Send("SLACK BOT COMMANDS \n\n register-validator: registers the validator using chain name and validator address\n remove-validator : removes an existing validator data using validator address\n list-keys : Lists all keys\n list-validators : List of all registered validators addresses with associated chains\n vote : votes on a proposal\n create-key : Create a new account with key name. This key name is used while voting.", a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
 		},
 	})
 
