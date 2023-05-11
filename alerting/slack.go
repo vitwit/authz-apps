@@ -84,7 +84,7 @@ func (a *Slackbot) Initializecommands() error {
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			validatorAddress := request.Param("validatorAddress")
 			if !a.db.HasValidator(validatorAddress) {
-				response.ReportError("Cannot delete a validator which is not in the registered validators")
+				response.ReportError(fmt.Errorf("Cannot delete a validator which is not in the registered validators"))
 			} else {
 				a.db.RemoveValidator(validatorAddress)
 				r := fmt.Sprintf("Your validator %s is successfully removed", validatorAddress)
@@ -127,18 +127,18 @@ func (a *Slackbot) Initializecommands() error {
 			Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 				chainName := request.Param("chainName")
 				pID := request.Param("proposalId")
-                
+
 				address, err := a.db.GetChainValidator(chainName)
 				if err != nil {
-				    response.ReportError(fmt.Errorf("failed to get validator address from the database: %v",err))
-				    return
+					response.ReportError(fmt.Errorf("failed to get validator address from the database: %v", err))
+					return
 				}
-				
+
 				cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 				chainInfo, err := a.vote.GetChainInfo(chainName, cr)
 				if err != nil {
-				    response.ReportError(fmt.Errorf("failed to get chain-info: %v",err))
-				    return
+					response.ReportError(fmt.Errorf("failed to get chain-info: %v", err))
+					return
 				}
 
 				config := sdk.GetConfig()
@@ -147,14 +147,14 @@ func (a *Slackbot) Initializecommands() error {
 				config.Seal()
 				granter, err := sdk.ValAddressFromBech32(address)
 				if err != nil {
-					response.ReportError(fmt.Sprintf("Error while getting validator address of chain %s", chainName))
+					response.ReportError(fmt.Errorf("Error while getting validator address of chain %s", chainName))
 					return
 				}
 
 				voteOption := request.Param("voteOption")
 				fromKey, err := a.db.GetChainKey(chainName)
 				if err != nil {
-					response.ReportError(fmt.Sprintf("Error while getting key address of chain %s", chainName))
+					response.ReportError(fmt.Errorf("Error while getting key address of chain %s", chainName))
 					return
 				}
 
@@ -169,10 +169,10 @@ func (a *Slackbot) Initializecommands() error {
 					metadata = strings.Replace(metadata, "_", " ", -1)
 				}
 
-				result, err := a.vote.ExecVote(chainName, pID, granter, voteOption, fromKey, metadata, memo, gasPrices)
+				result, err := a.vote.ExecVote(chainName, pID, granter.String(), voteOption, fromKey, metadata, memo, gasPrices)
 				if err != nil {
 					log.Printf("error on executing vote: %v", err)
-					response.ReportError(fmt.Sprintf("error on executing vote: %v", err))
+					response.ReportError(fmt.Errorf("error on executing vote: %v", err))
 					return
 				}
 
@@ -223,6 +223,7 @@ func (a *Slackbot) Initializecommands() error {
 			validators, err := a.db.GetValidators()
 			if err != nil {
 				response.ReportError(err)
+				return
 			}
 
 			apiClient := botCtx.APIClient()
