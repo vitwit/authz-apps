@@ -84,7 +84,7 @@ func (a *Slackbot) Initializecommands() error {
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			validatorAddress := request.Param("validatorAddress")
 			if !a.db.HasValidator(validatorAddress) {
-				response.Reply("Cannot delete a validator which is not in the registered validators")
+				response.ReportError("Cannot delete a validator which is not in the registered validators")
 			} else {
 				a.db.RemoveValidator(validatorAddress)
 				r := fmt.Sprintf("Your validator %s is successfully removed", validatorAddress)
@@ -108,6 +108,7 @@ func (a *Slackbot) Initializecommands() error {
 			}
 		},
 	})
+
 	a.bot.Command("list-commands", &slacker.CommandDefinition{
 		Description: "Lists all commands",
 		Examples:    []string{"list-commands"},
@@ -126,29 +127,37 @@ func (a *Slackbot) Initializecommands() error {
 			Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 				chainName := request.Param("chainName")
 				pID := request.Param("proposalId")
-                               alerter := NewSlackAlerter()
+                
 				address, err := a.db.GetChainValidator(chainName)
 				if err != nil {
-				    alerter.Send(fmt.Errorf("failed to get validator address from the database: %v",err)
+				    response.ReportError(fmt.Errorf("failed to get validator address from the database: %v",err))
 				    return
 				}
 				
 				cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 				chainInfo, err := a.vote.GetChainInfo(chainName, cr)
+				if err != nil {
+				    response.ReportError(fmt.Errorf("failed to get chain-info: %v",err))
+				    return
+				}
+
 				config := sdk.GetConfig()
 				config.SetBech32PrefixForAccount(chainInfo.Bech32Prefix, chainInfo.Bech32Prefix+"pub")
 				config.SetBech32PrefixForValidator(chainInfo.Bech32Prefix+"valoper", chainInfo.Bech32Prefix+"valoperpub")
 				config.Seal()
-				granter := fmt.Sprintln(sdk.ValAddressFromBech32(address))
+				granter, err := sdk.ValAddressFromBech32(address)
 				if err != nil {
-					NewSlackAlerter().Send(fmt.Sprintf("Error while getting validator address of chain %s", chainName), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
-
+					response.ReportError(fmt.Sprintf("Error while getting validator address of chain %s", chainName))
+					return
 				}
+
 				voteOption := request.Param("voteOption")
 				fromKey, err := a.db.GetChainKey(chainName)
 				if err != nil {
-					NewSlackAlerter().Send(fmt.Sprintf("Error while getting key address of chain %s", chainName), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
+					response.ReportError(fmt.Sprintf("Error while getting key address of chain %s", chainName))
+					return
 				}
+
 				metadata := request.StringParam("metadataOptional", "")
 				memo := request.StringParam("memoOptional", "")
 				gasPrices := request.StringParam("gasPrices", "")
@@ -163,6 +172,8 @@ func (a *Slackbot) Initializecommands() error {
 				result, err := a.vote.ExecVote(chainName, pID, granter, voteOption, fromKey, metadata, memo, gasPrices)
 				if err != nil {
 					log.Printf("error on executing vote: %v", err)
+					response.ReportError(fmt.Sprintf("error on executing vote: %v", err))
+					return
 				}
 
 				response.Reply(result)
