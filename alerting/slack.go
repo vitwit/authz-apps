@@ -108,14 +108,6 @@ func (a *Slackbot) Initializecommands() error {
 			}
 		},
 	})
-	a.bot.Command("list-commands", &slacker.CommandDefinition{
-		Description: "Lists all commands",
-		Examples:    []string{"list-commands"},
-		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-
-			NewSlackAlerter().Send("SLACK BOT COMMANDS \n\n register-validator: registers the validator using chain id and validator address\n remove-validator : removes the validator data using validator address\n list-keys : List of all the key names\n list-validators : List of all registered validators addresses with chains\n vote : votes on a proposal\n create-key : Create a new account with key name. This key name is used while voting.", a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
-		},
-	})
 
 	// Vote command is used to vote on the proposals based on proposal Id, validator address with vote option using keys stored from db.
 	a.bot.Command(
