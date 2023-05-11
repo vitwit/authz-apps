@@ -126,7 +126,14 @@ func (a *Slackbot) Initializecommands() error {
 			Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 				chainName := request.Param("chainName")
 				pID := request.Param("proposalId")
-				granter, err := a.db.GetChainValidator(chainName)
+				address, _ := a.db.GetChainValidator(chainName)
+				cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
+				chainInfo, err := a.vote.GetChainInfo(chainName, cr)
+				config := sdk.GetConfig()
+				config.SetBech32PrefixForAccount(chainInfo.Bech32Prefix, chainInfo.Bech32Prefix+"pub")
+				config.SetBech32PrefixForValidator(chainInfo.Bech32Prefix+"valoper", chainInfo.Bech32Prefix+"valoperpub")
+				config.Seal()
+				granter := fmt.Sprintln(sdk.ValAddressFromBech32(address))
 				if err != nil {
 					NewSlackAlerter().Send(fmt.Sprintf("Error while getting validator address of chain %s", chainName), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
 
