@@ -109,23 +109,24 @@ func (a *Slackbot) Initializecommands() error {
 		},
 	})
 
-	// Vote command is used to vote on the proposals based on proposal Id, validator address with vote option using keys stored from db.
+	// Vote command is used to vote on the proposals based on proposal Id with vote option using key stored from db.
 	a.bot.Command(
 		"vote <chainName> <proposalId> <voteOption> <gasPrices> <memoOptional> <metadataOptional>",
 		&slacker.CommandDefinition{
 			Description: "votes on the proposal",
-			Examples:    []string{"vote cosmoshub-4 12 YES 0.25uatom example_memo example_metadata"},
+			Examples:    []string{"vote cosmoshub 12 YES 0.25uatom example_memo example_metadata"},
 			Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 				chainName := request.Param("chainName")
 				pID := request.Param("proposalId")
 				granter, err := a.db.GetChainValidator(chainName)
 				if err != nil {
-					log.Printf("Error while getting validator address of chain %s", chainName)
+					NewSlackAlerter().Send(fmt.Sprintf("Error while getting validator address of chain %s", chainName), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
+
 				}
 				voteOption := request.Param("voteOption")
 				fromKey, err := a.db.GetChainKey(chainName)
 				if err != nil {
-					log.Printf("Error while getting key address of chain %s", chainName)
+					NewSlackAlerter().Send(fmt.Sprintf("Error while getting key address of chain %s", chainName), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
 				}
 				metadata := request.StringParam("metadataOptional", "")
 				memo := request.StringParam("memoOptional", "")
