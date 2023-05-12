@@ -97,8 +97,12 @@ func (a *Slackbot) Initializecommands() error {
 		Description: "create a new account with key name.\nKeys need to be funded manually and given authorization to vote in order to use them while voting.\nThe granter must give the vote authorization to the grantee key before the voting can proceed.\nThe authorization to a grantee can be given by using the following command:\nFor Cosmos chain:\nUsage: simd tx authz grant <grantee> <authorization_type> --msg-type <msg_type> --from <granter> [flags]\nExample: simd tx authz grant cosmos1... --msg-type /cosmos.gov.v1beta1.MsgVote --from granter\nThe authorized keys can then be funded to have the ability to vote on behalf of the granter.\nThe following command can be used to fund the key:\nsimd tx bank send [from_key_or_address] [to_address] [amount] [flags]",
 		Examples:    []string{"create-key cosmoshub myKey"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			keyName := request.StringParam("keyNameOptional", "default")
+			keyName := request.StringParam("keyNameOptional", "")
 			chainName := request.Param("chainName")
+			if keyName == "" {
+				keyName = chainName
+			}
+
 			err := a.key.CreateKeys(chainName, keyName)
 			if err != nil {
 				response.Reply(err.Error())
