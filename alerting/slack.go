@@ -59,11 +59,10 @@ func (a *Slackbot) Initializecommands() error {
 			config := sdk.GetConfig()
 			config.SetBech32PrefixForAccount(chainInfo.Bech32Prefix, chainInfo.Bech32Prefix+"pub")
 			config.SetBech32PrefixForValidator(chainInfo.Bech32Prefix+"valoper", chainInfo.Bech32Prefix+"valoperpub")
-			config.Seal()
 
 			_, err = sdk.ValAddressFromBech32(validatorAddress)
 			if err != nil {
-				response.Reply("Invalid validator address")
+				response.Reply(fmt.Sprintf("invalid validator address: %v", err))
 			} else {
 				isExists := a.db.HasValidator(validatorAddress)
 				if isExists {
@@ -104,7 +103,7 @@ func (a *Slackbot) Initializecommands() error {
 			if err != nil {
 				response.Reply(err.Error())
 			} else {
-				NewSlackAlerter().Send(fmt.Sprintf("Successfully created your key with name %s.\n *NOTE*\n *This key cannot be used in voting until it has the vote authorization from granter and got funded. The vote authorization can be given using the following command:*\n ```simd tx authz grant <grantee> <authorization_type=generic> --msg-type /cosmos.gov.v1beta1.MsgVote  --from <granter> [flags]```\n\n *The authorized keys can be funded using the following command:* \n ```simd tx bank send [from_key_or_address] [to_address] [amount] [flags]```\n", keyName), a.cfg.Slack.BotToken, a.cfg.Slack.ChannelID)
+				response.Reply(fmt.Sprintf("Successfully created your key with name %s.\n *NOTE*\n *This key cannot be used in voting until it has the vote authorization from granter and got funded. The vote authorization can be given using the following command:*\n ```simd tx authz grant <grantee> <authorization_type=generic> --msg-type /cosmos.gov.v1beta1.MsgVote  --from <granter> [flags]```\n\n *The authorized keys can be funded using the following command:* \n ```simd tx bank send [from_key_or_address] [to_address] [amount] [flags]```\n", keyName))
 			}
 		},
 	})
@@ -144,7 +143,7 @@ func (a *Slackbot) Initializecommands() error {
 				config := sdk.GetConfig()
 				config.SetBech32PrefixForAccount(chainInfo.Bech32Prefix, chainInfo.Bech32Prefix+"pub")
 				config.SetBech32PrefixForValidator(chainInfo.Bech32Prefix+"valoper", chainInfo.Bech32Prefix+"valoperpub")
-				config.Seal()
+
 				granter, err := sdk.ValAddressFromBech32(address)
 				if err != nil {
 					response.ReportError(fmt.Errorf("Error while getting validator address of chain %s", chainName))
@@ -196,12 +195,19 @@ func (a *Slackbot) Initializecommands() error {
 
 				var blocks []slack.Block
 				for _, key := range keys {
-					blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*%s* ---- *%s* ---- *%s*", key.ChainName, key.KeyName, key.KeyAddress), false, false),
-						nil, nil))
+					blocks = append(
+						blocks,
+						slack.NewSectionBlock(
+							slack.NewTextBlockObject(
+								"mrkdwn",
+								fmt.Sprintf("*%s* ---- *%s* ---- *%s*", key.ChainName, key.KeyName, key.KeyAddress), false, false),
+							nil, nil,
+						),
+					)
 				}
 
 				attachment := []slack.Block{
-					slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Network ---- Key name---- Key address", false, false)),
+					slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Network ---- Key name---- Address", false, false)),
 				}
 				attachment = append(attachment, blocks...)
 
@@ -277,6 +283,7 @@ func (s slackAlert) Send(msgText, botToken string, channelID string) error {
 	if err != nil {
 		return err
 	}
+
 	log.Printf("Message sent at %s", timestamp)
 	return nil
 }
