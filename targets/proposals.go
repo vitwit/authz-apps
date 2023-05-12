@@ -1,6 +1,7 @@
 package targets
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -9,6 +10,9 @@ import (
 	"time"
 
 	"github.com/slack-go/slack"
+	registry "github.com/strangelove-ventures/lens/client/chain_registry"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -84,8 +88,9 @@ func (a *Data) AlertOnProposals(networks []string) error {
 
 			var missedProposals []MissedProposal
 
+			fmt.Println("pending proposals = ", len(p.Proposals), "  chain-name = ", val.ChainName)
 			for _, proposal := range p.Proposals {
-				validatorVote, err := a.GetValidatorVote(endpoint, proposal.ProposalID, val.Address)
+				validatorVote, err := a.GetValidatorVote(endpoint, proposal.ProposalID, val.Address, val.ChainName)
 				if err != nil {
 					return err
 				}
@@ -100,10 +105,12 @@ func (a *Data) AlertOnProposals(networks []string) error {
 
 			}
 
-			err = a.SendVotingPeriodProposalAlerts(val.ChainName, missedProposals)
-			if err != nil {
-				log.Printf("error on sending voting period proposals alert: %v", err)
-				return err
+			if len(missedProposals) > 0 {
+				err = a.SendVotingPeriodProposalAlerts(val.ChainName, missedProposals)
+				if err != nil {
+					log.Printf("error on sending voting period proposals alert: %v", err)
+					return err
+				}
 			}
 		}
 	}
@@ -111,7 +118,18 @@ func (a *Data) AlertOnProposals(networks []string) error {
 }
 
 // GetValidatorVote to check validator voted for the proposal or not.
-func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr string) (string, error) {
+func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr, chainName string) (string, error) {
+
+	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
+	chainInfo, err := cr.GetChain(context.Background(), chainName)
+	if err != nil {
+		return "", err
+	}
+
+	config := sdk.GetConfig()
+	config.SetBech32PrefixForAccount(chainInfo.Bech32Prefix, chainInfo.Bech32Prefix+"pub")
+	config.SetBech32PrefixForValidator(chainInfo.Bech32Prefix+"valoper", chainInfo.Bech32Prefix+"valoperpub")
+
 	addr, err := sdk.ValAddressFromBech32(valAddr)
 	if err != nil {
 		return "", err
