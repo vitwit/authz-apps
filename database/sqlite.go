@@ -167,7 +167,7 @@ func (a *Sqlitedb) GetKeyAddress(key string) (string, error) {
 }
 func (a *Sqlitedb) GetChainKey(ChainName string) (string, error) {
 	var addr string
-	stmt, err := a.db.Prepare("SELECT keyAddress FROM keys WHERE chainName=?")
+	stmt, err := a.db.Prepare("SELECT keyName FROM keys WHERE chainName=?")
 	if err != nil {
 		return "", err
 	}

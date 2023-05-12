@@ -2,6 +2,7 @@ package alerting
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"strings"
@@ -148,9 +149,15 @@ func (a *Slackbot) Initializecommands() error {
 				config.SetBech32PrefixForAccount(chainInfo.Bech32Prefix, chainInfo.Bech32Prefix+"pub")
 				config.SetBech32PrefixForValidator(chainInfo.Bech32Prefix+"valoper", chainInfo.Bech32Prefix+"valoperpub")
 
-				granter, err := sdk.ValAddressFromBech32(address)
+				hexAddr, err := sdk.ValAddressFromBech32(address)
 				if err != nil {
 					response.ReportError(fmt.Errorf("Error while getting validator address of chain %s", chainName))
+					return
+				}
+
+				granter, err := sdk.AccAddressFromHexUnsafe(hex.EncodeToString(hexAddr.Bytes()))
+				if err != nil {
+					response.ReportError(fmt.Errorf("Error while decoding validator address %s", chainName))
 					return
 				}
 

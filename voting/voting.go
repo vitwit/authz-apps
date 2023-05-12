@@ -32,7 +32,7 @@ func (v *Vote) GetChainInfo(name string, cr registry.ChainRegistry) (registry.Ch
 }
 
 // Votes on the proposal using the given data and key
-func (v *Vote) ExecVote(chainName, pID, accAddr, vote, fromKey, metadata, memo, gasPrices string) (string, error) {
+func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, gasPrices string) (string, error) {
 	// Fetch chain info from chain registry
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
@@ -73,6 +73,7 @@ func (v *Vote) ExecVote(chainName, pID, accAddr, vote, fromKey, metadata, memo, 
 		return "", fmt.Errorf("failed to build new chain client for %s. Err: %v", chainInfo.ChainID, err)
 	}
 
+	fmt.Println(fromKey)
 	keyAddr, err := v.Db.GetKeyAddress(fromKey)
 	if err != nil {
 		return "", fmt.Errorf("error while getting address of %s key", fromKey)
@@ -109,7 +110,7 @@ func (v *Vote) ExecVote(chainName, pID, accAddr, vote, fromKey, metadata, memo, 
 	// } else {
 	msgVote := v1beta1.MsgVote{
 		ProposalId: proposalID,
-		Voter:      accAddr,
+		Voter:      granter,
 		Option:     v1beta1.VoteOption(voteOption),
 	}
 	msgAny, err = cdctypes.NewAnyWithValue(&msgVote)
