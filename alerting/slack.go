@@ -84,7 +84,7 @@ func (a *Slackbot) Initializecommands() error {
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			validatorAddress := request.Param("validatorAddress")
 			if !a.db.HasValidator(validatorAddress) {
-				response.Reply("Cannot delete a validator which is not in the registered validators")
+				response.ReportError(fmt.Errorf("Cannot delete a validator which is not in the registered validators"))
 			} else {
 				a.db.RemoveValidator(validatorAddress)
 				r := fmt.Sprintf("Your validator %s is successfully removed", validatorAddress)
@@ -108,6 +108,7 @@ func (a *Slackbot) Initializecommands() error {
 			}
 		},
 	})
+
 	a.bot.Command("list-commands", &slacker.CommandDefinition{
 		Description: "Lists all commands",
 		Examples:    []string{"list-commands"},
@@ -117,18 +118,46 @@ func (a *Slackbot) Initializecommands() error {
 		},
 	})
 
-	// Vote command is used to vote on the proposals based on proposal Id, validator address with vote option using keys stored from db.
+	// Vote command is used to vote on the proposals based on proposal Id with vote option using key stored from db.
 	a.bot.Command(
-		"vote <chainId> <proposalId> <granterAddress> <voteOption> <granteeKeyname> <gasPrices> <memoOptional> <metadataOptional>",
+		"vote <chainName> <proposalId> <voteOption> <gasPrices> <memoOptional> <metadataOptional>",
 		&slacker.CommandDefinition{
 			Description: "votes on the proposal",
-			Examples:    []string{"vote cosmoshub-4 12 YES 0.25uatom example_memo example_metadata"},
+			Examples:    []string{"vote cosmoshub 12 YES 0.25uatom example_memo example_metadata"},
 			Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-				chainID := request.Param("chainId")
+				chainName := request.Param("chainName")
 				pID := request.Param("proposalId")
-				granter := request.Param("granterAddress")
+
+				address, err := a.db.GetChainValidator(chainName)
+				if err != nil {
+					response.ReportError(fmt.Errorf("failed to get validator address from the database: %v", err))
+					return
+				}
+
+				cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
+				chainInfo, err := a.vote.GetChainInfo(chainName, cr)
+				if err != nil {
+					response.ReportError(fmt.Errorf("failed to get chain-info: %v", err))
+					return
+				}
+
+				config := sdk.GetConfig()
+				config.SetBech32PrefixForAccount(chainInfo.Bech32Prefix, chainInfo.Bech32Prefix+"pub")
+				config.SetBech32PrefixForValidator(chainInfo.Bech32Prefix+"valoper", chainInfo.Bech32Prefix+"valoperpub")
+				config.Seal()
+				granter, err := sdk.ValAddressFromBech32(address)
+				if err != nil {
+					response.ReportError(fmt.Errorf("Error while getting validator address of chain %s", chainName))
+					return
+				}
+
 				voteOption := request.Param("voteOption")
-				fromKey := request.Param("granteeKeyname")
+				fromKey, err := a.db.GetChainKey(chainName)
+				if err != nil {
+					response.ReportError(fmt.Errorf("Error while getting key address of chain %s", chainName))
+					return
+				}
+
 				metadata := request.StringParam("metadataOptional", "")
 				memo := request.StringParam("memoOptional", "")
 				gasPrices := request.StringParam("gasPrices", "")
@@ -140,9 +169,11 @@ func (a *Slackbot) Initializecommands() error {
 					metadata = strings.Replace(metadata, "_", " ", -1)
 				}
 
-				result, err := a.vote.ExecVote(chainID, pID, granter, voteOption, fromKey, metadata, memo, gasPrices)
+				result, err := a.vote.ExecVote(chainName, pID, granter.String(), voteOption, fromKey, metadata, memo, gasPrices)
 				if err != nil {
 					log.Printf("error on executing vote: %v", err)
+					response.ReportError(fmt.Errorf("error on executing vote: %v", err))
+					return
 				}
 
 				response.Reply(result)
@@ -192,6 +223,7 @@ func (a *Slackbot) Initializecommands() error {
 			validators, err := a.db.GetValidators()
 			if err != nil {
 				response.ReportError(err)
+				return
 			}
 
 			apiClient := botCtx.APIClient()
