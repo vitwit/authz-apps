@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/likhita-809/lens-bot/database"
+	"github.com/shomali11/slacker"
 	lensclient "github.com/strangelove-ventures/lens/client"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
 	"go.uber.org/zap"
@@ -55,7 +56,9 @@ func (v *Vote) GetChainInfo(name string, cr registry.ChainRegistry) (registry.Ch
 }
 
 // Votes on the proposal using the given data and key
-func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, gasPrices string) (string, error) {
+func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, gasPrices string, responseWriter slacker.ResponseWriter) (string, error) {
+
+	responseWriter.Reply("fetching network details...")
 	// Fetch chain info from chain registry
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
@@ -70,6 +73,7 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		return "", fmt.Errorf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
 	}
 
+	responseWriter.Reply("generating transaction...")
 	chainConfig := lensclient.ChainClientConfig{
 		Key:            fromKey,
 		ChainID:        chainInfo.ChainID,
@@ -147,6 +151,7 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		Msgs:    []*cdctypes.Any{msgAny},
 	}
 
+	responseWriter.Reply("broadcasting transaction...")
 	// Send msg and get response
 	res, err := chainClient.SendMsg(context.Background(), req, memo)
 	if err != nil {
