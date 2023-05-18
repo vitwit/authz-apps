@@ -22,6 +22,29 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 )
 
+var regisrtyNameToMintscanName = map[string]string{
+	"cosmos":        "cosmos",
+	"osmosis":       "osmosis",
+	"regen":         "regen",
+	"akash":         "akash",
+	"stride":        "stride",
+	"juno":          "juno",
+	"umee":          "umee",
+	"omniflixhub":   "omniflix",
+	"axelar":        "axelar",
+	"bandchain":     "bandchain",
+	"comdex":        "comdex",
+	"desmos":        "desmos",
+	"emoney":        "emoney",
+	"evmos":         "evmos",
+	"gravitybridge": "gravity-bridge",
+	"tgrade":        "tgrade",
+	"stargaze":      "stargaze",
+	"sentinel":      "sentinel",
+	"quicksilver":   "quicksilver",
+	"persistence":   "persistence",
+}
+
 type Vote struct {
 	Db *database.Sqlitedb
 }
@@ -133,7 +156,12 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		return "", fmt.Errorf("failed to vote.Err: %v", err)
 	}
 
-	return fmt.Sprintf("Transaction broadcasted: %s", res.TxHash), nil
+	var mintscanName = chainName
+	if newName, ok := regisrtyNameToMintscanName[chainName]; ok {
+		mintscanName = newName
+	}
+
+	return fmt.Sprintf("Trasaction broadcasted: https://mintscan.io/%s/txs/%s", mintscanName, res.TxHash), nil
 }
 
 // Converts the string to a acceptable vote format

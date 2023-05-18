@@ -138,6 +138,7 @@ func (a *Slackbot) Initializecommands() error {
 					return
 				}
 
+				response.Reply("fetching network details...")
 				cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 				chainInfo, err := a.vote.GetChainInfo(chainName, cr)
 				if err != nil {
@@ -179,6 +180,7 @@ func (a *Slackbot) Initializecommands() error {
 					metadata = strings.Replace(metadata, "_", " ", -1)
 				}
 
+				response.Reply("building transaction...")
 				result, err := a.vote.ExecVote(chainName, pID, granter.String(), voteOption, fromKey, metadata, memo, gasPrices)
 				if err != nil {
 					log.Printf("error on executing vote: %v", err)
