@@ -3,6 +3,7 @@ package voting
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -57,6 +58,13 @@ func (v *Vote) GetChainInfo(name string, cr registry.ChainRegistry) (registry.Ch
 
 // Votes on the proposal using the given data and key
 func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, gasPrices string, responseWriter slacker.ResponseWriter) (string, error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			responseWriter.Reply(fmt.Sprintf("Recovered from panic: %v", r))
+			log.Println("Recovered from panic:", r)
+		}
+	}()
 
 	responseWriter.Reply("fetching network details...")
 	// Fetch chain info from chain registry
