@@ -157,6 +157,7 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr, chainName string)
 		return "", err
 	}
 
+	fmt.Println(v)
 	validatorVoted := ""
 	for _, value := range v.Vote.Options {
 		validatorVoted = value.Option
