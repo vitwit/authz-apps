@@ -58,7 +58,6 @@ func (v *Vote) GetChainInfo(name string, cr registry.ChainRegistry) (registry.Ch
 
 // Votes on the proposal using the given data and key
 func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, gasPrices string, responseWriter slacker.ResponseWriter) (string, error) {
-
 	defer func() {
 		if r := recover(); r != nil {
 			responseWriter.Reply(fmt.Sprintf("Recovered from panic: %v", r))
@@ -66,7 +65,6 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		}
 	}()
 
-	responseWriter.Reply("fetching network details...")
 	// Fetch chain info from chain registry
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
@@ -81,7 +79,6 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		return "", fmt.Errorf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
 	}
 
-	responseWriter.Reply("generating transaction...")
 	chainConfig := lensclient.ChainClientConfig{
 		Key:            fromKey,
 		ChainID:        chainInfo.ChainID,
@@ -159,7 +156,7 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		Msgs:    []*cdctypes.Any{msgAny},
 	}
 
-	responseWriter.Reply("broadcasting transaction...")
+	responseWriter.Reply(fmt.Sprintf("voting %s on %s proposal %d...", voteOption, chainName, proposalID))
 	// Send msg and get response
 	res, err := chainClient.SendMsg(context.Background(), req, memo)
 	if err != nil {
@@ -169,7 +166,7 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		return "", fmt.Errorf("failed to vote.Err: %v", err)
 	}
 
-	var mintscanName = chainName
+	mintscanName := chainName
 	if newName, ok := regisrtyNameToMintscanName[chainName]; ok {
 		mintscanName = newName
 	}
