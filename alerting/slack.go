@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
@@ -215,12 +216,14 @@ func (a *Slackbot) Initializecommands() error {
 
 				var blocks []slack.Block
 				for _, vote := range votes {
+					t := time.Unix(vote.Date, 0)
+					date := t.Format("2006-01-02")
 					blocks = append(
 						blocks,
 						slack.NewSectionBlock(
 							slack.NewTextBlockObject(
 								"mrkdwn",
-								fmt.Sprintf("*%s* ---- *%s* ---- *%s* ---- *%s*", vote.Date, vote.ChainID, vote.ProposalID, vote.VoteOption), false, false),
+								fmt.Sprintf("*%s* ---- *%s* ---- *%s* ---- *%s*", date, vote.ChainID, vote.ProposalID, vote.VoteOption), false, false),
 							nil, nil,
 						),
 					)

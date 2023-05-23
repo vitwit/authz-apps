@@ -22,7 +22,7 @@ type (
 		KeyAddress string
 	}
 	votes struct {
-		Date       string
+		Date       int64
 		ChainID    string
 		ProposalID string
 		VoteOption string
@@ -235,8 +235,17 @@ func (a *Sqlitedb) GetKeys() ([]keys, error) {
 func (a *Sqlitedb) GetVoteLogs(chainId, startDate, endDate string) ([]votes, error) {
 	log.Printf("Fetching votes...")
 	layout := "2006-01-02"
+	start, _ := time.Parse(layout, startDate)
+	var end int64
+	if len(endDate) < 1 {
+		end = time.Now().UTC().Unix()
+	} else {
+		end1, _ := time.Parse(layout, endDate)
+		end = end1.Unix()
+	}
 
-	rows, err := a.db.Query("SELECT date,chainId, proposalId, voteOption FROM votes")
+	query := "SELECT date,chainId, proposalId, voteOption FROM votes WHERE date BETWEEN ? AND ? AND chainId = ?"
+	rows, err := a.db.Query(query, start.Unix(), end, chainId)
 	if err != nil {
 		return []votes{}, err
 	}
@@ -248,15 +257,6 @@ func (a *Sqlitedb) GetVoteLogs(chainId, startDate, endDate string) ([]votes, err
 		if err := rows.Scan(&data.Date, &data.ChainID, &data.ProposalID, &data.VoteOption); err != nil {
 			return k, err
 		}
-		start, _ := time.Parse(layout, startDate)
-		date, _ := time.Parse(layout, data.Date)
-		end, _ := time.Parse(layout, endDate)
-		if data.ChainID == chainId {
-			if start.Before(date) && end.After(date) {
-				k = append(k, data)
-			}
-		}
-
 	}
 	if err = rows.Err(); err != nil {
 		return k, err
