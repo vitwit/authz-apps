@@ -4,10 +4,10 @@ import (
 	"log"
 	"sync"
 
-	"github.com/likhita-809/lens-bot/alerting"
+	"github.com/likhita-809/lens-bot/client"
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
-	"github.com/likhita-809/lens-bot/keyshandler"
+	"github.com/likhita-809/lens-bot/keyring"
 	"github.com/likhita-809/lens-bot/targets"
 	"github.com/likhita-809/lens-bot/voting"
 )
@@ -30,13 +30,13 @@ func main() {
 		log.Printf("%s", err)
 	}
 
-	keys := keyshandler.Keys{
+	keys := keyring.Keys{
 		Db: db,
 	}
 	votes := voting.Vote{
 		Db: db,
 	}
-	alerter := alerting.NewBotClient(cfg, db, &keys, &votes)
+	alerter := client.NewBotClient(cfg, db, &keys, &votes)
 
 	cron := targets.NewCron(db, cfg, alerter)
 	cron.Start()
