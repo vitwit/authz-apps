@@ -1,4 +1,4 @@
-package keyshandler
+package keyring
 
 import (
 	"context"
