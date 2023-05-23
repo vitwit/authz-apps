@@ -20,6 +20,12 @@ type (
 		KeyName    string
 		KeyAddress string
 	}
+	votes struct {
+		Date       string
+		ChainID    string
+		ProposalID string
+		VoteOption string
+	}
 
 	Sqlitedb struct {
 		db *sql.DB
@@ -45,7 +51,10 @@ func (a *Sqlitedb) InitializeTables() error {
 	if err != nil {
 		return err
 	}
-
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS votes (date INTEGER ,chainId VARCHAR PRIMARY KEY, proposalId VARCHAR, voteOption VARCHAR)")
+	if err != nil {
+		return err
+	}
 	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR PRIMARY KEY, keyName VARCHAR, keyAddress VARCHAR)")
 	return err
 }
@@ -210,6 +219,31 @@ func (a *Sqlitedb) GetKeys() ([]keys, error) {
 	for rows.Next() {
 		var data keys
 		if err := rows.Scan(&data.ChainName, &data.KeyName, &data.KeyAddress); err != nil {
+			return k, err
+		}
+		k = append(k, data)
+	}
+	if err = rows.Err(); err != nil {
+		return k, err
+	}
+
+	return k, nil
+}
+
+// Gets required data regarding votes
+func (a *Sqlitedb) GetVoteLogs() ([]votes, error) {
+	log.Printf("Fetching keys...")
+
+	rows, err := a.db.Query("SELECT date,chainId, proposalId, voteOption FROM votes")
+	if err != nil {
+		return []votes{}, err
+	}
+	defer rows.Close()
+
+	var k []votes
+	for rows.Next() {
+		var data votes
+		if err := rows.Scan(&data.Date, &data.ChainID, &data.ProposalID, &data.VoteOption); err != nil {
 			return k, err
 		}
 		k = append(k, data)

@@ -231,6 +231,46 @@ func (a *Slackbot) Initializecommands() error {
 			}
 		},
 	})
+	// Lists all votes stored in the database
+	a.bot.Command("list-votes", &slacker.CommandDefinition{
+		Description: "lists all votes",
+		Examples:    []string{"list-votes"},
+		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+			votes, err := a.db.GetVoteLogs()
+			if err != nil {
+				response.ReportError(err)
+			} else {
+
+				apiClient := botCtx.APIClient()
+				event := botCtx.Event()
+
+				var blocks []slack.Block
+				for _, vote := range votes {
+					blocks = append(
+						blocks,
+						slack.NewSectionBlock(
+							slack.NewTextBlockObject(
+								"mrkdwn",
+								fmt.Sprintf("*%s* ---- *%s* ---- *%s* ---- *%s*", vote.Date, vote.ChainID, vote.ProposalID, vote.VoteOption), false, false),
+							nil, nil,
+						),
+					)
+				}
+
+				attachment := []slack.Block{
+					slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Date ---- Address ---- ProposalID ---- Vote", false, false)),
+				}
+				attachment = append(attachment, blocks...)
+
+				if event.ChannelID != "" {
+					_, _, err := apiClient.PostMessage(event.ChannelID, slack.MsgOptionBlocks(attachment...))
+					if err != nil {
+						response.ReportError(err)
+					}
+				}
+			}
+		},
+	})
 
 	// Command to list all registered validators
 	a.bot.Command("list-validators", &slacker.CommandDefinition{
