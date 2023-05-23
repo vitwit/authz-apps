@@ -46,7 +46,7 @@ func (a *Sqlitedb) InitializeTables() error {
 	if err != nil {
 		return err
 	}
-	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS votes (date INTEGER ,chainId VARCHAR PRIMARY KEY, proposalId VARCHAR, voteOption VARCHAR)")
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS votes (date INTEGER ,chainId VARCHAR, proposalId VARCHAR, voteOption VARCHAR)")
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,6 @@ func (a *Sqlitedb) AddKey(chainName, keyName, keyAddress string) error {
 	return err
 }
 func (a *Sqlitedb) AddLog(chainId, proposalID, voteOption string) error {
-	date := time.Now().Format("2006-01-02")
 	stmt, err := a.db.Prepare("INSERT INTO votes(date,chainId, proposalID, voteOption) values(?,?,?,?)")
 	if err != nil {
 		return err
@@ -102,7 +101,7 @@ func (a *Sqlitedb) AddLog(chainId, proposalID, voteOption string) error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(date, chainId, proposalID, voteOption)
+	_, err = stmt.Exec(time.Now().UTC().Unix(), chainId, proposalID, voteOption)
 	return err
 }
 
