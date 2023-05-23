@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"log"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -231,8 +232,9 @@ func (a *Sqlitedb) GetKeys() ([]keys, error) {
 }
 
 // Gets required data regarding votes
-func (a *Sqlitedb) GetVoteLogs() ([]votes, error) {
-	log.Printf("Fetching keys...")
+func (a *Sqlitedb) GetVoteLogs(chainId, startDate, endDate string) ([]votes, error) {
+	log.Printf("Fetching votes...")
+	layout := "2006-01-02"
 
 	rows, err := a.db.Query("SELECT date,chainId, proposalId, voteOption FROM votes")
 	if err != nil {
@@ -246,7 +248,15 @@ func (a *Sqlitedb) GetVoteLogs() ([]votes, error) {
 		if err := rows.Scan(&data.Date, &data.ChainID, &data.ProposalID, &data.VoteOption); err != nil {
 			return k, err
 		}
-		k = append(k, data)
+		start, _ := time.Parse(layout, startDate)
+		date, _ := time.Parse(layout, data.Date)
+		end, _ := time.Parse(layout, endDate)
+		if data.ChainID == chainId {
+			if start.Before(date) && end.After(date) {
+				k = append(k, data)
+			}
+		}
+
 	}
 	if err = rows.Err(); err != nil {
 		return k, err
