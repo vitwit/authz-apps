@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"log"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -42,6 +43,10 @@ func (a *Sqlitedb) Close() error {
 // Creates all the required tables in database
 func (a *Sqlitedb) InitializeTables() error {
 	_, err := a.db.Exec("CREATE TABLE IF NOT EXISTS validators (chainName VARCHAR PRIMARY KEY, address VARCHAR )")
+	if err != nil {
+		return err
+	}
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS votes (date INTEGER ,chainId VARCHAR, proposalId VARCHAR, voteOption VARCHAR)")
 	if err != nil {
 		return err
 	}
@@ -86,6 +91,17 @@ func (a *Sqlitedb) AddKey(chainName, keyName, keyAddress string) error {
 	defer stmt.Close()
 
 	_, err = stmt.Exec(chainName, keyName, keyAddress)
+	return err
+}
+func (a *Sqlitedb) AddLog(chainId, proposalID, voteOption string) error {
+	stmt, err := a.db.Prepare("INSERT INTO votes(date,chainId, proposalID, voteOption) values(?,?,?,?)")
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(time.Now().UTC().Unix(), chainId, proposalID, voteOption)
 	return err
 }
 
