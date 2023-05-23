@@ -165,6 +165,7 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		}
 		return "", fmt.Errorf("failed to vote.Err: %v", err)
 	}
+	v.Db.AddLog(granter, pID, vote)
 
 	mintscanName := chainName
 	if newName, ok := regisrtyNameToMintscanName[chainName]; ok {
