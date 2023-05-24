@@ -52,7 +52,7 @@ func (a *Sqlitedb) InitializeTables() error {
 	if err != nil {
 		return err
 	}
-	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS votes (date INTEGER ,chainId VARCHAR PRIMARY KEY, proposalId VARCHAR, voteOption VARCHAR)")
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS logs (date INTEGER ,chainId VARCHAR PRIMARY KEY, proposalId VARCHAR, voteOption VARCHAR)")
 	if err != nil {
 		return err
 	}
@@ -244,7 +244,7 @@ func (a *Sqlitedb) GetVoteLogs(chainId, startDate, endDate string) ([]votes, err
 		end = end1.Unix()
 	}
 
-	query := "SELECT date,chainId, proposalId, voteOption FROM votes WHERE date BETWEEN ? AND ? AND chainId = ?"
+	query := "SELECT date,chainId, proposalId, voteOption FROM logs WHERE date BETWEEN ? AND ? AND chainId = ?"
 	rows, err := a.db.Query(query, start.Unix(), end, chainId)
 	if err != nil {
 		return []votes{}, err
