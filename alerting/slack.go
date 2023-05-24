@@ -197,7 +197,7 @@ func (a *Slackbot) Initializecommands() error {
 		Examples:    []string{"list-votes cosmos1a... 2023-01-26  2023-02-30"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			chainId := request.Param("chainId")
-			startDate := request.StringParam("startDate", "")
+			startDate := request.Param("startDate")
 			endDate := request.StringParam("endDateOptional", "")
 			votes, err := a.db.GetVoteLogs(chainId, startDate, endDate)
 			if err != nil {
@@ -216,7 +216,7 @@ func (a *Slackbot) Initializecommands() error {
 						slack.NewSectionBlock(
 							slack.NewTextBlockObject(
 								"mrkdwn",
-								fmt.Sprintf("*%s* ---- *%s* ---- *%s* ---- *%s*", date, vote.ChainID, vote.ProposalID, vote.VoteOption), false, false),
+								fmt.Sprintf("*%s* ---- *%s* ---- Proposal *%s* ---- *%s*", date, vote.ChainID, vote.ProposalID, vote.VoteOption), false, false),
 							nil, nil,
 						),
 					)
