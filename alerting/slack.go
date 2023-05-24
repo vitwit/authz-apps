@@ -192,20 +192,13 @@ func (a *Slackbot) Initializecommands() error {
 		},
 	)
 	// Lists all votes stored in the database
-	a.bot.Command("list-votes <chainId> <startDateOptional> <endDateOptional>", &slacker.CommandDefinition{
+	a.bot.Command("list-votes <chainId> <startDate> <endDateOptional>", &slacker.CommandDefinition{
 		Description: "lists all votes",
 		Examples:    []string{"list-votes cosmos1a... 2023-01-26  2023-02-30"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			chainId := request.Param("chainId")
-			startDate := request.Param("startDateOptional")
-			endDate := request.Param("endDateOptional")
-			if len(startDate) > 1 {
-				startDate = strings.Replace(startDate, "_", " ", -1)
-			}
-
-			if len(endDate) > 1 {
-				endDate = strings.Replace(endDate, "_", " ", -1)
-			}
+			startDate := request.StringParam("startDate", "")
+			endDate := request.StringParam("endDateOptional", "")
 			votes, err := a.db.GetVoteLogs(chainId, startDate, endDate)
 			if err != nil {
 				response.ReportError(err)

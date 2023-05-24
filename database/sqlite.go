@@ -21,7 +21,7 @@ type (
 		KeyName    string
 		KeyAddress string
 	}
-	votes struct {
+	voteLogs struct {
 		Date       int64
 		ChainID    string
 		ProposalID string
@@ -232,28 +232,34 @@ func (a *Sqlitedb) GetKeys() ([]keys, error) {
 }
 
 // Gets required data regarding votes
-func (a *Sqlitedb) GetVoteLogs(chainId, startDate, endDate string) ([]votes, error) {
+func (a *Sqlitedb) GetVoteLogs(chainId, startDate, endDate string) ([]voteLogs, error) {
 	log.Printf("Fetching votes...")
 	layout := "2006-01-02"
-	start, _ := time.Parse(layout, startDate)
+	start, err := time.Parse(layout, startDate)
+	if err != nil {
+		return nil, err
+	}
 	var end int64
 	if len(endDate) < 1 {
 		end = time.Now().UTC().Unix()
 	} else {
-		end1, _ := time.Parse(layout, endDate)
+		end1, err := time.Parse(layout, endDate)
+		if err != nil {
+			return nil, err
+		}
 		end = end1.Unix()
 	}
 
 	query := "SELECT date,chainId, proposalId, voteOption FROM logs WHERE date BETWEEN ? AND ? AND chainId = ?"
 	rows, err := a.db.Query(query, start.Unix(), end, chainId)
 	if err != nil {
-		return []votes{}, err
+		return []voteLogs{}, err
 	}
 	defer rows.Close()
 
-	var k []votes
+	var k []voteLogs
 	for rows.Next() {
-		var data votes
+		var data voteLogs
 		if err := rows.Scan(&data.Date, &data.ChainID, &data.ProposalID, &data.VoteOption); err != nil {
 			return k, err
 		}
