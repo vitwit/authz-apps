@@ -194,7 +194,7 @@ func (a *Slackbot) Initializecommands() error {
 	// Lists all votes stored in the database
 	a.bot.Command("list-votes <chainId> <startDate> <endDateOptional>", &slacker.CommandDefinition{
 		Description: "lists all votes",
-		Examples:    []string{"list-votes cosmos1a... 2023-01-26  2023-02-30"},
+		Examples:    []string{"list-votes cosmoshub-4 2023-01-26  2023-02-30"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			chainId := request.Param("chainId")
 			startDate := request.Param("startDate")
