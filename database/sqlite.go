@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"time"
 
@@ -21,6 +22,7 @@ type (
 		KeyName    string
 		KeyAddress string
 	}
+
 	voteLogs struct {
 		Date       int64
 		ChainID    string
@@ -248,6 +250,9 @@ func (a *Sqlitedb) GetVoteLogs(chainId, startDate, endDate string) ([]voteLogs, 
 			return nil, err
 		}
 		end = end1.Unix()
+	}
+	if start.Unix() >= end {
+		return nil, fmt.Errorf("Start date is not valid as it is greater than end date")
 	}
 
 	query := "SELECT date,chainId, proposalId, voteOption FROM logs WHERE date BETWEEN ? AND ? AND chainId = ?"
