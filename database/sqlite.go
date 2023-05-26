@@ -101,7 +101,7 @@ func (a *Sqlitedb) AddKey(chainName, keyName, keyAddress string) error {
 	return err
 }
 func (a *Sqlitedb) AddLog(chainId, proposalID, voteOption string) error {
-	stmt, err := a.db.Prepare("INSERT INTO votes(date,chainId, proposalID, voteOption) values(?,?,?,?)")
+	stmt, err := a.db.Prepare("INSERT INTO logs(date,chainId, proposalID, voteOption) values(?,?,?,?)")
 	if err != nil {
 		return err
 	}

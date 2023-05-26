@@ -11,6 +11,7 @@ import (
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
 	"github.com/likhita-809/lens-bot/keyring"
+	"github.com/likhita-809/lens-bot/utils"
 	"github.com/likhita-809/lens-bot/voting"
 	"github.com/shomali11/slacker"
 	"github.com/slack-go/slack"
@@ -58,11 +59,10 @@ func (a *Slackbot) Initializecommands() error {
 				panic(err)
 			}
 
-			config := sdk.GetConfig()
-			config.SetBech32PrefixForAccount(chainInfo.Bech32Prefix, chainInfo.Bech32Prefix+"pub")
-			config.SetBech32PrefixForValidator(chainInfo.Bech32Prefix+"valoper", chainInfo.Bech32Prefix+"valoperpub")
-
+			done := utils.SetBech32Prefixes(chainInfo)
 			_, err = sdk.ValAddressFromBech32(validatorAddress)
+			done()
+
 			if err != nil {
 				response.Reply(fmt.Sprintf("invalid validator address: %v", err))
 			} else {
