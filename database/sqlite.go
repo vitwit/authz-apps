@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"time"
 
@@ -20,6 +21,13 @@ type (
 		ChainName  string
 		KeyName    string
 		KeyAddress string
+	}
+
+	voteLogs struct {
+		Date       int64
+		ChainID    string
+		ProposalID string
+		VoteOption string
 	}
 
 	Sqlitedb struct {
@@ -46,11 +54,10 @@ func (a *Sqlitedb) InitializeTables() error {
 	if err != nil {
 		return err
 	}
-	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS votes (date INTEGER ,chainId VARCHAR, proposalId VARCHAR, voteOption VARCHAR)")
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS logs (date INTEGER ,chainId VARCHAR, proposalId VARCHAR, voteOption VARCHAR)")
 	if err != nil {
 		return err
 	}
-
 	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR PRIMARY KEY, keyName VARCHAR, keyAddress VARCHAR)")
 	return err
 }
@@ -229,6 +236,49 @@ func (a *Sqlitedb) GetKeys() ([]keys, error) {
 			return k, err
 		}
 		k = append(k, data)
+	}
+	if err = rows.Err(); err != nil {
+		return k, err
+	}
+
+	return k, nil
+}
+
+// Gets required data regarding votes
+func (a *Sqlitedb) GetVoteLogs(chainId, startDate, endDate string) ([]voteLogs, error) {
+	log.Printf("Fetching votes...")
+	layout := "2006-01-02"
+	start, err := time.Parse(layout, startDate)
+	if err != nil {
+		return nil, err
+	}
+	var end int64
+	if len(endDate) < 1 {
+		end = time.Now().UTC().Unix()
+	} else {
+		end1, err := time.Parse(layout, endDate)
+		if err != nil {
+			return nil, err
+		}
+		end = end1.Unix()
+	}
+	if start.Unix() >= end {
+		return nil, fmt.Errorf("Start date is not valid as it is greater than end date")
+	}
+
+	query := "SELECT date,chainId, proposalId, voteOption FROM logs WHERE date BETWEEN ? AND ? AND chainId = ?"
+	rows, err := a.db.Query(query, start.Unix(), end, chainId)
+	if err != nil {
+		return []voteLogs{}, err
+	}
+	defer rows.Close()
+
+	var k []voteLogs
+	for rows.Next() {
+		var data voteLogs
+		if err := rows.Scan(&data.Date, &data.ChainID, &data.ProposalID, &data.VoteOption); err != nil {
+			return k, err
+		}
 	}
 	if err = rows.Err(); err != nil {
 		return k, err
