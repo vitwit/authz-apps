@@ -19,6 +19,7 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/authz"
 	v1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 	"github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
@@ -79,6 +80,11 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		return "", fmt.Errorf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
 	}
 
+	_, err = sdk.ParseDecCoins(gasPrices)
+	if err != nil {
+		return "", fmt.Errorf("invalid fee format: %v", err)
+	}
+
 	chainConfig := lensclient.ChainClientConfig{
 		Key:            fromKey,
 		ChainID:        chainInfo.ChainID,
@@ -105,7 +111,6 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		return "", fmt.Errorf("failed to build new chain client for %s. Err: %v", chainInfo.ChainID, err)
 	}
 
-	fmt.Println(fromKey)
 	keyAddr, err := v.Db.GetKeyAddress(fromKey)
 	if err != nil {
 		return "", fmt.Errorf("error while getting address of %s key", fromKey)
@@ -165,7 +170,9 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		}
 		return "", fmt.Errorf("failed to vote.Err: %v", err)
 	}
-
+	if err := v.Db.AddLog(chainInfo.ChainID, pID, vote); err != nil {
+		fmt.Printf("failed to store logs: %v", err)
+	}
 	mintscanName := chainName
 	if newName, ok := regisrtyNameToMintscanName[chainName]; ok {
 		mintscanName = newName

@@ -120,14 +120,15 @@ func (a *Data) AlertOnProposals(networks []string) error {
 	return nil
 }
 
-func setBech32Prefixes(chainInfo registry.ChainInfo) {
+func setBech32Prefixes(chainInfo registry.ChainInfo) func() {
 	prefixMutex.Lock()
-	defer prefixMutex.Unlock()
 
 	// Set the Bech32 prefixes
 	config := sdk.GetConfig()
 	config.SetBech32PrefixForAccount(chainInfo.Bech32Prefix, chainInfo.Bech32Prefix+"pub")
 	config.SetBech32PrefixForValidator(chainInfo.Bech32Prefix+"valoper", chainInfo.Bech32Prefix+"valoperpub")
+
+	return prefixMutex.Unlock
 }
 
 // GetValidatorVote to check validator voted for the proposal or not.
@@ -138,7 +139,7 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr, chainName string)
 		return "", err
 	}
 
-	setBech32Prefixes(chainInfo)
+	done := setBech32Prefixes(chainInfo)
 
 	addr, err := sdk.ValAddressFromBech32(valAddr)
 	if err != nil {
@@ -149,6 +150,8 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr, chainName string)
 	if err != nil {
 		return "", err
 	}
+
+	done()
 
 	ops := HTTPOptions{
 		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + proposalID + "/votes/" + accAddr.String(),

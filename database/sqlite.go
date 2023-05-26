@@ -100,6 +100,17 @@ func (a *Sqlitedb) AddKey(chainName, keyName, keyAddress string) error {
 	_, err = stmt.Exec(chainName, keyName, keyAddress)
 	return err
 }
+func (a *Sqlitedb) AddLog(chainId, proposalID, voteOption string) error {
+	stmt, err := a.db.Prepare("INSERT INTO votes(date,chainId, proposalID, voteOption) values(?,?,?,?)")
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(time.Now().UTC().Unix(), chainId, proposalID, voteOption)
+	return err
+}
 
 // Checks whether the validator already exists in the database
 func (s *Sqlitedb) HasValidator(validatorAddress string) bool {

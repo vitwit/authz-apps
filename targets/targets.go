@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/likhita-809/lens-bot/alerting"
+	"github.com/likhita-809/lens-bot/client"
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
 	"github.com/robfig/cron"
@@ -17,11 +17,11 @@ import (
 type Cron struct {
 	db  *database.Sqlitedb
 	cfg *config.Config
-	bot *alerting.Slackbot
+	bot *client.Slackbot
 }
 
 // NewCron sets necessary config and clients to begin cron jobs
-func NewCron(db *database.Sqlitedb, config *config.Config, bot *alerting.Slackbot) *Cron {
+func NewCron(db *database.Sqlitedb, config *config.Config, bot *client.Slackbot) *Cron {
 	return &Cron{
 		db:  db,
 		cfg: config,

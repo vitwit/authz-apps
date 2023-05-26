@@ -1,4 +1,4 @@
-package alerting
+package client
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
-	"github.com/likhita-809/lens-bot/keyshandler"
+	"github.com/likhita-809/lens-bot/keyring"
 	"github.com/likhita-809/lens-bot/voting"
 	"github.com/shomali11/slacker"
 	"github.com/slack-go/slack"
@@ -25,12 +25,12 @@ type Slackbot struct {
 	bot  *slacker.Slacker
 	db   *database.Sqlitedb
 	cfg  *config.Config
-	key  *keyshandler.Keys
+	key  *keyring.Keys
 	vote *voting.Vote
 }
 
 // Creates a new bot client
-func NewBotClient(config *config.Config, db *database.Sqlitedb, key *keyshandler.Keys, vote *voting.Vote) *Slackbot {
+func NewBotClient(config *config.Config, db *database.Sqlitedb, key *keyring.Keys, vote *voting.Vote) *Slackbot {
 	bot := slacker.NewClient(config.Slack.BotToken, config.Slack.AppToken)
 	return &Slackbot{
 		bot:  bot,
@@ -318,29 +318,4 @@ func (a *Slackbot) Initializecommands() error {
 		return fmt.Errorf("%s", err)
 	}
 	return err
-}
-
-// Send allows bot to send a slack alert to the configured channelID
-func (s slackAlert) Send(msgText, botToken string, channelID string) error {
-	// Create a new client to slack by giving token
-	// Set debug to true while developing
-	client := slack.New(botToken, slack.OptionDebug(true))
-
-	// Create the Slack attachment that we will send to the channel
-	attachment := slack.Attachment{
-		Title: msgText,
-	}
-
-	// PostMessage will send the message away.
-	// First parameter is just the channelID, makes no sense to accept it
-	_, timestamp, err := client.PostMessage(
-		channelID,
-		slack.MsgOptionAttachments(attachment),
-	)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Message sent at %s", timestamp)
-	return nil
 }
