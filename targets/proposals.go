@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/slack-go/slack"
@@ -19,9 +18,8 @@ import (
 
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
+	"github.com/likhita-809/lens-bot/utils"
 )
-
-var prefixMutex sync.Mutex
 
 type (
 	Data struct {
@@ -120,17 +118,6 @@ func (a *Data) AlertOnProposals(networks []string) error {
 	return nil
 }
 
-func setBech32Prefixes(chainInfo registry.ChainInfo) func() {
-	prefixMutex.Lock()
-
-	// Set the Bech32 prefixes
-	config := sdk.GetConfig()
-	config.SetBech32PrefixForAccount(chainInfo.Bech32Prefix, chainInfo.Bech32Prefix+"pub")
-	config.SetBech32PrefixForValidator(chainInfo.Bech32Prefix+"valoper", chainInfo.Bech32Prefix+"valoperpub")
-
-	return prefixMutex.Unlock
-}
-
 // GetValidatorVote to check validator voted for the proposal or not.
 func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr, chainName string) (string, error) {
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
@@ -139,15 +126,16 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr, chainName string)
 		return "", err
 	}
 
-	done := setBech32Prefixes(chainInfo)
-
+	done := utils.SetBech32Prefixes(chainInfo)
 	addr, err := sdk.ValAddressFromBech32(valAddr)
 	if err != nil {
+		done()
 		return "", err
 	}
 
 	accAddr, err := sdk.AccAddressFromHexUnsafe(hex.EncodeToString(addr.Bytes()))
 	if err != nil {
+		done()
 		return "", err
 	}
 
