@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
@@ -190,6 +191,51 @@ func (a *Slackbot) Initializecommands() error {
 			},
 		},
 	)
+	// Lists all votes stored in the database
+	a.bot.Command("list-votes <chainId> <startDate> <endDateOptional>", &slacker.CommandDefinition{
+		Description: "lists all votes",
+		Examples:    []string{"list-votes cosmoshub-4 2023-01-26  2023-02-30"},
+		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+			chainId := request.Param("chainId")
+			startDate := request.Param("startDate")
+			endDate := request.StringParam("endDateOptional", "")
+			votes, err := a.db.GetVoteLogs(chainId, startDate, endDate)
+			if err != nil {
+				response.ReportError(err)
+			} else {
+
+				apiClient := botCtx.APIClient()
+				event := botCtx.Event()
+
+				var blocks []slack.Block
+				for _, vote := range votes {
+					t := time.Unix(vote.Date, 0)
+					date := t.Format("2006-01-02")
+					blocks = append(
+						blocks,
+						slack.NewSectionBlock(
+							slack.NewTextBlockObject(
+								"mrkdwn",
+								fmt.Sprintf("*%s* ---- *%s* ---- Proposal *%s* ---- *%s*", date, vote.ChainID, vote.ProposalID, vote.VoteOption), false, false),
+							nil, nil,
+						),
+					)
+				}
+
+				attachment := []slack.Block{
+					slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Date ---- Address ---- ProposalID ---- Vote", false, false)),
+				}
+				attachment = append(attachment, blocks...)
+
+				if event.ChannelID != "" {
+					_, _, err := apiClient.PostMessage(event.ChannelID, slack.MsgOptionBlocks(attachment...))
+					if err != nil {
+						response.ReportError(err)
+					}
+				}
+			}
+		},
+	})
 
 	// Lists all keys stored in the database
 	a.bot.Command("list-keys", &slacker.CommandDefinition{
