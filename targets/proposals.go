@@ -135,14 +135,15 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr, chainName string)
 
 	accAddr, err := sdk.AccAddressFromHexUnsafe(hex.EncodeToString(addr.Bytes()))
 	if err != nil {
-		done()
 		return "", err
 	}
 
+	accAddrString := accAddr.String()
 	done()
 
+	fmt.Println("chainID = ", chainName, "  Account Addr = ", accAddrString)
 	ops := HTTPOptions{
-		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + proposalID + "/votes/" + accAddr.String(),
+		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + proposalID + "/votes/" + accAddrString,
 		Method:   http.MethodGet,
 	}
 	resp, err := HitHTTPTarget(ops)

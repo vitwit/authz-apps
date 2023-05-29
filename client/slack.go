@@ -146,11 +146,10 @@ func (a *Slackbot) Initializecommands() error {
 					return
 				}
 
-				config := sdk.GetConfig()
-				config.SetBech32PrefixForAccount(chainInfo.Bech32Prefix, chainInfo.Bech32Prefix+"pub")
-				config.SetBech32PrefixForValidator(chainInfo.Bech32Prefix+"valoper", chainInfo.Bech32Prefix+"valoperpub")
-
+				done := utils.SetBech32Prefixes(chainInfo)
 				hexAddr, err := sdk.ValAddressFromBech32(address)
+				done()
+
 				if err != nil {
 					response.ReportError(fmt.Errorf("Error while getting validator address of chain %s", chainName))
 					return
