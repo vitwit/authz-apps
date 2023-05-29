@@ -18,8 +18,6 @@ import (
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 type Slackbot struct {
@@ -60,7 +58,7 @@ func (a *Slackbot) Initializecommands() error {
 			}
 
 			done := utils.SetBech32Prefixes(chainInfo)
-			_, err = sdk.ValAddressFromBech32(validatorAddress)
+			_, err = utils.ValAddressFromBech32(validatorAddress)
 			done()
 
 			if err != nil {
@@ -147,15 +145,17 @@ func (a *Slackbot) Initializecommands() error {
 				}
 
 				done := utils.SetBech32Prefixes(chainInfo)
-				hexAddr, err := sdk.ValAddressFromBech32(address)
-				done()
+				hexAddr, err := utils.ValAddressFromBech32(address)
 
 				if err != nil {
+					done()
 					response.ReportError(fmt.Errorf("Error while getting validator address of chain %s", chainName))
 					return
 				}
 
-				granter, err := sdk.AccAddressFromHexUnsafe(hex.EncodeToString(hexAddr.Bytes()))
+				granter, err := utils.AccAddressFromHexUnsafe(hex.EncodeToString(hexAddr.Bytes()))
+				done()
+
 				if err != nil {
 					response.ReportError(fmt.Errorf("Error while decoding validator address %s", chainName))
 					return

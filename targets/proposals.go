@@ -14,8 +14,6 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
 	"github.com/likhita-809/lens-bot/utils"
@@ -127,13 +125,13 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr, chainName string)
 	}
 
 	done := utils.SetBech32Prefixes(chainInfo)
-	addr, err := sdk.ValAddressFromBech32(valAddr)
+	addr, err := utils.ValAddressFromBech32(valAddr)
 	if err != nil {
 		done()
 		return "", err
 	}
 
-	accAddr, err := sdk.AccAddressFromHexUnsafe(hex.EncodeToString(addr.Bytes()))
+	accAddr, err := utils.AccAddressFromHexUnsafe(hex.EncodeToString(addr.Bytes()))
 	if err != nil {
 		return "", err
 	}
