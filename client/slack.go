@@ -112,6 +112,7 @@ func (a *Slackbot) Initializecommands() error {
 		},
 	})
 
+	// Command to list all the commands present
 	a.bot.Command("list-commands", &slacker.CommandDefinition{
 		Description: "Lists all commands",
 		Examples:    []string{"list-commands"},
@@ -146,7 +147,6 @@ func (a *Slackbot) Initializecommands() error {
 
 				done := utils.SetBech32Prefixes(chainInfo)
 				hexAddr, err := utils.ValAddressFromBech32(address)
-
 				if err != nil {
 					done()
 					response.ReportError(fmt.Errorf("Error while getting validator address of chain %s", chainName))
@@ -190,6 +190,7 @@ func (a *Slackbot) Initializecommands() error {
 			},
 		},
 	)
+
 	// Lists all votes stored in the database
 	a.bot.Command("list-votes <chainId> <startDate> <endDateOptional>", &slacker.CommandDefinition{
 		Description: "lists all votes",
