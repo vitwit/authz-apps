@@ -17,6 +17,7 @@ import (
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
 	"github.com/likhita-809/lens-bot/utils"
+	mint "github.com/likhita-809/lens-bot/voting"
 )
 
 type (
@@ -27,6 +28,7 @@ type (
 
 	MissedProposal struct {
 		accAddr       string
+		pTitle        string
 		pID           string
 		votingEndTime string
 	}
@@ -97,6 +99,7 @@ func (a *Data) AlertOnProposals(networks []string) error {
 				if validatorVote == "" {
 					missedProposals = append(missedProposals, MissedProposal{
 						accAddr:       val.Address,
+						pTitle:        proposal.Content.Title,
 						pID:           proposal.ProposalID,
 						votingEndTime: proposal.VotingEndTime,
 					})
@@ -179,10 +182,19 @@ func (a *Data) SendVotingPeriodProposalAlerts(chainName string, proposals []Miss
 		blocks = append(blocks, slack.NewSectionBlock(
 			slack.NewTextBlockObject(
 				"mrkdwn",
-				fmt.Sprintf("*%s* has not voted on proposal *%s* . Voting ends in *%d days.* ", p.accAddr, p.pID, daysLeft),
+				fmt.Sprintf("*%s*", p.pTitle),
 				false, false,
 			),
 			nil, nil))
+		var fields []*slack.TextBlockObject
+		mintscanName := chainName
+		if newName, ok := mint.RegisrtyNameToMintscanName[chainName]; ok {
+			mintscanName = newName
+		}
+		fields = append(fields, slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*Proposal Id*\n *<https://mintscan.io/%s/proposals/%s| %s >* ", mintscanName, p.pID, p.pID), false, false))
+		fields = append(fields, slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*Voting ends in* \n %d days ", daysLeft), false, false))
+		fields = append(fields, slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*Account Address* \n%s", p.accAddr), false, false))
+		blocks = append(blocks, slack.NewSectionBlock(nil, fields, nil, slack.SectionBlockOptionBlockID("")))
 	}
 	attachment := []slack.Block{
 		slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", fmt.Sprintf(" %s ", chainName), false, false)),
