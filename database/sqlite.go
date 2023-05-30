@@ -54,7 +54,12 @@ func (a *Sqlitedb) InitializeTables() error {
 	if err != nil {
 		return err
 	}
-	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS logs (date INTEGER ,chainId VARCHAR, proposalId VARCHAR, voteOption VARCHAR)")
+	_, err = a.db.Exec("DROP TABLE IF EXISTS logs")
+	if err != nil {
+		return err
+	}
+
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS logs (date INTEGER ,chainName VARCHAR, proposalId VARCHAR, voteOption VARCHAR)")
 	if err != nil {
 		return err
 	}
@@ -100,15 +105,15 @@ func (a *Sqlitedb) AddKey(chainName, keyName, keyAddress string) error {
 	_, err = stmt.Exec(chainName, keyName, keyAddress)
 	return err
 }
-func (a *Sqlitedb) AddLog(chainId, proposalID, voteOption string) error {
-	stmt, err := a.db.Prepare("INSERT INTO logs(date,chainId, proposalID, voteOption) values(?,?,?,?)")
+func (a *Sqlitedb) AddLog(chainName, proposalID, voteOption string) error {
+	stmt, err := a.db.Prepare("INSERT INTO logs(date,chainName, proposalID, voteOption) values(?,?,?,?)")
 	if err != nil {
 		return err
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(time.Now().UTC().Unix(), chainId, proposalID, voteOption)
+	_, err = stmt.Exec(time.Now().UTC().Unix(), chainName, proposalID, voteOption)
 	return err
 }
 
@@ -245,7 +250,7 @@ func (a *Sqlitedb) GetKeys() ([]keys, error) {
 }
 
 // Gets required data regarding votes
-func (a *Sqlitedb) GetVoteLogs(chainId, startDate, endDate string) ([]voteLogs, error) {
+func (a *Sqlitedb) GetVoteLogs(chainName, startDate, endDate string) ([]voteLogs, error) {
 	log.Printf("Fetching votes...")
 	layout := "2006-01-02"
 	start, err := time.Parse(layout, startDate)
@@ -263,11 +268,10 @@ func (a *Sqlitedb) GetVoteLogs(chainId, startDate, endDate string) ([]voteLogs, 
 		end = end1.Unix()
 	}
 	if start.Unix() >= end {
-		return nil, fmt.Errorf("Start date is not valid as it is greater than end date")
+		return nil, fmt.Errorf("start date is not valid as it is greater than end date")
 	}
-
-	query := "SELECT date,chainId, proposalId, voteOption FROM logs WHERE date BETWEEN ? AND ? AND chainId = ?"
-	rows, err := a.db.Query(query, start.Unix(), end, chainId)
+	query := "SELECT date,chainName, proposalId, voteOption FROM logs WHERE chainName = ? AND date BETWEEN ? AND ? "
+	rows, err := a.db.Query(query, chainName, start.Unix(), end)
 	if err != nil {
 		return []voteLogs{}, err
 	}
@@ -279,6 +283,7 @@ func (a *Sqlitedb) GetVoteLogs(chainId, startDate, endDate string) ([]voteLogs, 
 		if err := rows.Scan(&data.Date, &data.ChainID, &data.ProposalID, &data.VoteOption); err != nil {
 			return k, err
 		}
+		k = append(k, data)
 	}
 	if err = rows.Err(); err != nil {
 		return k, err
