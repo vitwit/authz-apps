@@ -25,7 +25,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 )
 
-var regisrtyNameToMintscanName = map[string]string{
+var RegisrtyNameToMintscanName = map[string]string{
 	"cosmos":        "cosmos",
 	"osmosis":       "osmosis",
 	"regen":         "regen",
@@ -174,7 +174,7 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		fmt.Printf("failed to store logs: %v", err)
 	}
 	mintscanName := chainName
-	if newName, ok := regisrtyNameToMintscanName[chainName]; ok {
+	if newName, ok := RegisrtyNameToMintscanName[chainName]; ok {
 		mintscanName = newName
 	}
 
