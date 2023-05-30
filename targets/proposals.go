@@ -193,7 +193,7 @@ func (a *Data) SendVotingPeriodProposalAlerts(chainName string, proposals []Miss
 		}
 		fields = append(fields, slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*Proposal Id*\n *<https://mintscan.io/%s/proposals/%s| %s >* ", mintscanName, p.pID, p.pID), false, false))
 		fields = append(fields, slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*Voting ends in* \n %d days ", daysLeft), false, false))
-		fields = append(fields, slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*Account Address* \n%s", p.accAddr), false, false))
+		fields = append(fields, slack.NewTextBlockObject("mrkdwn", fmt.Sprintf("*Validator* \n%s", p.accAddr), false, false))
 		blocks = append(blocks, slack.NewSectionBlock(nil, fields, nil, slack.SectionBlockOptionBlockID("")))
 	}
 	attachment := []slack.Block{
