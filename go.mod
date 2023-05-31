@@ -13,7 +13,6 @@ require (
 	github.com/slack-go/slack v0.12.1
 	github.com/spf13/viper v1.15.0
 	github.com/strangelove-ventures/lens v0.6.0
-	github.com/stretchr/testify v1.8.2
 	go.uber.org/zap v1.23.0
 	gopkg.in/go-playground/validator.v9 v9.31.0
 	sigs.k8s.io/yaml v1.3.0
@@ -129,6 +128,7 @@ require (
 	github.com/spf13/cobra v1.6.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/stretchr/testify v1.8.2 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	github.com/tendermint/btcd v0.1.1 // indirect

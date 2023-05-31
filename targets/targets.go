@@ -40,8 +40,8 @@ func (c *Cron) Start() error {
 		cfg: c.cfg,
 	}
 
-	// Every 2 hours
-	err := cron.AddFunc("@every 2h", func() {
+	// Everday at 8AM and 8PM
+	err := cron.AddFunc("0 0 8,20 * * *", func() {
 		d.GetProposals(c.db)
 	})
 	if err != nil {

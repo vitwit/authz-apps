@@ -103,19 +103,20 @@ To install SQLite on Linux, follow these steps:
         
 ## Here is the list of available alerts and Slack bot commands
 
-* Alert on new proposals
-* Alert for every 2 hours if the voting period ends in less than 24 hours 
+* Alerts on new proposals and unvoted proposals everyday at 8AM and 8PM.
    
 ### List of avaliable slack commands
 
 To get response from these commands you can just use `@<bot-name> <command_name>` or `/<command_name>` from your slack workspace/channel. You will be getting response to your slack workspace/channel based on the bot token/channel ID you have configured in config.toml
 
-    register-validator : registers the validator using chain id and validator address
-    remove-validator : removes the validator data using validator address
-    list-keys : List of all the key names
-    list-validators : List of all registered validators addresses with chains
+    register-validator : registers the validator using chain name and validator address
+    remove-validator : removes an existing validator using validator address
+    list-keys : list of all the key names with network names and account addresses
+    list-validators : list of all registered validators addresses with associated chains
     vote : votes on a proposal
-    create-key : Create a new account with key name. This key name is used while voting.
+    list-votes: lists all the votes for a given chain Id from start date to optional end date. If end date is empty, it returns the votes upto current date.
+    list-commands: lists all the available commands 
+    create-key : creates a new account with key name. This key name is used while voting.
 
 ## Granting authorization and funds to keys
 Keys need to be funded manually and given authorization to vote in order to use them while voting.
