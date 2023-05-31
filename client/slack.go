@@ -83,7 +83,7 @@ func (a *Slackbot) Initializecommands() error {
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			validatorAddress := request.Param("validatorAddress")
 			if !a.db.HasValidator(validatorAddress) {
-				response.ReportError(fmt.Errorf("Cannot delete a validator which is not in the registered validators"))
+				response.ReportError(fmt.Errorf("cannot delete a validator which is not in the registered validators"))
 			} else {
 				a.db.RemoveValidator(validatorAddress)
 				r := fmt.Sprintf("Your validator %s is successfully removed", validatorAddress)
@@ -149,7 +149,7 @@ func (a *Slackbot) Initializecommands() error {
 
 				if err != nil {
 					done()
-					response.ReportError(fmt.Errorf("Error while getting validator address of chain %s", chainName))
+					response.ReportError(fmt.Errorf("error while getting validator address of chain %s", chainName))
 					return
 				}
 
@@ -157,14 +157,14 @@ func (a *Slackbot) Initializecommands() error {
 				done()
 
 				if err != nil {
-					response.ReportError(fmt.Errorf("Error while decoding validator address %s", chainName))
+					response.ReportError(fmt.Errorf("error while decoding validator address %s", chainName))
 					return
 				}
 
 				voteOption := request.Param("voteOption")
 				fromKey, err := a.db.GetChainKey(chainName)
 				if err != nil {
-					response.ReportError(fmt.Errorf("Error while getting key address of chain %s", chainName))
+					response.ReportError(fmt.Errorf("error while getting key address of chain %s", chainName))
 					return
 				}
 

@@ -37,6 +37,16 @@ type (
 		List []Target
 	}
 
+	Grants struct {
+		Grants struct {
+			Authorization struct {
+				Type       string `json:"@type"`
+				Msg        string `json:"msg"`
+				Expiration string `json:"expiration"`
+			}
+		}
+	}
+
 	// Proposals struct holds result of array of proposals
 	Proposals struct {
 		Proposals []struct {

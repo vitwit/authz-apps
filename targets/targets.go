@@ -45,7 +45,14 @@ func (c *Cron) Start() error {
 		d.GetProposals(c.db)
 	})
 	if err != nil {
-		log.Println("Error adding cron job:", err)
+		log.Println("Error adding Proposal cron job:", err)
+		return err
+	}
+	err = cron.AddFunc("@every 1h", func() {
+		KeyAuthorization(c.db)
+	})
+	if err != nil {
+		log.Println("Error adding Key Authorization cron job:", err)
 		return err
 	}
 	go cron.Start()

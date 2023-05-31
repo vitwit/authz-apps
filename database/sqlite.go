@@ -58,7 +58,11 @@ func (a *Sqlitedb) InitializeTables() error {
 	if err != nil {
 		return err
 	}
-	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR PRIMARY KEY, keyName VARCHAR, keyAddress VARCHAR)")
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR PRIMARY KEY, keyName VARCHAR, keyAddress VARCHAR , status BOOLEAN)")
+	if err != nil {
+		return err
+	}
+	_, err = a.db.Exec("ALTER TABLE keys ADD COLUMN authzStatus VARCHAR DEFAULT false")
 	return err
 }
 
@@ -98,6 +102,17 @@ func (a *Sqlitedb) AddKey(chainName, keyName, keyAddress string) error {
 	defer stmt.Close()
 
 	_, err = stmt.Exec(chainName, keyName, keyAddress)
+	return err
+}
+func (a *Sqlitedb) UpdateKey(status, keyAddress string) error {
+	stmt, err := a.db.Prepare("UPDATE keys SET status = ? WHERE keyAddress = ?")
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(status, keyAddress)
 	return err
 }
 func (a *Sqlitedb) AddLog(chainId, proposalID, voteOption string) error {
@@ -263,7 +278,7 @@ func (a *Sqlitedb) GetVoteLogs(chainId, startDate, endDate string) ([]voteLogs, 
 		end = end1.Unix()
 	}
 	if start.Unix() >= end {
-		return nil, fmt.Errorf("Start date is not valid as it is greater than end date")
+		return nil, fmt.Errorf("start date is not valid as it is greater than end date")
 	}
 
 	query := "SELECT date,chainId, proposalId, voteOption FROM logs WHERE date BETWEEN ? AND ? AND chainId = ?"
