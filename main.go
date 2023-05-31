@@ -36,9 +36,13 @@ func main() {
 	votes := voting.Vote{
 		Db: db,
 	}
-	alerter := client.NewBotClient(cfg, db, &keys, &votes)
+	data := targets.Data{
+		Db:  db,
+		Cfg: cfg,
+	}
+	alerter := client.NewBotClient(cfg, db, &data, &keys, &votes)
 
-	cron := targets.NewCron(db, cfg, alerter)
+	cron := targets.NewCron(db, cfg)
 	cron.Start()
 
 	alerter.Initializecommands()
