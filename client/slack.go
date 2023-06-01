@@ -249,31 +249,26 @@ func (a *Slackbot) Initializecommands() error {
 				apiClient := botCtx.APIClient()
 				event := botCtx.Event()
 
-				var blocks []slack.Block
+				var tableData [][]string
+				tableData = append(tableData, []string{"Network", "Key name", "Address"})
+
 				for _, key := range keys {
-					blocks = append(
-						blocks,
-						slack.NewSectionBlock(
-							slack.NewTextBlockObject(
-								"mrkdwn",
-								fmt.Sprintf("*%s* ---- *%s* ---- *%s*", key.ChainName, key.KeyName, key.KeyAddress), false, false),
-							nil, nil,
-						),
-					)
+					row := []string{key.ChainName, key.KeyName, key.KeyAddress}
+					tableData = append(tableData, row)
 				}
 
-				attachment := []slack.Block{
-					slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Network ---- Key name---- Address", false, false)),
-				}
-				attachment = append(attachment, blocks...)
+				var blocks []slack.Block
+				tableText := formatTable(tableData)
+				blocks = append(blocks, slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", tableText, false, false), nil, nil))
 
 				if event.ChannelID != "" {
-					_, _, err := apiClient.PostMessage(event.ChannelID, slack.MsgOptionBlocks(attachment...))
+					_, _, err := apiClient.PostMessage(event.ChannelID, slack.MsgOptionBlocks(blocks...))
 					if err != nil {
 						response.ReportError(err)
 					}
 				}
 			}
+
 		},
 	})
 
@@ -317,4 +312,27 @@ func (a *Slackbot) Initializecommands() error {
 		return fmt.Errorf("%s", err)
 	}
 	return err
+}
+
+func formatTable(data [][]string) string {
+	maxColWidths := make([]int, len(data[0]))
+
+	for _, row := range data {
+		for i, cell := range row {
+			if len(cell) > maxColWidths[i] {
+				maxColWidths[i] = len(cell)
+			}
+		}
+	}
+
+	var tableText string
+
+	for _, row := range data {
+		for i, cell := range row {
+			tableText += fmt.Sprintf("| %-*s ", maxColWidths[i], cell)
+		}
+		tableText += "|\n"
+	}
+
+	return tableText
 }
