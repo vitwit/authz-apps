@@ -112,11 +112,12 @@ func (a *Slackbot) Initializecommands() error {
 		},
 	})
 
+	// Command to list all the commands present
 	a.bot.Command("list-commands", &slacker.CommandDefinition{
 		Description: "Lists all commands",
 		Examples:    []string{"list-commands"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			r := " *SLACK BOT COMMANDS* \n\n *• register-validator*: registers the validator using chain name and validator address\n```Command : register-validator <chainName> <validatorAddress>```\n *• remove-validator* : removes an existing validator data using validator address\n```Command:remove-validator <validatorAddress>```\n *• list-keys* : Lists all keys\n```Command:list-keys```\n *• list-validators* : List of all registered validators addresses with associated chains\n```Command:list-validators```\n* • vote* : votes on a proposal\n```Command:vote <chainName> <proposalId> <voteOption> <gasPrices> <memoOptional> <metadataOptional>\n```\n *• create-key* : Create a new account with key name. This key name is used while voting\n```Command:create-key <chainName> <keyNameOptional>```\n"
+			r := " *SLACK BOT COMMANDS* \n\n *• register-validator*: registers the validator using chain name and validator address\n```Command : register-validator <chainName> <validatorAddress>```\n *• remove-validator* : removes an existing validator data using validator address\n```Command:remove-validator <validatorAddress>```\n *• list-keys* : Lists all keys\n```Command:list-keys```\n *• list-validators* : List of all registered validators addresses with associated chains\n```Command:list-validators```\n* • vote* : votes on a proposal\n```Command:vote <chainName> <proposalId> <voteOption> <gasPrices> <memoOptional> <metadataOptional>\n```\n* • votes-history* : Lists history of all votes for a given chain\n```Command:votes-history <chainName> <startDate> <endDateOptional>\n```\n *• create-key* : Create a new account with key name. This key name is used while voting\n```Command:create-key <chainName> <keyNameOptional>```\n"
 			response.Reply(r)
 		},
 	})
@@ -146,7 +147,6 @@ func (a *Slackbot) Initializecommands() error {
 
 				done := utils.SetBech32Prefixes(chainInfo)
 				hexAddr, err := utils.ValAddressFromBech32(address)
-
 				if err != nil {
 					done()
 					response.ReportError(fmt.Errorf("Error while getting validator address of chain %s", chainName))
@@ -190,15 +190,21 @@ func (a *Slackbot) Initializecommands() error {
 			},
 		},
 	)
+
 	// Lists all votes stored in the database
-	a.bot.Command("list-votes <chainId> <startDate> <endDateOptional>", &slacker.CommandDefinition{
-		Description: "lists all votes",
+	a.bot.Command("votes-history <chainName> <startDate> <endDateOptional>", &slacker.CommandDefinition{
+		Description: "lists history of all votes for a given chain",
 		Examples:    []string{"list-votes cosmoshub-4 2023-01-26  2023-02-30"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			chainId := request.Param("chainId")
+			chainName := request.Param("chainName")
 			startDate := request.Param("startDate")
+			if len(startDate) < 1 {
+				response.ReportError(fmt.Errorf("StartDate cannot be empty"))
+				return
+			}
+
 			endDate := request.StringParam("endDateOptional", "")
-			votes, err := a.db.GetVoteLogs(chainId, startDate, endDate)
+			votes, err := a.db.GetVoteLogs(chainName, startDate, endDate)
 			if err != nil {
 				response.ReportError(err)
 			} else {
