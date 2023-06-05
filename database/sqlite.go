@@ -63,7 +63,7 @@ func (a *Sqlitedb) InitializeTables() error {
 	if err != nil {
 		return err
 	}
-	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR PRIMARY KEY, keyName VARCHAR, keyAddress VARCHAR , status BOOLEAN)")
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR PRIMARY KEY, keyName VARCHAR, keyAddress VARCHAR)")
 	if err != nil {
 		return err
 	}
