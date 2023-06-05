@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/likhita-809/lens-bot/client"
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
 	"github.com/robfig/cron"
@@ -17,15 +16,13 @@ import (
 type Cron struct {
 	db  *database.Sqlitedb
 	cfg *config.Config
-	bot *client.Slackbot
 }
 
 // NewCron sets necessary config and clients to begin cron jobs
-func NewCron(db *database.Sqlitedb, config *config.Config, bot *client.Slackbot) *Cron {
+func NewCron(db *database.Sqlitedb, config *config.Config) *Cron {
 	return &Cron{
 		db:  db,
 		cfg: config,
-		bot: bot,
 	}
 }
 
@@ -36,8 +33,8 @@ func (c *Cron) Start() error {
 	cron := cron.New()
 
 	d := Data{
-		db:  c.db,
-		cfg: c.cfg,
+		Db:  c.db,
+		Cfg: c.cfg,
 	}
 
 	// Everday at 8AM and 8PM

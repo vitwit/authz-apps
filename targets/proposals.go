@@ -22,8 +22,8 @@ import (
 
 type (
 	Data struct {
-		db  *database.Sqlitedb
-		cfg *config.Config
+		Db  *database.Sqlitedb
+		Cfg *config.Config
 	}
 
 	MissedProposal struct {
@@ -56,7 +56,7 @@ func (a *Data) GetProposals(db *database.Sqlitedb) {
 
 // Alerts on Active Proposals
 func (a *Data) AlertOnProposals(networks []string) error {
-	validators, err := a.db.GetValidators()
+	validators, err := a.Db.GetValidators()
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr, chainName string)
 
 // SendVotingPeriodProposalAlerts which send alerts of voting period proposals
 func (a *Data) SendVotingPeriodProposalAlerts(chainName string, proposals []MissedProposal) error {
-	api := slack.New(a.cfg.Slack.BotToken)
+	api := slack.New(a.Cfg.Slack.BotToken)
 	var blocks []slack.Block
 
 	for _, p := range proposals {
@@ -199,7 +199,7 @@ func (a *Data) SendVotingPeriodProposalAlerts(chainName string, proposals []Miss
 	attachment = append(attachment, blocks...)
 
 	_, _, err := api.PostMessage(
-		a.cfg.Slack.ChannelID,
+		a.Cfg.Slack.ChannelID,
 		slack.MsgOptionBlocks(attachment...),
 	)
 	if err != nil {

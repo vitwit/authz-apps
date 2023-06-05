@@ -11,6 +11,7 @@ import (
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
 	"github.com/likhita-809/lens-bot/keyring"
+	"github.com/likhita-809/lens-bot/targets"
 	"github.com/likhita-809/lens-bot/utils"
 	"github.com/likhita-809/lens-bot/voting"
 	"github.com/shomali11/slacker"
@@ -23,17 +24,19 @@ import (
 type Slackbot struct {
 	bot  *slacker.Slacker
 	db   *database.Sqlitedb
+	data *targets.Data
 	cfg  *config.Config
 	key  *keyring.Keys
 	vote *voting.Vote
 }
 
 // Creates a new bot client
-func NewBotClient(config *config.Config, db *database.Sqlitedb, key *keyring.Keys, vote *voting.Vote) *Slackbot {
+func NewBotClient(config *config.Config, db *database.Sqlitedb, data *targets.Data, key *keyring.Keys, vote *voting.Vote) *Slackbot {
 	bot := slacker.NewClient(config.Slack.BotToken, config.Slack.AppToken)
 	return &Slackbot{
 		bot:  bot,
 		db:   db,
+		data: data,
 		cfg:  config,
 		key:  key,
 		vote: vote,
@@ -83,7 +86,7 @@ func (a *Slackbot) Initializecommands() error {
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			validatorAddress := request.Param("validatorAddress")
 			if !a.db.HasValidator(validatorAddress) {
-				response.ReportError(fmt.Errorf("Cannot delete a validator which is not in the registered validators"))
+				response.ReportError(fmt.Errorf("cannot delete a validator which is not in the registered validators"))
 			} else {
 				a.db.RemoveValidator(validatorAddress)
 				r := fmt.Sprintf("Your validator %s is successfully removed", validatorAddress)
@@ -117,7 +120,7 @@ func (a *Slackbot) Initializecommands() error {
 		Description: "Lists all commands",
 		Examples:    []string{"list-commands"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			r := " *SLACK BOT COMMANDS* \n\n *• register-validator*: registers the validator using chain name and validator address\n```Command : register-validator <chainName> <validatorAddress>```\n *• remove-validator* : removes an existing validator data using validator address\n```Command:remove-validator <validatorAddress>```\n *• list-keys* : Lists all keys\n```Command:list-keys```\n *• list-validators* : List of all registered validators addresses with associated chains\n```Command:list-validators```\n* • vote* : votes on a proposal\n```Command:vote <chainName> <proposalId> <voteOption> <gasPrices> <memoOptional> <metadataOptional>\n```\n* • votes-history* : Lists history of all votes for a given chain\n```Command:votes-history <chainName> <startDate> <endDateOptional>\n```\n *• create-key* : Create a new account with key name. This key name is used while voting\n```Command:create-key <chainName> <keyNameOptional>```\n"
+			r := " *SLACK BOT COMMANDS* \n\n *• register-validator*: registers the validator using chain name and validator address\n```Command : register-validator <chainName> <validatorAddress>```\n *• remove-validator* : removes an existing validator data using validator address\n```Command:remove-validator <validatorAddress>```\n *• list-keys* : Lists all keys\n```Command:list-keys```\n *• list-proposals* : Lists all Active unvoted proposals \n```Command:list-proposals```\n *• list-validators* : List of all registered validators addresses with associated chains\n```Command:list-validators```\n* • vote* : votes on a proposal\n```Command:vote <chainName> <proposalId> <voteOption> <gasPrices> <memoOptional> <metadataOptional>\n```\n* • votes-history* : Lists history of all votes for a given chain\n```Command:votes-history <chainName> <startDate> <endDateOptional>\n```\n *• create-key* : Create a new account with key name. This key name is used while voting\n```Command:create-key <chainName> <keyNameOptional>```\n"
 			response.Reply(r)
 		},
 	})
@@ -149,7 +152,7 @@ func (a *Slackbot) Initializecommands() error {
 				hexAddr, err := utils.ValAddressFromBech32(address)
 				if err != nil {
 					done()
-					response.ReportError(fmt.Errorf("Error while getting validator address of chain %s", chainName))
+					response.ReportError(fmt.Errorf("error while getting validator address of chain %s", chainName))
 					return
 				}
 
@@ -157,14 +160,14 @@ func (a *Slackbot) Initializecommands() error {
 				done()
 
 				if err != nil {
-					response.ReportError(fmt.Errorf("Error while decoding validator address %s", chainName))
+					response.ReportError(fmt.Errorf("error while decoding validator address %s", chainName))
 					return
 				}
 
 				voteOption := request.Param("voteOption")
 				fromKey, err := a.db.GetChainKey(chainName)
 				if err != nil {
-					response.ReportError(fmt.Errorf("Error while getting key address of chain %s", chainName))
+					response.ReportError(fmt.Errorf("error while getting key address of chain %s", chainName))
 					return
 				}
 
@@ -278,6 +281,13 @@ func (a *Slackbot) Initializecommands() error {
 		},
 	})
 
+	a.bot.Command("list-proposals", &slacker.CommandDefinition{
+		Description: "lists all proposals",
+		Examples:    []string{"list-proposals"},
+		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+			a.data.GetProposals(a.db)
+		},
+	})
 	// Command to list all registered validators
 	a.bot.Command("list-validators", &slacker.CommandDefinition{
 		Description: "lists all validators addresses with associated chains",
