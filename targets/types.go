@@ -83,6 +83,14 @@ type (
 		} `json:"pagination"`
 	}
 
+	// Balance struct holds the parameters of balance of grantee
+	Balance struct {
+		Balance struct {
+			Denom  string `json:"denom"`
+			Amount string `json:"amount"`
+		}
+	}
+
 	// Vote struct holds the parameters of vote of voter.
 	Vote struct {
 		Vote struct {

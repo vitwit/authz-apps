@@ -71,7 +71,7 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 
 	chainInfo, err := v.GetChainInfo(chainName, cr)
 	if err != nil {
-		return "", fmt.Errorf("chain id not found: %v", err)
+		return "", fmt.Errorf("chain info not found: %v", err)
 	}
 
 	//	Use Chain info to select random endpoint

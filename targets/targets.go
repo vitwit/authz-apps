@@ -43,6 +43,7 @@ func (c *Cron) Start() error {
 	// Everday at 8AM and 8PM
 	err := cron.AddFunc("0 0 8,20 * * *", func() {
 		d.GetProposals(c.db)
+		d.GetLowBalAccs(c.db)
 	})
 	if err != nil {
 		log.Println("Error adding Proposal cron job:", err)

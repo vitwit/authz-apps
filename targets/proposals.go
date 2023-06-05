@@ -34,7 +34,7 @@ type (
 	}
 )
 
-// Gets proposals from the Registered chains and validators
+// Gets proposals from the Registered chain's validators and alerts on them
 func (a *Data) GetProposals(db *database.Sqlitedb) {
 	var networksMap map[string]bool
 	var networks []string
@@ -62,57 +62,54 @@ func (a *Data) AlertOnProposals(networks []string) error {
 	}
 
 	for _, val := range validators {
-		validEndpoints, err := GetValidLCDEndpoints(val.ChainName)
+		endpoint, err := GetValidEndpointForChain(val.ChainName)
 		if err != nil {
 			log.Printf("Error in getting valid LCD endpoints for %s chain", val.ChainName)
-
 			return err
 		}
-		for _, endpoint := range validEndpoints {
-			ops := HTTPOptions{
-				Endpoint:    endpoint + "/cosmos/gov/v1beta1/proposals",
-				Method:      http.MethodGet,
-				QueryParams: QueryParams{"proposal_status": "2"},
-			}
-			resp, err := HitHTTPTarget(ops)
+		ops := HTTPOptions{
+			Endpoint:    endpoint + "/cosmos/gov/v1beta1/proposals",
+			Method:      http.MethodGet,
+			QueryParams: QueryParams{"proposal_status": "2"},
+		}
+		resp, err := HitHTTPTarget(ops)
+		if err != nil {
+			log.Printf("Error while getting http response: %v", err)
+			return err
+		}
+
+		var p Proposals
+		err = json.Unmarshal(resp.Body, &p)
+		if err != nil {
+			log.Printf("Error while unmarshalling the proposals: %v", err)
+			return err
+		}
+
+		var missedProposals []MissedProposal
+
+		fmt.Println("pending proposals = ", len(p.Proposals), "  chain-name = ", val.ChainName)
+		for _, proposal := range p.Proposals {
+			validatorVote, err := a.GetValidatorVote(endpoint, proposal.ProposalID, val.Address, val.ChainName)
 			if err != nil {
-				log.Printf("Error while getting http response: %v", err)
 				return err
 			}
 
-			var p Proposals
-			err = json.Unmarshal(resp.Body, &p)
+			if validatorVote == "" {
+				missedProposals = append(missedProposals, MissedProposal{
+					accAddr:       val.Address,
+					pTitle:        proposal.Content.Title,
+					pID:           proposal.ProposalID,
+					votingEndTime: proposal.VotingEndTime,
+				})
+			}
+
+		}
+
+		if len(missedProposals) > 0 {
+			err = a.SendVotingPeriodProposalAlerts(val.ChainName, missedProposals)
 			if err != nil {
-				log.Printf("Error while unmarshalling the proposals: %v", err)
+				log.Printf("error on sending voting period proposals alert: %v", err)
 				return err
-			}
-
-			var missedProposals []MissedProposal
-
-			fmt.Println("pending proposals = ", len(p.Proposals), "  chain-name = ", val.ChainName)
-			for _, proposal := range p.Proposals {
-				validatorVote, err := a.GetValidatorVote(endpoint, proposal.ProposalID, val.Address, val.ChainName)
-				if err != nil {
-					return err
-				}
-
-				if validatorVote == "" {
-					missedProposals = append(missedProposals, MissedProposal{
-						accAddr:       val.Address,
-						pTitle:        proposal.Content.Title,
-						pID:           proposal.ProposalID,
-						votingEndTime: proposal.VotingEndTime,
-					})
-				}
-
-			}
-
-			if len(missedProposals) > 0 {
-				err = a.SendVotingPeriodProposalAlerts(val.ChainName, missedProposals)
-				if err != nil {
-					log.Printf("error on sending voting period proposals alert: %v", err)
-					return err
-				}
 			}
 		}
 	}
