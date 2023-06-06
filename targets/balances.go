@@ -100,7 +100,7 @@ func (a *Data) AlertOnLowBalance(endpoint, addr, denom string) error {
 
 // SendLowBalanceAlerts which sends alerts on low balance grantee accounts
 func (a *Data) SendLowBalanceAlerts(addr, amount, denom string) error {
-	api := slack.New(a.cfg.Slack.BotToken)
+	api := slack.New(a.Cfg.Slack.BotToken)
 
 	attachment := []slack.Block{
 		slack.NewHeaderBlock(
@@ -109,7 +109,7 @@ func (a *Data) SendLowBalanceAlerts(addr, amount, denom string) error {
 	}
 
 	_, _, err := api.PostMessage(
-		a.cfg.Slack.ChannelID,
+		a.Cfg.Slack.ChannelID,
 		slack.MsgOptionBlocks(attachment...),
 	)
 	if err != nil {
