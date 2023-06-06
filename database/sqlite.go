@@ -110,7 +110,7 @@ func (a *Sqlitedb) AddKey(chainName, keyName, keyAddress string) error {
 	return err
 }
 func (a *Sqlitedb) UpdateKey(status, keyAddress string) error {
-	stmt, err := a.db.Prepare("UPDATE keys SET status = ? WHERE keyAddress = ?")
+	stmt, err := a.db.Prepare("UPDATE keys SET authzStatus = ? WHERE keyAddress = ?")
 	if err != nil {
 		return err
 	}
