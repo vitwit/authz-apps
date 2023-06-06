@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/slack-go/slack"
@@ -34,6 +35,24 @@ type (
 	}
 )
 
+var (
+	govV1Support         map[string]bool
+	govV1SupportMapMutex sync.Mutex
+)
+
+func setValidV1Endpoints(networks []string) {
+	for _, chainName := range networks {
+		_, validV1Endpoint, err := GetValidEndpointForChain(chainName)
+		if err != nil {
+			log.Fatalf("Error while checking for valid V1 endpoints for %s chain", chainName)
+		} else {
+			govV1SupportMapMutex.Lock()
+			defer govV1SupportMapMutex.Unlock()
+			govV1Support[chainName] = validV1Endpoint
+		}
+	}
+}
+
 // Gets proposals from the Registered chain's validators and alerts on them
 func (a *Data) GetProposals(db *database.Sqlitedb) {
 	var networksMap map[string]bool
@@ -48,6 +67,7 @@ func (a *Data) GetProposals(db *database.Sqlitedb) {
 			networks = append(networks, val.ChainName)
 		}
 	}
+	setValidV1Endpoints(networks)
 	err = a.AlertOnProposals(networks)
 	if err != nil {
 		log.Printf("Error while alerting on proposals: %s", err)
@@ -62,13 +82,20 @@ func (a *Data) AlertOnProposals(networks []string) error {
 	}
 
 	for _, val := range validators {
-		endpoint, err := GetValidEndpointForChain(val.ChainName)
+		endpoint, _, err := GetValidEndpointForChain(val.ChainName)
 		if err != nil {
 			log.Printf("Error in getting valid LCD endpoints for %s chain", val.ChainName)
 			return err
 		}
+
+		useV1 := govV1Support[val.ChainName]
+		proposalsEndpoint := endpoint + "/cosmos/gov/v1beta1/proposals"
+		if useV1 {
+			proposalsEndpoint = endpoint + "/cosmos/gov/v1/proposals"
+		}
+
 		ops := HTTPOptions{
-			Endpoint:    endpoint + "/cosmos/gov/v1beta1/proposals",
+			Endpoint:    proposalsEndpoint,
 			Method:      http.MethodGet,
 			QueryParams: QueryParams{"proposal_status": "2"},
 		}

@@ -14,27 +14,27 @@ import (
 )
 
 // Gets a valid LCD endpoint for a given chain
-func GetValidEndpointForChain(chainName string) (validLCDEndpoint string, err error) {
+func GetValidEndpointForChain(chainName string) (validLCDEndpoint string, validV1Endpoint bool, err error) {
 	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
 
 	chainInfo, err := cr.GetChain(context.Background(), chainName)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
 	AllLCDEndpoints, err := GetAllLCDEndpoints(chainInfo)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
-	validLCDEndpoint, err = GetValidLCDEndpoint(AllLCDEndpoints)
-	if err != nil {
-		return "", err
+	validLCDEndpoint, validV1Endpoint = GetValidLCDEndpoint(AllLCDEndpoints)
+	if validLCDEndpoint == "" {
+		return "", false, fmt.Errorf("valid LCD endpoint not found for chain %s", chainName)
 	}
 
 	validLCDEndpoint = strings.TrimSuffix(validLCDEndpoint, "/")
 
-	return validLCDEndpoint, nil
+	return validLCDEndpoint, validV1Endpoint, nil
 }
 
 // Gets all LCD endpoints present in a chain
@@ -64,29 +64,44 @@ func GetAllLCDEndpoints(c registry.ChainInfo) (out []string, err error) {
 }
 
 // Gets a valid LCD endpoint from all the LCD endpoints
-func GetValidLCDEndpoint(endpoints []string) (string, error) {
-	var validEndpoint bool
+func GetValidLCDEndpoint(endpoints []string) (endpoint string, validV1Endpoint bool) {
 	for _, endpoint := range endpoints {
-		validEndpoint = GetStatus(endpoint)
-		if validEndpoint {
-			return endpoint, nil
+		validV1Endpoint = GetStatus(endpoint)
+		if validV1Endpoint {
+			return endpoint, true
 		}
 	}
-	return "", nil
+	return "", false
 }
 
 // Gets proposals current stauts
-func GetStatus(endpoint string) bool {
+func GetStatus(endpoint string) (govV1Support bool) {
 	ops := HTTPOptions{
-		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals",
+		Endpoint: endpoint + "/cosmos/gov/v1/proposals",
 		Method:   http.MethodGet,
 	}
-
 	resp, err := HitHTTPTarget(ops)
 	if err != nil {
 		log.Printf("Error in external rpc: %v", err)
 		log.Printf("⛔⛔ Unreachable to EXTERNAL RPC :: %s and the ERROR is : %v\n\n", ops.Endpoint, err.Error())
 		return false
 	}
-	return resp.StatusCode == http.StatusOK
+	if resp.StatusCode == http.StatusOK {
+		govV1Support = true
+	} else {
+		ops = HTTPOptions{
+			Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals",
+			Method:   http.MethodGet,
+		}
+		resp, err = HitHTTPTarget(ops)
+		if err != nil {
+			log.Printf("Error in external rpc: %v", err)
+			log.Printf("⛔⛔ Unreachable to EXTERNAL RPC :: %s and the ERROR is : %v\n\n", ops.Endpoint, err.Error())
+			return false
+		}
+		if resp.StatusCode == http.StatusOK {
+			govV1Support = true
+		}
+	}
+	return
 }

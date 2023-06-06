@@ -105,6 +105,7 @@ func (a *Sqlitedb) AddKey(chainName, keyName, keyAddress string) error {
 	_, err = stmt.Exec(chainName, keyName, keyAddress)
 	return err
 }
+
 func (a *Sqlitedb) AddLog(chainName, proposalID, voteOption string) error {
 	stmt, err := a.db.Prepare("INSERT INTO logs(date,chainName, proposalID, voteOption) values(?,?,?,?)")
 	if err != nil {
@@ -193,6 +194,7 @@ func (a *Sqlitedb) GetKeyAddress(key string) (string, error) {
 
 	return addr, nil
 }
+
 func (a *Sqlitedb) GetChainKey(ChainName string) (string, error) {
 	var addr string
 	stmt, err := a.db.Prepare("SELECT keyName FROM keys WHERE chainName=?")
@@ -208,6 +210,7 @@ func (a *Sqlitedb) GetChainKey(ChainName string) (string, error) {
 
 	return addr, nil
 }
+
 func (a *Sqlitedb) GetChainValidator(ChainName string) (string, error) {
 	var addr string
 	stmt, err := a.db.Prepare("SELECT address FROM validators WHERE chainName=?")

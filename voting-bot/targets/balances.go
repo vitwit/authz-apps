@@ -45,7 +45,7 @@ func (a *Data) GetLowBalAccs(db *database.Sqlitedb) error {
 			return fmt.Errorf("base denom unit not found for %s chain", key.ChainName)
 		}
 
-		endpoint, err := GetValidEndpointForChain(key.ChainName)
+		endpoint, _, err := GetValidEndpointForChain(key.ChainName)
 		if err != nil {
 			log.Printf("Error in getting valid LCD endpoints for %s chain", key.ChainName)
 			return err
