@@ -133,47 +133,82 @@ func (a *Data) AlertOnProposals(networks []string) error {
 
 		params := govV1Support[val.ChainName]
 		govV1Enabled := params["govv1_enabled"]
-		proposalsEndpoint := endpoint + "/cosmos/gov/v1beta1/proposals"
-		if govV1Enabled {
-			proposalsEndpoint = endpoint + "/cosmos/gov/v1/proposals"
-		}
-
-		ops := HTTPOptions{
-			Endpoint:    proposalsEndpoint,
-			Method:      http.MethodGet,
-			QueryParams: QueryParams{"proposal_status": "2"},
-		}
-		resp, err := HitHTTPTarget(ops)
-		if err != nil {
-			log.Printf("Error while getting http response: %v", err)
-			return err
-		}
-
-		var p Proposals
-		err = json.Unmarshal(resp.Body, &p)
-		if err != nil {
-			log.Printf("Error while unmarshalling the proposals: %v", err)
-			return err
-		}
 
 		var missedProposals []MissedProposal
 
-		fmt.Println("pending proposals = ", len(p.Proposals), "  chain-name = ", val.ChainName)
-		for _, proposal := range p.Proposals {
-			validatorVote, err := a.GetValidatorVote(endpoint, proposal.ProposalID, val.Address, val.ChainName)
+		if govV1Enabled {
+			ops := HTTPOptions{
+				Endpoint:    endpoint + "/cosmos/gov/v1/proposals",
+				Method:      http.MethodGet,
+				QueryParams: QueryParams{"proposal_status": "2"},
+			}
+			resp, err := HitHTTPTarget(ops)
 			if err != nil {
+				log.Printf("Error while getting http response: %v", err)
 				return err
 			}
 
-			if validatorVote == "" {
-				missedProposals = append(missedProposals, MissedProposal{
-					accAddr:       val.Address,
-					pTitle:        proposal.Content.Title,
-					pID:           proposal.ProposalID,
-					votingEndTime: proposal.VotingEndTime,
-				})
+			var p V1Proposals
+			err = json.Unmarshal(resp.Body, &p)
+			if err != nil {
+				log.Printf("Error while unmarshalling the proposals: %v", err)
+				return err
 			}
 
+			fmt.Println("pending proposals = ", len(p.Proposals), "  chain-name = ", val.ChainName)
+			for _, proposal := range p.Proposals {
+				validatorVote, err := a.GetValidatorVote(endpoint, proposal.ID, val.Address, val.ChainName)
+				if err != nil {
+					return err
+				}
+
+				if validatorVote == "" {
+					missedProposals = append(missedProposals, MissedProposal{
+						accAddr:       val.Address,
+						pTitle:        proposal.Messages[0].Content.Title,
+						pID:           proposal.ID,
+						votingEndTime: proposal.VotingEndTime,
+					})
+				}
+
+			}
+
+		} else {
+			ops := HTTPOptions{
+				Endpoint:    endpoint + "/cosmos/gov/v1beta1/proposals",
+				Method:      http.MethodGet,
+				QueryParams: QueryParams{"proposal_status": "2"},
+			}
+			resp, err := HitHTTPTarget(ops)
+			if err != nil {
+				log.Printf("Error while getting http response: %v", err)
+				return err
+			}
+
+			var p Proposals
+			err = json.Unmarshal(resp.Body, &p)
+			if err != nil {
+				log.Printf("Error while unmarshalling the proposals: %v", err)
+				return err
+			}
+
+			fmt.Println("pending proposals = ", len(p.Proposals), "  chain-name = ", val.ChainName)
+			for _, proposal := range p.Proposals {
+				validatorVote, err := a.GetValidatorVote(endpoint, proposal.ProposalID, val.Address, val.ChainName)
+				if err != nil {
+					return err
+				}
+
+				if validatorVote == "" {
+					missedProposals = append(missedProposals, MissedProposal{
+						accAddr:       val.Address,
+						pTitle:        proposal.Content.Title,
+						pID:           proposal.ProposalID,
+						votingEndTime: proposal.VotingEndTime,
+					})
+				}
+
+			}
 		}
 
 		if len(missedProposals) > 0 {
