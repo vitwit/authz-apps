@@ -27,9 +27,9 @@ func GetValidEndpointForChain(chainName string) (validLCDEndpoint string, err er
 		return "", err
 	}
 
-	validLCDEndpoint, err = GetValidLCDEndpoint(AllLCDEndpoints)
-	if err != nil {
-		return "", err
+	validLCDEndpoint = GetValidLCDEndpoint(AllLCDEndpoints)
+	if validLCDEndpoint == "" {
+		return "", fmt.Errorf("valid LCD endpoint not found for chain %s", chainName)
 	}
 
 	validLCDEndpoint = strings.TrimSuffix(validLCDEndpoint, "/")
@@ -64,15 +64,14 @@ func GetAllLCDEndpoints(c registry.ChainInfo) (out []string, err error) {
 }
 
 // Gets a valid LCD endpoint from all the LCD endpoints
-func GetValidLCDEndpoint(endpoints []string) (string, error) {
-	var validEndpoint bool
+func GetValidLCDEndpoint(endpoints []string) string {
 	for _, endpoint := range endpoints {
-		validEndpoint = GetStatus(endpoint)
+		validEndpoint := GetStatus(endpoint)
 		if validEndpoint {
-			return endpoint, nil
+			return endpoint
 		}
 	}
-	return "", nil
+	return ""
 }
 
 // Gets proposals current stauts
