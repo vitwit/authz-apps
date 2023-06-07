@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/slack-go/slack"
@@ -35,22 +34,67 @@ type (
 	}
 )
 
-var (
-	govV1Support         map[string]bool
-	govV1SupportMapMutex sync.Mutex
-)
-
-func setValidV1Endpoints(networks []string) {
-	for _, chainName := range networks {
-		_, validV1Endpoint, err := GetValidEndpointForChain(chainName)
-		if err != nil {
-			log.Fatalf("Error while checking for valid V1 endpoints for %s chain", chainName)
-		} else {
-			govV1SupportMapMutex.Lock()
-			defer govV1SupportMapMutex.Unlock()
-			govV1Support[chainName] = validV1Endpoint
-		}
-	}
+var govV1Support = map[string]map[string]bool{
+	"cosmos": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"osmosis": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"regen": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"akash": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"juno": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"umee": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"omniflix": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"comdex": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"mars": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"desmos": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"evmos": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"stargaze": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"quicksilver": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"crescent": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"passage": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
 }
 
 // Gets proposals from the Registered chain's validators and alerts on them
@@ -67,7 +111,6 @@ func (a *Data) GetProposals(db *database.Sqlitedb) {
 			networks = append(networks, val.ChainName)
 		}
 	}
-	setValidV1Endpoints(networks)
 	err = a.AlertOnProposals(networks)
 	if err != nil {
 		log.Printf("Error while alerting on proposals: %s", err)
@@ -88,9 +131,10 @@ func (a *Data) AlertOnProposals(networks []string) error {
 			return err
 		}
 
-		useV1 := govV1Support[val.ChainName]
+		params := govV1Support[val.ChainName]
+		govV1Enabled := params["govv1_enabled"]
 		proposalsEndpoint := endpoint + "/cosmos/gov/v1beta1/proposals"
-		if useV1 {
+		if govV1Enabled {
 			proposalsEndpoint = endpoint + "/cosmos/gov/v1/proposals"
 		}
 
