@@ -125,7 +125,7 @@ func (a *Data) AlertOnProposals(networks []string) error {
 	}
 
 	for _, val := range validators {
-		endpoint, _, err := GetValidEndpointForChain(val.ChainName)
+		endpoint, err := GetValidEndpointForChain(val.ChainName)
 		if err != nil {
 			log.Printf("Error in getting valid LCD endpoints for %s chain", val.ChainName)
 			return err
