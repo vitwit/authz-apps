@@ -49,7 +49,6 @@ var RegisrtyNameToMintscanName = map[string]string{
 }
 
 const (
-	maxRetries    = 3
 	retryInterval = time.Second * 10
 )
 
@@ -173,12 +172,17 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		voteErr error
 	)
 
-	for i := 0; i < maxRetries; i++ {
+	timedOutError := false
+	for {
 		// Send msg and get response
 		res, voteErr = chainClient.SendMsg(context.Background(), req, memo)
 		if voteErr != nil {
 			// Check if the error is a timeout error
 			if strings.Contains(voteErr.Error(), "timed out") {
+				if timedOutError {
+					return "", fmt.Errorf("transaction timed out: https://mintscan.io/%s/txs/%s", chainName, res.TxHash)
+				}
+				timedOutError = true
 				// Retry after a delay if it's a timeout error
 				time.Sleep(retryInterval)
 				continue
@@ -201,8 +205,6 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		}
 		return fmt.Sprintf("Trasaction broadcasted: https://mintscan.io/%s/txs/%s", mintscanName, res.TxHash), nil
 	}
-
-	return "", fmt.Errorf("failed to vote. Timed out after multiple retries\nErr: %v", voteErr)
 }
 
 // Converts the string to a acceptable vote format
