@@ -162,10 +162,14 @@ func (a *Data) AlertOnProposals(networks []string) error {
 					return err
 				}
 
+				pTitle := proposal.Messages[0].Content.Title
+				if pTitle == "" {
+					pTitle = proposal.Metadata
+				}
 				if validatorVote == "" {
 					missedProposals = append(missedProposals, MissedProposal{
 						accAddr:       val.Address,
-						pTitle:        proposal.Messages[0].Content.Title,
+						pTitle:        pTitle,
 						pID:           proposal.ID,
 						votingEndTime: proposal.VotingEndTime,
 					})

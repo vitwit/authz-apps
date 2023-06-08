@@ -47,34 +47,12 @@ type (
 					Type        string `json:"@type"`
 					Title       string `json:"title"`
 					Description string `json:"description"`
-					Changes     []struct {
-						Subspace string `json:"subspace"`
-						Key      string `json:"key"`
-						Value    string `json:"value"`
-					} `json:"changes"`
 				} `json:"content,omitempty"`
 			}
-			Status           string `json:"status"`
-			FinalTallyResult struct {
-				YesCount        string `json:"yes_count"`
-				AbstainCount    string `json:"abstain_count"`
-				NoCount         string `json:"no_count"`
-				NoWithVetoCount string `json:"no_with_veto_count"`
-			} `json:"final_tally_result"`
-			SubmitTime     string `json:"submit_time"`
-			DepositEndTime string `json:"deposit_end_time"`
-			TotalDeposit   []struct {
-				Denom  string `json:"denom"`
-				Amount string `json:"amount"`
-			} `json:"total_deposit"`
-			VotingStartTime string `json:"voting_start_time"`
-			VotingEndTime   string `json:"voting_end_time"`
-			Metadata        string `json:"metadata"`
+			Status        string `json:"status"`
+			VotingEndTime string `json:"voting_end_time"`
+			Metadata      string `json:"metadata"`
 		} `json:"proposals"`
-		Pagination struct {
-			NextKey string `json:"next_key"`
-			Total   string `json:"total"`
-		} `json:"pagination"`
 	}
 
 	// Proposals struct holds result of array of gov v1beta1 proposals
@@ -85,32 +63,10 @@ type (
 				Type        string `json:"@type"`
 				Title       string `json:"title"`
 				Description string `json:"description"`
-				Changes     []struct {
-					Subspace string `json:"subspace"`
-					Key      string `json:"key"`
-					Value    string `json:"value"`
-				} `json:"changes"`
 			} `json:"content,omitempty"`
-			Status           string `json:"status"`
-			FinalTallyResult struct {
-				Yes        string `json:"yes"`
-				Abstain    string `json:"abstain"`
-				No         string `json:"no"`
-				NoWithVeto string `json:"no_with_veto"`
-			} `json:"final_tally_result"`
-			SubmitTime     string `json:"submit_time"`
-			DepositEndTime string `json:"deposit_end_time"`
-			TotalDeposit   []struct {
-				Denom  string `json:"denom"`
-				Amount string `json:"amount"`
-			} `json:"total_deposit"`
-			VotingStartTime string `json:"voting_start_time"`
-			VotingEndTime   string `json:"voting_end_time"`
+			Status        string `json:"status"`
+			VotingEndTime string `json:"voting_end_time"`
 		} `json:"proposals"`
-		Pagination struct {
-			NextKey string `json:"next_key"`
-			Total   string `json:"total"`
-		} `json:"pagination"`
 	}
 
 	// Balance struct holds the parameters of balance of grantee
