@@ -48,6 +48,10 @@ var RegisrtyNameToMintscanName = map[string]string{
 	"persistence":   "persistence",
 }
 
+const (
+	retryInterval = time.Second * 10
+)
+
 type Vote struct {
 	Db *database.Sqlitedb
 }
@@ -162,23 +166,45 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 	}
 
 	responseWriter.Reply(fmt.Sprintf("voting %s on %s proposal %d", voteOption, chainName, proposalID))
-	// Send msg and get response
-	res, err := chainClient.SendMsg(context.Background(), req, memo)
-	if err != nil {
-		if res != nil {
-			return "", fmt.Errorf("failed to vote on proposal: code(%d) msg(%s)", res.Code, res.Logs)
-		}
-		return "", fmt.Errorf("failed to vote.Err: %v", err)
-	}
-	if err := v.Db.AddLog(chainName, pID, vote); err != nil {
-		fmt.Printf("failed to store logs: %v", err)
-	}
-	mintscanName := chainName
-	if newName, ok := RegisrtyNameToMintscanName[chainName]; ok {
-		mintscanName = newName
-	}
 
-	return fmt.Sprintf("Trasaction broadcasted: https://mintscan.io/%s/txs/%s", mintscanName, res.TxHash), nil
+	var (
+		res     *sdk.TxResponse
+		voteErr error
+	)
+
+	timedOutError := false
+	for {
+		// Send msg and get response
+		res, voteErr = chainClient.SendMsg(context.Background(), req, memo)
+		if voteErr != nil {
+			// Check if the error is a timeout error
+			if strings.Contains(voteErr.Error(), "timed out") {
+				if timedOutError {
+					return "", fmt.Errorf("transaction timed out: https://mintscan.io/%s/txs/%s", chainName, res.TxHash)
+				}
+				timedOutError = true
+				// Retry after a delay if it's a timeout error
+				time.Sleep(retryInterval)
+				continue
+			}
+			if res != nil {
+				return "", fmt.Errorf("failed to vote on proposal: code(%d) msg(%s)", res.Code, res.Logs)
+			}
+		}
+		if err := v.Db.AddLog(chainName, pID, vote); err != nil {
+			fmt.Printf("failed to store logs: %v", err)
+		}
+		mintscanName := chainName
+		if newName, ok := RegisrtyNameToMintscanName[chainName]; ok {
+			mintscanName = newName
+		}
+		if res.TxHash == "" {
+			// Retry after a delay if the transaction details are not available yet
+			time.Sleep(retryInterval)
+			continue
+		}
+		return fmt.Sprintf("Trasaction broadcasted: https://mintscan.io/%s/txs/%s", mintscanName, res.TxHash), nil
+	}
 }
 
 // Converts the string to a acceptable vote format
