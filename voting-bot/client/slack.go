@@ -68,7 +68,10 @@ func (a *Slackbot) Initializecommands() error {
 				if isExists {
 					response.Reply("Validator is already registered")
 				} else {
-					a.db.AddValidator(chainName, validatorAddress)
+					err = a.db.AddValidator(chainName, validatorAddress)
+					if err != nil {
+						response.Reply(fmt.Sprintf("error while adding validator %s", validatorAddress))
+					}
 					r := fmt.Sprintf("Your validator %s is successfully registered", validatorAddress)
 					response.Reply(r)
 				}
