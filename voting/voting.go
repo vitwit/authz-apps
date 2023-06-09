@@ -57,6 +57,20 @@ func (v *Vote) GetChainInfo(name string, cr registry.ChainRegistry) (registry.Ch
 	return cr.GetChain(context.Background(), name)
 }
 
+func (v *Vote) GetChainDenom(chainInfo registry.ChainInfo) (string, error) {
+	assetList, err := chainInfo.GetAssetList(context.Background())
+	if err != nil {
+		return "", err
+	}
+	assets := assetList.Assets
+	if len(assets) > 0 {
+		denom := assets[0].Base
+		return denom, nil
+	} else {
+		return "", fmt.Errorf("no assets found for %s chain", chainInfo.ChainName)
+	}
+}
+
 // Votes on the proposal using the given data and key
 func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, gasPrices string, responseWriter slacker.ResponseWriter) (string, error) {
 	defer func() {
@@ -79,10 +93,18 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 	if err != nil {
 		return "", fmt.Errorf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
 	}
-
-	_, err = sdk.ParseDecCoins(gasPrices)
+	denom, err := v.GetChainDenom(chainInfo)
 	if err != nil {
-		return "", fmt.Errorf("invalid fee format: %v", err)
+		return "", fmt.Errorf("failed to get denom from chain %s: %v", chainInfo.ChainID, err)
+	}
+	coins, err := sdk.ParseDecCoins(gasPrices)
+	if err != nil {
+		fmt.Printf("Error while parsing gasPrices :%v\nInvalid fee format, using default fee", err)
+		gasPrices = "0.25" + denom
+	} else {
+		if coins.Empty() {
+			gasPrices = "0.25" + denom
+		}
 	}
 
 	chainConfig := lensclient.ChainClientConfig{
