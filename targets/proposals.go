@@ -10,22 +10,14 @@ import (
 	"time"
 
 	"github.com/slack-go/slack"
-	registry "github.com/strangelove-ventures/lens/client/chain_registry"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
-	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
+	"github.com/likhita-809/lens-bot/types"
 	"github.com/likhita-809/lens-bot/utils"
 	mint "github.com/likhita-809/lens-bot/voting"
 )
 
 type (
-	Data struct {
-		Db  *database.Sqlitedb
-		Cfg *config.Config
-	}
-
 	MissedProposal struct {
 		accAddr       string
 		pTitle        string
@@ -34,11 +26,11 @@ type (
 	}
 )
 
-// Gets proposals from the Registered chain's validators and alerts on them
-func (a *Data) GetProposals(db *database.Sqlitedb) {
+// Gets proposals from the Registered chains and validators
+func GetProposals(ctx types.Context) {
 	var networksMap map[string]bool
 	var networks []string
-	vals, err := db.GetValidators()
+	vals, err := ctx.Database().GetValidators()
 	if err != nil {
 		log.Fatalf("Error while getting validators: %v", err)
 	}
@@ -48,23 +40,19 @@ func (a *Data) GetProposals(db *database.Sqlitedb) {
 			networks = append(networks, val.ChainName)
 		}
 	}
-	err = a.AlertOnProposals(networks)
+	err = alertOnProposals(ctx, networks, vals)
 	if err != nil {
 		log.Printf("Error while alerting on proposals: %s", err)
 	}
 }
 
 // Alerts on Active Proposals
-func (a *Data) AlertOnProposals(networks []string) error {
-	validators, err := a.Db.GetValidators()
-	if err != nil {
-		return err
-	}
-
+func alertOnProposals(ctx types.Context, networks []string, validators []database.Validator) error {
 	for _, val := range validators {
 		endpoint, err := GetValidEndpointForChain(val.ChainName)
 		if err != nil {
 			log.Printf("Error in getting valid LCD endpoints for %s chain", val.ChainName)
+
 			return err
 		}
 		ops := HTTPOptions{
@@ -87,9 +75,9 @@ func (a *Data) AlertOnProposals(networks []string) error {
 
 		var missedProposals []MissedProposal
 
-		fmt.Println("pending proposals = ", len(p.Proposals), "  chain-name = ", val.ChainName)
+		ctx.Logger().Info().Msgf("pending proposals = ", len(p.Proposals), "  chain-name = ", val.ChainName)
 		for _, proposal := range p.Proposals {
-			validatorVote, err := a.GetValidatorVote(endpoint, proposal.ProposalID, val.Address, val.ChainName)
+			validatorVote, err := getValidatorVote(ctx, endpoint, proposal.ProposalID, val.Address, val.ChainName)
 			if err != nil {
 				return err
 			}
@@ -106,7 +94,7 @@ func (a *Data) AlertOnProposals(networks []string) error {
 		}
 
 		if len(missedProposals) > 0 {
-			err = a.SendVotingPeriodProposalAlerts(val.ChainName, missedProposals)
+			err = sendVotingPeriodProposalAlerts(ctx, val.ChainName, missedProposals)
 			if err != nil {
 				log.Printf("error on sending voting period proposals alert: %v", err)
 				return err
@@ -116,10 +104,9 @@ func (a *Data) AlertOnProposals(networks []string) error {
 	return nil
 }
 
-// GetValidatorVote to check validator voted for the proposal or not.
-func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr, chainName string) (string, error) {
-	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
-	chainInfo, err := cr.GetChain(context.Background(), chainName)
+// getValidatorVote to check validator voted for the proposal or not.
+func getValidatorVote(ctx types.Context, endpoint, proposalID, valAddr, chainName string) (string, error) {
+	chainInfo, err := ctx.ChainRegistry().GetChain(context.Background(), chainName)
 	if err != nil {
 		return "", err
 	}
@@ -165,9 +152,9 @@ func (a *Data) GetValidatorVote(endpoint, proposalID, valAddr, chainName string)
 	return validatorVoted, nil
 }
 
-// SendVotingPeriodProposalAlerts which send alerts of voting period proposals
-func (a *Data) SendVotingPeriodProposalAlerts(chainName string, proposals []MissedProposal) error {
-	api := slack.New(a.Cfg.Slack.BotToken)
+// sendVotingPeriodProposalAlerts which send alerts of voting period proposals
+func sendVotingPeriodProposalAlerts(ctx types.Context, chainName string, proposals []MissedProposal) error {
+	api := ctx.Slacker().APIClient()
 	var blocks []slack.Block
 
 	for _, p := range proposals {
@@ -199,7 +186,7 @@ func (a *Data) SendVotingPeriodProposalAlerts(chainName string, proposals []Miss
 	attachment = append(attachment, blocks...)
 
 	_, _, err := api.PostMessage(
-		a.Cfg.Slack.ChannelID,
+		ctx.Config().Slack.ChannelID,
 		slack.MsgOptionBlocks(attachment...),
 	)
 	if err != nil {
