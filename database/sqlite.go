@@ -21,6 +21,7 @@ type (
 		ChainName  string
 		KeyName    string
 		KeyAddress string
+		Status     string
 	}
 
 	voteLogs struct {
@@ -67,7 +68,7 @@ func (a *Sqlitedb) InitializeTables() error {
 	if err != nil {
 		return err
 	}
-	_, err = a.db.Exec("ALTER TABLE keys ADD COLUMN authzStatus VARCHAR DEFAULT false")
+	_, err = a.db.Exec("ALTER TABLE keys ADD COLUMN authzStatus VARCHAR DEFAULT 'false'")
 	return err
 }
 
@@ -243,7 +244,7 @@ func (a *Sqlitedb) GetChainValidator(ChainName string) (string, error) {
 func (a *Sqlitedb) GetKeys() ([]keys, error) {
 	log.Printf("Fetching keys...")
 
-	rows, err := a.db.Query("SELECT chainName, keyName, keyAddress FROM keys")
+	rows, err := a.db.Query("SELECT chainName, keyName, keyAddress,authzStatus FROM keys")
 	if err != nil {
 		return []keys{}, err
 	}
@@ -252,7 +253,7 @@ func (a *Sqlitedb) GetKeys() ([]keys, error) {
 	var k []keys
 	for rows.Next() {
 		var data keys
-		if err := rows.Scan(&data.ChainName, &data.KeyName, &data.KeyAddress); err != nil {
+		if err := rows.Scan(&data.ChainName, &data.KeyName, &data.KeyAddress, &data.Status); err != nil {
 			return k, err
 		}
 		k = append(k, data)

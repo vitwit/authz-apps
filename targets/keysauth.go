@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/likhita-809/lens-bot/database"
 )
@@ -14,24 +13,26 @@ type GrantRetriever interface {
 	GetGrants(string) ([]Grants, error)
 }
 
-func GetGrants(endpoint string) ([]Grants, error) {
-	resp, err := http.Get(endpoint)
+func GetGrants(endpoint string) ([]interface{}, error) {
+	response, err := http.Get(endpoint)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer response.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
+		log.Println("Failed to read response body:", err)
 		return nil, err
 	}
-	var g []Grants
-	err = json.Unmarshal(body, &g)
+	var jsonData map[string]interface{}
+	err = json.Unmarshal(body, &jsonData)
 	if err != nil {
-		log.Printf("Error while unmarshalling the grants : %v", err)
+		log.Println("Failed to parse JSON data:", err)
 		return nil, err
 	}
-	return g, nil
+	grants := jsonData["grants"].([]interface{})
+	return grants, nil
 }
 
 func KeyAuthorization(db *database.Sqlitedb) error {
@@ -54,41 +55,32 @@ func KeyAuthorization(db *database.Sqlitedb) error {
 		for _, val := range validators {
 			if val.ChainName == key.ChainName {
 				ops := HTTPOptions{
-					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + val.ChainName + "&grantee=" + key.KeyAddress,
+					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + val.ChainName + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.gov.v1beta1.MsgVote",
 					Method:   http.MethodGet,
 				}
 				g1, err := GetGrants(ops.Endpoint)
 				if err != nil {
 					return err
 				}
-				g := g1[0]
-				// resp, err := HitHTTPTarget(ops)
-				// if err != nil {
-				// 	log.Printf("Error while getting http response: %v", err)
-				// 	return err
-				// }
-
-				layout := "2006-01-02"
-				expireDate := g.Grants.Authorization.Expiration
-				var expireTime int64
-				end, err := time.Parse(layout, expireDate)
-				if err != nil {
-					return err
-				}
-				expireTime = end.Unix()
 				var status string
-
-				if g.Grants.Authorization.Type == "/cosmos.authz.v1beta1.GenericAuthorization" &&
-					(g.Grants.Authorization.Msg == "/cosmos.gov.v1beta1.MsgVote" ||
-						g.Grants.Authorization.Msg == "/cosmos.gov.v1.MsgVote") {
-					if expireTime > time.Now().UTC().Unix() {
-						status = "true"
-					} else {
+				if len(g1) == 0 {
+					ops := HTTPOptions{
+						Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + val.ChainName + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.gov.v1beta1.MsgVote",
+						Method:   http.MethodGet,
+					}
+					g2, err := GetGrants(ops.Endpoint)
+					if err != nil {
+						return err
+					}
+					if len(g2) == 0 {
 						status = "false"
+					} else {
+						status = "true"
 					}
 					db.UpdateKey(status, key.KeyAddress)
+				} else {
+					status = "true"
 				}
-
 			}
 
 		}
