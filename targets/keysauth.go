@@ -63,7 +63,10 @@ func KeyAuthorization(db *database.Sqlitedb) error {
 					return err
 				}
 				var status string
-				if len(g1) == 0 {
+				if len(g1) > 0 {
+					status = "true"
+				} else {
+
 					ops := HTTPOptions{
 						Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + val.ChainName + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.gov.v1beta1.MsgVote",
 						Method:   http.MethodGet,
@@ -72,14 +75,15 @@ func KeyAuthorization(db *database.Sqlitedb) error {
 					if err != nil {
 						return err
 					}
-					if len(g2) == 0 {
-						status = "false"
-					} else {
+					if len(g2) > 0 {
 						status = "true"
+					} else {
+						status = "false"
 					}
-					db.UpdateKey(status, key.KeyAddress)
-				} else {
-					status = "true"
+					err = db.UpdateAuthzStatus(status, key.KeyAddress)
+					if err != nil {
+						return err
+					}
 				}
 			}
 
