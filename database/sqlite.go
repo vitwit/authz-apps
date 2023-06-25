@@ -55,10 +55,6 @@ func (a *Sqlitedb) InitializeTables() error {
 	if err != nil {
 		return err
 	}
-	_, err = a.db.Exec("DROP TABLE IF EXISTS logs")
-	if err != nil {
-		return err
-	}
 
 	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS logs (date INTEGER ,chainName VARCHAR, proposalId VARCHAR, voteOption VARCHAR)")
 	if err != nil {
@@ -68,6 +64,7 @@ func (a *Sqlitedb) InitializeTables() error {
 	if err != nil {
 		return err
 	}
+
 	_, err = a.db.Exec("ALTER TABLE keys ADD COLUMN authzStatus VARCHAR DEFAULT 'false'")
 	return err
 }

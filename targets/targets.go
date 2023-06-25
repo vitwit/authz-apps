@@ -50,7 +50,7 @@ func (c *Cron) Start() error {
 		return err
 	}
 	err = cron.AddFunc("@every 1h", func() {
-		KeyAuthorization(c.db)
+		SyncAuthzStatus(c.db)
 	})
 	if err != nil {
 		log.Println("Error adding Key Authorization cron job:", err)

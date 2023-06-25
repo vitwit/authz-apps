@@ -9,11 +9,7 @@ import (
 	"github.com/likhita-809/lens-bot/database"
 )
 
-type GrantRetriever interface {
-	GetGrants(string) ([]Grants, error)
-}
-
-func GetGrants(endpoint string) ([]interface{}, error) {
+func getAuthzGrants(endpoint string) ([]interface{}, error) {
 	response, err := http.Get(endpoint)
 	if err != nil {
 		return nil, err
@@ -35,7 +31,9 @@ func GetGrants(endpoint string) ([]interface{}, error) {
 	return grants, nil
 }
 
-func KeyAuthorization(db *database.Sqlitedb) error {
+// SyncAuthzStatus iterates over all validators account and update
+// authz grant status
+func SyncAuthzStatus(db *database.Sqlitedb) error {
 	keys, err := db.GetKeys()
 	if err != nil {
 		return err
@@ -49,7 +47,6 @@ func KeyAuthorization(db *database.Sqlitedb) error {
 		validEndpoint, err := GetValidEndpointForChain(key.ChainName)
 		if err != nil {
 			log.Printf("Error in getting valid LCD endpoints for %s chain", key.ChainName)
-
 			return err
 		}
 		for _, val := range validators {
@@ -58,36 +55,31 @@ func KeyAuthorization(db *database.Sqlitedb) error {
 					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + val.ChainName + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.gov.v1beta1.MsgVote",
 					Method:   http.MethodGet,
 				}
-				g1, err := GetGrants(ops.Endpoint)
+				g1, err := getAuthzGrants(ops.Endpoint)
 				if err != nil {
 					return err
 				}
-				var status string
 				if len(g1) > 0 {
-					status = "true"
-				} else {
-
-					ops := HTTPOptions{
-						Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + val.ChainName + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.gov.v1beta1.MsgVote",
-						Method:   http.MethodGet,
-					}
-					g2, err := GetGrants(ops.Endpoint)
-					if err != nil {
-						return err
-					}
-					if len(g2) > 0 {
-						status = "true"
-					} else {
-						status = "false"
-					}
-					err = db.UpdateAuthzStatus(status, key.KeyAddress)
-					if err != nil {
-						return err
-					}
+					return db.UpdateAuthzStatus("true", key.KeyAddress)
 				}
+
+				ops = HTTPOptions{
+					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + val.ChainName + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.gov.v1.MsgVote",
+					Method:   http.MethodGet,
+				}
+				g2, err := getAuthzGrants(ops.Endpoint)
+				if err != nil {
+					return err
+				}
+
+				if len(g2) > 0 {
+					return db.UpdateAuthzStatus("true", key.KeyAddress)
+
+				}
+				return db.UpdateAuthzStatus("false", key.KeyAddress)
 			}
 
 		}
 	}
-	return err
+	return nil
 }
