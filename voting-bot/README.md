@@ -1,4 +1,4 @@
-# LENS-SLACK-BOT
+# VOTING-BOT
 This is a slack bot which can take commands from the slack interface.
 It alerts the user on the following:
 - New proposals on the chain
