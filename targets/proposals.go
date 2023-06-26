@@ -12,6 +12,7 @@ import (
 	"github.com/slack-go/slack"
 
 	"github.com/likhita-809/lens-bot/database"
+	"github.com/likhita-809/lens-bot/endpoints"
 	"github.com/likhita-809/lens-bot/types"
 	"github.com/likhita-809/lens-bot/utils"
 	mint "github.com/likhita-809/lens-bot/voting"
@@ -49,24 +50,24 @@ func GetProposals(ctx types.Context) {
 // Alerts on Active Proposals
 func alertOnProposals(ctx types.Context, networks []string, validators []database.Validator) error {
 	for _, val := range validators {
-		endpoint, err := GetValidEndpointForChain(val.ChainName)
+		endpoint, err := endpoints.GetValidEndpointForChain(val.ChainName)
 		if err != nil {
 			log.Printf("Error in getting valid LCD endpoints for %s chain", val.ChainName)
 
 			return err
 		}
-		ops := HTTPOptions{
+		ops := types.HTTPOptions{
 			Endpoint:    endpoint + "/cosmos/gov/v1beta1/proposals",
 			Method:      http.MethodGet,
-			QueryParams: QueryParams{"proposal_status": "2"},
+			QueryParams: types.QueryParams{"proposal_status": "2"},
 		}
-		resp, err := HitHTTPTarget(ops)
+		resp, err := endpoints.HitHTTPTarget(ops)
 		if err != nil {
 			log.Printf("Error while getting http response: %v", err)
 			return err
 		}
 
-		var p Proposals
+		var p types.Proposals
 		err = json.Unmarshal(resp.Body, &p)
 		if err != nil {
 			log.Printf("Error while unmarshalling the proposals: %v", err)
@@ -127,17 +128,17 @@ func getValidatorVote(ctx types.Context, endpoint, proposalID, valAddr, chainNam
 	done()
 
 	fmt.Println("chainID = ", chainName, "  Account Addr = ", accAddrString)
-	ops := HTTPOptions{
+	ops := types.HTTPOptions{
 		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + proposalID + "/votes/" + accAddrString,
 		Method:   http.MethodGet,
 	}
-	resp, err := HitHTTPTarget(ops)
+	resp, err := endpoints.HitHTTPTarget(ops)
 	if err != nil {
 		log.Printf("Error while getting http response: %v", err)
 		return "", err
 	}
 
-	var v Vote
+	var v types.Vote
 	err = json.Unmarshal(resp.Body, &v)
 	if err != nil {
 		log.Printf("Error while unmarshalling the proposal votes: %v", err)

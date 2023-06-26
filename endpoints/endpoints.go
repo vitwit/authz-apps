@@ -1,13 +1,17 @@
-package targets
+package endpoints
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
+	"github.com/likhita-809/lens-bot/types"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -77,7 +81,7 @@ func GetValidLCDEndpoint(endpoints []string) (string, error) {
 
 // Gets proposals current stauts
 func GetStatus(endpoint string) bool {
-	ops := HTTPOptions{
+	ops := types.HTTPOptions{
 		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals",
 		Method:   http.MethodGet,
 	}
@@ -89,4 +93,65 @@ func GetStatus(endpoint string) bool {
 		return false
 	}
 	return resp.StatusCode == http.StatusOK
+}
+
+// HitHTTPTarget to hit the target and get response
+func HitHTTPTarget(ops types.HTTPOptions) (*types.PingResp, error) {
+	req, err := newHTTPRequest(ops)
+	if err != nil {
+		return nil, err
+	}
+
+	httpcli := http.Client{Timeout: time.Duration(30 * time.Second)}
+	resp, err := httpcli.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := makeResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+// Adds the Query parameters
+func addQueryParameters(req *http.Request, queryParams types.QueryParams) {
+	q := req.URL.Query()
+	for key, value := range queryParams {
+		q.Add(key, value)
+	}
+	req.URL.RawQuery = q.Encode()
+}
+
+// newHTTPRequest to make a new http request
+func newHTTPRequest(ops types.HTTPOptions) (*http.Request, error) {
+	// make new request
+	req, err := http.NewRequest(ops.Method, ops.Endpoint, bytes.NewBuffer(ops.Body))
+	if err != nil {
+		return nil, err
+	}
+
+	// Add any query parameters to the URL.
+	if len(ops.QueryParams) != 0 {
+		addQueryParameters(req, ops.QueryParams)
+	}
+
+	return req, nil
+}
+
+// Creates response
+func makeResponse(res *http.Response) (*types.PingResp, error) {
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return &types.PingResp{}, err
+	}
+
+	response := &types.PingResp{
+		StatusCode: res.StatusCode,
+		Body:       body,
+	}
+	_ = res.Body.Close()
+	return response, nil
 }

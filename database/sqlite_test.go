@@ -106,14 +106,18 @@ func TestVoteLogs(t *testing.T) {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
 	defer db.Close()
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS logs (date INTEGER ,chainName VARCHAR, proposalId VARCHAR, voteOption VARCHAR)")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS logs (date INTEGER, chainName VARCHAR, proposalId VARCHAR, voteOption VARCHAR)")
 	if err != nil {
 		fmt.Println(err)
 		t.Fatalf("Failed to create test table: %v", err)
 	}
+	_, err = db.Exec("ALTER TABLE logs ADD COLUMN proposalTitle VARCHAR")
+	if err != nil {
+		t.Fatalf("Failed to alter test table: %v", err)
+	}
 	sqlitedb := &Sqlitedb{db: db}
 
-	err = sqlitedb.AddLog("chain1", "proposal1", "yes")
+	err = sqlitedb.AddLog("chain1", "proposaltitle", "proposal1", "yes")
 	assert.NoError(t, err)
 
 	logs, err := sqlitedb.GetVoteLogs("chain1", "2007-04-01", "")
@@ -121,10 +125,11 @@ func TestVoteLogs(t *testing.T) {
 	assert.Len(t, logs, 1)
 
 	expectedLog := voteLogs{
-		Date:       time.Now().UTC().Unix(),
-		ChainID:    "chain1",
-		ProposalID: "proposal1",
-		VoteOption: "yes",
+		Date:          time.Now().UTC().Unix(),
+		ChainID:       "chain1",
+		ProposalTitle: "proposaltitle",
+		ProposalID:    "proposal1",
+		VoteOption:    "yes",
 	}
 	assert.Equal(t, expectedLog, logs[0])
 }
