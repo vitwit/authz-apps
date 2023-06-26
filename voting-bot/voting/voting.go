@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/likhita-809/lens-bot/endpoints"
-	"github.com/likhita-809/lens-bot/types"
 	"github.com/shomali11/slacker"
 	lensclient "github.com/strangelove-ventures/lens/client"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
+	"github.com/vitwit/authz-apps/voting-bot/endpoints"
+	"github.com/vitwit/authz-apps/voting-bot/types"
 	"go.uber.org/zap"
 
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"

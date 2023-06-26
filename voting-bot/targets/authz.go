@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/likhita-809/lens-bot/endpoints"
-	"github.com/likhita-809/lens-bot/types"
+	"github.com/vitwit/authz-apps/voting-bot/endpoints"
+	"github.com/vitwit/authz-apps/voting-bot/types"
 )
 
 func getAuthzGrants(endpoint string) ([]interface{}, error) {

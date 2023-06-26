@@ -3,9 +3,9 @@ package targets
 import (
 	"log"
 
-	"github.com/likhita-809/lens-bot/types"
 	"github.com/robfig/cron"
 	"github.com/rs/zerolog"
+	"github.com/vitwit/authz-apps/voting-bot/types"
 )
 
 // Cron wraps all required parameters to create cron jobs

@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/likhita-809/lens-bot/types"
 	lensclient "github.com/strangelove-ventures/lens/client"
+	"github.com/vitwit/authz-apps/voting-bot/types"
 	"go.uber.org/zap"
 )
 

@@ -3,9 +3,9 @@ package types
 import (
 	"context"
 
-	"github.com/likhita-809/lens-bot/config"
-	"github.com/likhita-809/lens-bot/database"
 	"github.com/shomali11/slacker"
+	"github.com/vitwit/authz-apps/voting-bot/config"
+	"github.com/vitwit/authz-apps/voting-bot/database"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 

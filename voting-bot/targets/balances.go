@@ -10,9 +10,10 @@ import (
 	"cosmossdk.io/math"
 	"github.com/slack-go/slack"
 
+	"github.com/vitwit/authz-apps/voting-bot/endpoints"
+	"github.com/vitwit/authz-apps/voting-bot/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/likhita-809/lens-bot/endpoints"
-	"github.com/likhita-809/lens-bot/types"
 )
 
 // Gets accounts with low balances (i.e., 1ATOM) and alerts on them

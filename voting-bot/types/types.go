@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/likhita-809/lens-bot/config"
+	"github.com/vitwit/authz-apps/voting-bot/config"
 )
 
 type (

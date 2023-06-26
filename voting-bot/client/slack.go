@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/likhita-809/lens-bot/keyring"
-	"github.com/likhita-809/lens-bot/targets"
-	"github.com/likhita-809/lens-bot/types"
-	"github.com/likhita-809/lens-bot/utils"
-	"github.com/likhita-809/lens-bot/voting"
 	"github.com/shomali11/slacker"
 	"github.com/slack-go/slack"
+	"github.com/vitwit/authz-apps/voting-bot/keyring"
+	"github.com/vitwit/authz-apps/voting-bot/targets"
+	"github.com/vitwit/authz-apps/voting-bot/types"
+	"github.com/vitwit/authz-apps/voting-bot/utils"
+	"github.com/vitwit/authz-apps/voting-bot/voting"
 )
 
 // Creates and initialises commands

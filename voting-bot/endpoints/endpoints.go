@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/likhita-809/lens-bot/types"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
+	"github.com/vitwit/authz-apps/voting-bot/types"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

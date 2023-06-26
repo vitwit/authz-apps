@@ -11,11 +11,11 @@ import (
 
 	"github.com/slack-go/slack"
 
-	"github.com/likhita-809/lens-bot/database"
-	"github.com/likhita-809/lens-bot/endpoints"
-	"github.com/likhita-809/lens-bot/types"
-	"github.com/likhita-809/lens-bot/utils"
-	mint "github.com/likhita-809/lens-bot/voting"
+	"github.com/vitwit/authz-apps/voting-bot/database"
+	"github.com/vitwit/authz-apps/voting-bot/endpoints"
+	"github.com/vitwit/authz-apps/voting-bot/types"
+	"github.com/vitwit/authz-apps/voting-bot/utils"
+	mint "github.com/vitwit/authz-apps/voting-bot/voting"
 )
 
 type (
