@@ -107,6 +107,8 @@ func (a *Sqlitedb) AddKey(chainName, keyName, keyAddress string) error {
 	_, err = stmt.Exec(chainName, keyName, keyAddress)
 	return err
 }
+
+// Updates authorization status
 func (a *Sqlitedb) UpdateAuthzStatus(status, keyAddress string) error {
 	stmt, err := a.db.Prepare("UPDATE keys SET authzStatus = ? WHERE keyAddress = ?")
 	if err != nil {
@@ -118,8 +120,9 @@ func (a *Sqlitedb) UpdateAuthzStatus(status, keyAddress string) error {
 	_, err = stmt.Exec(status, keyAddress)
 	return err
 }
+
 func (a *Sqlitedb) AddLog(chainName, proposalID, voteOption string) error {
-	stmt, err := a.db.Prepare("INSERT INTO logs(date,chainName, proposalID, voteOption) values(?,?,?,?)")
+	stmt, err := a.db.Prepare("INSERT INTO logs(date, chainName, proposalID, voteOption) values(?,?,?,?)")
 	if err != nil {
 		return err
 	}
@@ -206,6 +209,7 @@ func (a *Sqlitedb) GetKeyAddress(key string) (string, error) {
 
 	return addr, nil
 }
+
 func (a *Sqlitedb) GetChainKey(ChainName string) (string, error) {
 	var addr string
 	stmt, err := a.db.Prepare("SELECT keyName FROM keys WHERE chainName=?")
@@ -221,6 +225,7 @@ func (a *Sqlitedb) GetChainKey(ChainName string) (string, error) {
 
 	return addr, nil
 }
+
 func (a *Sqlitedb) GetChainValidator(ChainName string) (string, error) {
 	var addr string
 	stmt, err := a.db.Prepare("SELECT address FROM validators WHERE chainName=?")
@@ -241,7 +246,7 @@ func (a *Sqlitedb) GetChainValidator(ChainName string) (string, error) {
 func (a *Sqlitedb) GetKeys() ([]keys, error) {
 	log.Printf("Fetching keys...")
 
-	rows, err := a.db.Query("SELECT chainName, keyName, keyAddress,authzStatus FROM keys")
+	rows, err := a.db.Query("SELECT chainName, keyName, keyAddress, authzStatus FROM keys")
 	if err != nil {
 		return []keys{}, err
 	}

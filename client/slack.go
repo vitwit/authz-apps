@@ -256,7 +256,7 @@ func (a *Slackbot) Initializecommands() error {
 				event := botCtx.Event()
 
 				var tableData [][]string
-				tableData = append(tableData, []string{"Network", "Key name", "Address", "authzStatus"})
+				tableData = append(tableData, []string{"Network", "Key name", "Address", "Authz Enabled"})
 
 				for _, key := range keys {
 					row := []string{key.ChainName, key.KeyName, key.KeyAddress, key.Status}
