@@ -24,10 +24,11 @@ type (
 	}
 
 	voteLogs struct {
-		Date       int64
-		ChainID    string
-		ProposalID string
-		VoteOption string
+		Date          int64
+		ChainID       string
+		ProposalTitle string
+		ProposalID    string
+		VoteOption    string
 	}
 
 	Sqlitedb struct {
@@ -54,15 +55,17 @@ func (a *Sqlitedb) InitializeTables() error {
 	if err != nil {
 		return err
 	}
-	_, err = a.db.Exec("DROP TABLE IF EXISTS logs")
-	if err != nil {
-		return err
-	}
 
 	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS logs (date INTEGER ,chainName VARCHAR, proposalId VARCHAR, voteOption VARCHAR)")
 	if err != nil {
 		return err
 	}
+
+	_, err = a.db.Exec("ALTER TABLE logs ADD COLUMN proposalTitle VARCHAR")
+	if err != nil {
+		return err
+	}
+
 	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR PRIMARY KEY, keyName VARCHAR, keyAddress VARCHAR)")
 	return err
 }
@@ -105,15 +108,16 @@ func (a *Sqlitedb) AddKey(chainName, keyName, keyAddress string) error {
 	_, err = stmt.Exec(chainName, keyName, keyAddress)
 	return err
 }
-func (a *Sqlitedb) AddLog(chainName, proposalID, voteOption string) error {
-	stmt, err := a.db.Prepare("INSERT INTO logs(date,chainName, proposalID, voteOption) values(?,?,?,?)")
+
+func (a *Sqlitedb) AddLog(chainName, proposalTitle, proposalID, voteOption string) error {
+	stmt, err := a.db.Prepare("INSERT INTO logs(date, chainName, proposalTitle, proposalID, voteOption) values(?,?,?,?,?)")
 	if err != nil {
 		return err
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(time.Now().UTC().Unix(), chainName, proposalID, voteOption)
+	_, err = stmt.Exec(time.Now().UTC().Unix(), chainName, proposalTitle, proposalID, voteOption)
 	return err
 }
 
@@ -193,6 +197,7 @@ func (a *Sqlitedb) GetKeyAddress(key string) (string, error) {
 
 	return addr, nil
 }
+
 func (a *Sqlitedb) GetChainKey(ChainName string) (string, error) {
 	var addr string
 	stmt, err := a.db.Prepare("SELECT keyName FROM keys WHERE chainName=?")
@@ -208,6 +213,7 @@ func (a *Sqlitedb) GetChainKey(ChainName string) (string, error) {
 
 	return addr, nil
 }
+
 func (a *Sqlitedb) GetChainValidator(ChainName string) (string, error) {
 	var addr string
 	stmt, err := a.db.Prepare("SELECT address FROM validators WHERE chainName=?")
@@ -263,14 +269,14 @@ func (a *Sqlitedb) GetVoteLogs(chainName, startDate, endDate string) ([]voteLogs
 	} else {
 		end1, err := time.Parse(layout, endDate)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to parse date: %w", err)
 		}
 		end = end1.Unix()
 	}
 	if start.Unix() >= end {
 		return nil, fmt.Errorf("start date is not valid as it is greater than end date")
 	}
-	query := "SELECT date,chainName, proposalId, voteOption FROM logs WHERE chainName = ? AND date BETWEEN ? AND ? "
+	query := "SELECT date, chainName, proposalTitle, proposalId, voteOption FROM logs WHERE chainName = ? AND date BETWEEN ? AND ? "
 	rows, err := a.db.Query(query, chainName, start.Unix(), end)
 	if err != nil {
 		return []voteLogs{}, err
@@ -280,7 +286,7 @@ func (a *Sqlitedb) GetVoteLogs(chainName, startDate, endDate string) ([]voteLogs
 	var k []voteLogs
 	for rows.Next() {
 		var data voteLogs
-		if err := rows.Scan(&data.Date, &data.ChainID, &data.ProposalID, &data.VoteOption); err != nil {
+		if err := rows.Scan(&data.Date, &data.ChainID, &data.ProposalTitle, &data.ProposalID, &data.VoteOption); err != nil {
 			return k, err
 		}
 		k = append(k, data)

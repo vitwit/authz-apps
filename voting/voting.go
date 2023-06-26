@@ -2,6 +2,7 @@ package voting
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/likhita-809/lens-bot/endpoints"
 	"github.com/likhita-809/lens-bot/types"
 	"github.com/shomali11/slacker"
 	lensclient "github.com/strangelove-ventures/lens/client"
@@ -53,7 +55,7 @@ func GetChainInfo(ctx types.Context, name string) (registry.ChainInfo, error) {
 	return ctx.ChainRegistry().GetChain(ctx.Context(), name)
 }
 
-func GetChainDenom(chainInfo registry.ChainInfo) (string, error) {
+func getChainDenom(chainInfo registry.ChainInfo) (string, error) {
 	assetList, err := chainInfo.GetAssetList(context.Background())
 	if err != nil {
 		return "", err
@@ -89,7 +91,7 @@ func ExecVote(ctx types.Context, chainName, pID, granter, vote,
 	if err != nil {
 		return "", fmt.Errorf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
 	}
-	denom, err := GetChainDenom(chainInfo)
+	denom, err := getChainDenom(chainInfo)
 	if err != nil {
 		return "", fmt.Errorf("failed to get denom from chain %s: %v", chainInfo.ChainID, err)
 	}
@@ -188,15 +190,48 @@ func ExecVote(ctx types.Context, chainName, pID, granter, vote,
 		}
 		return "", fmt.Errorf("failed to vote.Err: %v", err)
 	}
-	if err := ctx.Database().AddLog(chainName, pID, vote); err != nil {
+	pTitle, err := getProposalTitle(chainName, pID)
+	if err != nil {
 		fmt.Printf("failed to store logs: %v", err)
+	} else {
+		if err = ctx.Database().AddLog(chainName, pTitle, pID, vote); err != nil {
+			fmt.Printf("failed to store logs: %v", err)
+		}
 	}
+
 	mintscanName := chainName
 	if newName, ok := RegisrtyNameToMintscanName[chainName]; ok {
 		mintscanName = newName
 	}
 
 	return fmt.Sprintf("Trasaction broadcasted: https://mintscan.io/%s/txs/%s", mintscanName, res.TxHash), nil
+}
+
+func getProposalTitle(chainName, pID string) (string, error) {
+	endpoint, err := endpoints.GetValidEndpointForChain(chainName)
+	if err != nil {
+		log.Printf("Error in getting valid LCD endpoints for %s chain", chainName)
+
+		return "", err
+	}
+	var p types.Proposal
+	ops := types.HTTPOptions{
+		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + pID,
+		Method:   http.MethodGet,
+	}
+	resp, err := endpoints.HitHTTPTarget(ops)
+	if err != nil {
+		log.Printf("Error while getting http response: %v", err)
+		return "", err
+	}
+
+	err = json.Unmarshal(resp.Body, &p)
+	if err != nil {
+		log.Printf("Error while unmarshalling the proposals: %v", err)
+		return "", err
+	}
+
+	return p.Content.Title, nil
 }
 
 // Converts the string to a acceptable vote format

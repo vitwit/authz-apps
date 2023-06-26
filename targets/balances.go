@@ -11,6 +11,7 @@ import (
 	"github.com/slack-go/slack"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/likhita-809/lens-bot/endpoints"
 	"github.com/likhita-809/lens-bot/types"
 )
 
@@ -41,7 +42,7 @@ func GetLowBalAccs(ctx types.Context) error {
 			return fmt.Errorf("base denom unit not found for %s chain", key.ChainName)
 		}
 
-		endpoint, err := GetValidEndpointForChain(key.ChainName)
+		endpoint, err := endpoints.GetValidEndpointForChain(key.ChainName)
 		if err != nil {
 			log.Printf("Error in getting valid LCD endpoints for %s chain", key.ChainName)
 			return err
@@ -58,20 +59,20 @@ func GetLowBalAccs(ctx types.Context) error {
 
 // Gets balance of an account and alerts if the balance is low
 func AlertOnLowBalance(ctx types.Context, endpoint, addr, denom string) error {
-	ops := HTTPOptions{
+	ops := types.HTTPOptions{
 		Endpoint:    endpoint + "/cosmos/bank/v1beta1/balances/" + addr + "/by_denom",
 		Method:      http.MethodGet,
-		QueryParams: QueryParams{"denom": denom},
+		QueryParams: types.QueryParams{"denom": denom},
 	}
 
-	resp, err := HitHTTPTarget(ops)
+	resp, err := endpoints.HitHTTPTarget(ops)
 	if err != nil {
 		log.Printf("Error in external rpc: %v", err)
 		log.Printf("⛔⛔ Unreachable to EXTERNAL RPC :: %s and the ERROR is : %v\n\n", ops.Endpoint, err.Error())
 		return err
 	}
 
-	var balance Balance
+	var balance types.Balance
 	err = json.Unmarshal(resp.Body, &balance)
 	if err != nil {
 		log.Printf("Error while unmarshalling the balances: %v", err)
