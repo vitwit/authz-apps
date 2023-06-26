@@ -21,6 +21,7 @@ type (
 		ChainName  string
 		KeyName    string
 		KeyAddress string
+		Status     string
 	}
 
 	voteLogs struct {
@@ -67,6 +68,11 @@ func (a *Sqlitedb) InitializeTables() error {
 	}
 
 	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR PRIMARY KEY, keyName VARCHAR, keyAddress VARCHAR)")
+	if err != nil {
+		return err
+	}
+
+	_, err = a.db.Exec("ALTER TABLE keys ADD COLUMN authzStatus VARCHAR DEFAULT 'false'")
 	return err
 }
 
@@ -106,6 +112,19 @@ func (a *Sqlitedb) AddKey(chainName, keyName, keyAddress string) error {
 	defer stmt.Close()
 
 	_, err = stmt.Exec(chainName, keyName, keyAddress)
+	return err
+}
+
+// Updates authorization status
+func (a *Sqlitedb) UpdateAuthzStatus(status, keyAddress string) error {
+	stmt, err := a.db.Prepare("UPDATE keys SET authzStatus = ? WHERE keyAddress = ?")
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(status, keyAddress)
 	return err
 }
 
@@ -234,7 +253,7 @@ func (a *Sqlitedb) GetChainValidator(ChainName string) (string, error) {
 func (a *Sqlitedb) GetKeys() ([]keys, error) {
 	log.Printf("Fetching keys...")
 
-	rows, err := a.db.Query("SELECT chainName, keyName, keyAddress FROM keys")
+	rows, err := a.db.Query("SELECT chainName, keyName, keyAddress, authzStatus FROM keys")
 	if err != nil {
 		return []keys{}, err
 	}
@@ -243,7 +262,7 @@ func (a *Sqlitedb) GetKeys() ([]keys, error) {
 	var k []keys
 	for rows.Next() {
 		var data keys
-		if err := rows.Scan(&data.ChainName, &data.KeyName, &data.KeyAddress); err != nil {
+		if err := rows.Scan(&data.ChainName, &data.KeyName, &data.KeyAddress, &data.Status); err != nil {
 			return k, err
 		}
 		k = append(k, data)

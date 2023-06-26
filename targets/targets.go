@@ -1,7 +1,7 @@
 package targets
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/likhita-809/lens-bot/types"
 	"github.com/robfig/cron"
@@ -32,10 +32,16 @@ func (c *Cron) Start() error {
 	err := cron.AddFunc("0 0 8,20 * * *", func() {
 		GetProposals(c.ctx)
 		GetLowBalAccs(c.ctx)
-
 	})
 	if err != nil {
-		c.logger.Error().Msg(fmt.Sprintf("error adding cron job: %v", err))
+		log.Println("Error while adding Proposals and Low balance accounts alerting cron jobs:", err)
+		return err
+	}
+	err = cron.AddFunc("@every 1h", func() {
+		SyncAuthzStatus(c.ctx)
+	})
+	if err != nil {
+		log.Println("Error while adding Key Authorization syncing cron job:", err)
 		return err
 	}
 	go cron.Start()

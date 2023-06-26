@@ -61,7 +61,7 @@ func InitializeBotcommands(ctx types.Context) error {
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			validatorAddress := request.Param("validatorAddress")
 			if !ctx.Database().HasValidator(validatorAddress) {
-				response.ReportError(fmt.Errorf("Cannot delete a validator which is not in the registered validators"))
+				response.ReportError(fmt.Errorf("cannot delete a validator which is not in the registered validators"))
 			} else {
 				ctx.Database().RemoveValidator(validatorAddress)
 				r := fmt.Sprintf("Your validator %s is successfully removed", validatorAddress)
@@ -248,10 +248,10 @@ func InitializeBotcommands(ctx types.Context) error {
 				event := botCtx.Event()
 
 				var tableData [][]string
-				tableData = append(tableData, []string{"Network", "Key name", "Address"})
+				tableData = append(tableData, []string{"Network", "Key name", "Address", "Authz Enabled"})
 
 				for _, key := range keys {
-					row := []string{key.ChainName, key.KeyName, key.KeyAddress}
+					row := []string{key.ChainName, key.KeyName, key.KeyAddress, key.Status}
 					tableData = append(tableData, row)
 				}
 
@@ -266,7 +266,6 @@ func InitializeBotcommands(ctx types.Context) error {
 					}
 				}
 			}
-
 		},
 	})
 
