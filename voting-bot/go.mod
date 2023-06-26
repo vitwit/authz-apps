@@ -1,4 +1,4 @@
-module github.com/likhita-809/lens-bot
+module github.com/vitwit/authz-apps/voting-bot
 
 go 1.19
 

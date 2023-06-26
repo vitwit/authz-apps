@@ -7,12 +7,12 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/likhita-809/lens-bot/client"
-	"github.com/likhita-809/lens-bot/config"
-	"github.com/likhita-809/lens-bot/database"
-	"github.com/likhita-809/lens-bot/targets"
-	"github.com/likhita-809/lens-bot/types"
 	"github.com/shomali11/slacker"
+	"github.com/vitwit/authz-apps/voting-bot/client"
+	"github.com/vitwit/authz-apps/voting-bot/config"
+	"github.com/vitwit/authz-apps/voting-bot/database"
+	"github.com/vitwit/authz-apps/voting-bot/targets"
+	"github.com/vitwit/authz-apps/voting-bot/types"
 )
 
 func main() {
