@@ -7,22 +7,15 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/likhita-809/lens-bot/database"
+	"github.com/likhita-809/lens-bot/types"
 	lensclient "github.com/strangelove-ventures/lens/client"
-	registry "github.com/strangelove-ventures/lens/client/chain_registry"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
-type Keys struct {
-	Db *database.Sqlitedb
-}
-
 // Creates keys using chain name and chain registry
-func (k Keys) CreateKeys(chainName, keyName string) error {
+func CreateKeys(ctx types.Context, chainName, keyName string) error {
 	// Fetch chain info from chain registry
-	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
-
+	cr := ctx.ChainRegistry()
 	chainInfo, err := cr.GetChain(context.Background(), chainName)
 	if err != nil {
 		return fmt.Errorf("failed to get chain info. Err: %v", err)
@@ -59,8 +52,8 @@ func (k Keys) CreateKeys(chainName, keyName string) error {
 
 	// If a mnemonic seed phrase exists, use the same seed phrase for all accounts.
 	var address string
-	if k.hasMnemonicSeed() {
-		seed, err := k.readSeedFile()
+	if hasMnemonicSeed() {
+		seed, err := readSeedFile()
 		if err != nil {
 			return err
 		}
@@ -76,7 +69,7 @@ func (k Keys) CreateKeys(chainName, keyName string) error {
 		}
 
 		// store Mnemonic seed
-		if err := k.storeMnemonicSeed(res.Mnemonic); err != nil {
+		if err := storeMnemonicSeed(res.Mnemonic); err != nil {
 			return err
 		}
 
@@ -84,7 +77,7 @@ func (k Keys) CreateKeys(chainName, keyName string) error {
 	}
 
 	chainConfig.Key = keyName
-	if err := k.Db.AddKey(chainName, keyName, address); err != nil {
+	if err := ctx.Database().AddKey(chainName, keyName, address); err != nil {
 		return err
 	}
 
@@ -93,7 +86,7 @@ func (k Keys) CreateKeys(chainName, keyName string) error {
 
 var SEED_FILE = filepath.Join("keys", "seed.txt")
 
-func (k Keys) readSeedFile() (string, error) {
+func readSeedFile() (string, error) {
 	stream, err := os.ReadFile(SEED_FILE)
 	if err != nil {
 		return "", err
@@ -103,7 +96,7 @@ func (k Keys) readSeedFile() (string, error) {
 }
 
 // hasMnemonicSeed returns true if SEED_FILE exists
-func (k Keys) hasMnemonicSeed() bool {
+func hasMnemonicSeed() bool {
 	if _, err := os.Stat(SEED_FILE); errors.Is(err, os.ErrNotExist) {
 		return false
 	}
@@ -112,7 +105,7 @@ func (k Keys) hasMnemonicSeed() bool {
 }
 
 // storeMnemonicSeed stores mnemonic seed string the SEED_FILE.
-func (k Keys) storeMnemonicSeed(seed string) error {
+func storeMnemonicSeed(seed string) error {
 	if _, err := os.Stat("keys"); errors.Is(err, os.ErrNotExist) {
 		err := os.Mkdir("keys", os.ModePerm)
 		if err != nil {

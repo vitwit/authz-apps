@@ -1,15 +1,18 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"sync"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/likhita-809/lens-bot/client"
 	"github.com/likhita-809/lens-bot/config"
 	"github.com/likhita-809/lens-bot/database"
-	"github.com/likhita-809/lens-bot/keyring"
 	"github.com/likhita-809/lens-bot/targets"
-	"github.com/likhita-809/lens-bot/voting"
+	"github.com/likhita-809/lens-bot/types"
+	"github.com/shomali11/slacker"
 )
 
 func main() {
@@ -19,29 +22,29 @@ func main() {
 	}
 	db.InitializeTables()
 
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	logger := log.Logger
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("Recovered from panic:", r)
+			logger.Debug().Msgf("recovered from panic:: %v", r)
 		}
 	}()
 
 	cfg, err := config.ReadConfigFromFile()
 	if err != nil {
-		log.Printf("%s", err)
+		logger.Error().Err(err)
 	}
 
-	keys := keyring.Keys{
-		Db: db,
-	}
-	votes := voting.Vote{
-		Db: db,
-	}
-	alerter := client.NewBotClient(cfg, db, &keys, &votes)
+	bot := slacker.NewClient(cfg.Slack.BotToken, cfg.Slack.AppToken)
+	logger.Info().Msg("bot connected")
+	ctx := types.NewContext(logger, db, cfg, bot)
 
-	cron := targets.NewCron(db, cfg, alerter)
+	fmt.Println(bot.BotCommands())
+
+	cron := targets.NewCron(ctx)
 	cron.Start()
 
-	alerter.Initializecommands()
+	client.InitializeBotcommands(ctx)
 
 	var wg sync.WaitGroup
 	wg.Add(1)

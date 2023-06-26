@@ -8,27 +8,23 @@ import (
 	"net/http"
 
 	"cosmossdk.io/math"
-	"github.com/likhita-809/lens-bot/database"
 	"github.com/slack-go/slack"
-	registry "github.com/strangelove-ventures/lens/client/chain_registry"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/likhita-809/lens-bot/types"
 )
 
 // Gets accounts with low balances (i.e., 1ATOM) and alerts on them
-func (a *Data) GetLowBalAccs(db *database.Sqlitedb) error {
+func GetLowBalAccs(ctx types.Context) error {
+	db := ctx.Database()
 	keys, err := db.GetKeys()
 	if err != nil {
 		return fmt.Errorf("error while getting keys from db: %v", err)
 	}
 
-	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
-
 	var denom string
 	for _, key := range keys {
-		chainInfo, err := cr.GetChain(context.Background(), key.ChainName)
+		chainInfo, err := ctx.ChainRegistry().GetChain(context.Background(), key.ChainName)
 		if err != nil {
 			return fmt.Errorf("chain info not found: %v: %v", key.ChainName, err)
 		}
@@ -51,7 +47,7 @@ func (a *Data) GetLowBalAccs(db *database.Sqlitedb) error {
 			return err
 		}
 		addr := key.KeyAddress
-		err = a.AlertOnLowBalance(endpoint, addr, denom)
+		err = AlertOnLowBalance(ctx, endpoint, addr, denom)
 		if err != nil {
 			log.Printf("error on sending low balance alert: %v", err)
 			return err
@@ -61,7 +57,7 @@ func (a *Data) GetLowBalAccs(db *database.Sqlitedb) error {
 }
 
 // Gets balance of an account and alerts if the balance is low
-func (a *Data) AlertOnLowBalance(endpoint, addr, denom string) error {
+func AlertOnLowBalance(ctx types.Context, endpoint, addr, denom string) error {
 	ops := HTTPOptions{
 		Endpoint:    endpoint + "/cosmos/bank/v1beta1/balances/" + addr + "/by_denom",
 		Method:      http.MethodGet,
@@ -88,7 +84,7 @@ func (a *Data) AlertOnLowBalance(endpoint, addr, denom string) error {
 	}
 	coin := sdk.NewCoin(balance.Balance.Denom, amount)
 	if !coin.Amount.GT(math.NewInt(1)) {
-		err := a.SendLowBalanceAlerts(addr, balance.Balance.Amount, balance.Balance.Denom)
+		err := SendLowBalanceAlerts(ctx, addr, balance.Balance.Amount, balance.Balance.Denom)
 		if err != nil {
 			log.Printf("error while sending low balance alert: %v", err)
 			return err
@@ -99,8 +95,8 @@ func (a *Data) AlertOnLowBalance(endpoint, addr, denom string) error {
 }
 
 // SendLowBalanceAlerts which sends alerts on low balance grantee accounts
-func (a *Data) SendLowBalanceAlerts(addr, amount, denom string) error {
-	api := slack.New(a.cfg.Slack.BotToken)
+func SendLowBalanceAlerts(ctx types.Context, addr, amount, denom string) error {
+	api := ctx.Slacker().APIClient()
 
 	attachment := []slack.Block{
 		slack.NewHeaderBlock(
@@ -109,7 +105,7 @@ func (a *Data) SendLowBalanceAlerts(addr, amount, denom string) error {
 	}
 
 	_, _, err := api.PostMessage(
-		a.cfg.Slack.ChannelID,
+		ctx.Config().Slack.ChannelID,
 		slack.MsgOptionBlocks(attachment...),
 	)
 	if err != nil {

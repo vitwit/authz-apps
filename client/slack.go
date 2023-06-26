@@ -8,50 +8,28 @@ import (
 	"strings"
 	"time"
 
-	"github.com/likhita-809/lens-bot/config"
-	"github.com/likhita-809/lens-bot/database"
 	"github.com/likhita-809/lens-bot/keyring"
+	"github.com/likhita-809/lens-bot/targets"
+	"github.com/likhita-809/lens-bot/types"
 	"github.com/likhita-809/lens-bot/utils"
 	"github.com/likhita-809/lens-bot/voting"
 	"github.com/shomali11/slacker"
 	"github.com/slack-go/slack"
-	registry "github.com/strangelove-ventures/lens/client/chain_registry"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
-type Slackbot struct {
-	bot  *slacker.Slacker
-	db   *database.Sqlitedb
-	cfg  *config.Config
-	key  *keyring.Keys
-	vote *voting.Vote
-}
-
-// Creates a new bot client
-func NewBotClient(config *config.Config, db *database.Sqlitedb, key *keyring.Keys, vote *voting.Vote) *Slackbot {
-	bot := slacker.NewClient(config.Slack.BotToken, config.Slack.AppToken)
-	return &Slackbot{
-		bot:  bot,
-		db:   db,
-		cfg:  config,
-		key:  key,
-		vote: vote,
-	}
-}
-
 // Creates and initialises commands
-func (a *Slackbot) Initializecommands() error {
+func InitializeBotcommands(ctx types.Context) error {
+	skr := ctx.Slacker()
 	// Command to register validator address with chain name
-	a.bot.Command("register-validator <chainName> <validatorAddress>", &slacker.CommandDefinition{
+	skr.Command("register-validator <chainName> <validatorAddress>", &slacker.CommandDefinition{
 		Description: "registers a new validator",
 		Examples:    []string{"register-validator cosmoshub cosmos1a..."},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			chainName := request.Param("chainName")
 			validatorAddress := request.Param("validatorAddress")
 
-			cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
-			chainInfo, err := cr.GetChain(context.Background(), chainName)
+			cr := ctx.ChainRegistry()
+			chainInfo, err := cr.GetChain(ctx.Context(), chainName)
 			if err != nil {
 				response.Reply(fmt.Sprintf("failed to get chain information from registry: %s", err.Error()))
 				panic(err)
@@ -64,11 +42,11 @@ func (a *Slackbot) Initializecommands() error {
 			if err != nil {
 				response.Reply(fmt.Sprintf("invalid validator address: %v", err))
 			} else {
-				isExists := a.db.HasValidator(validatorAddress)
+				isExists := ctx.Database().HasValidator(validatorAddress)
 				if isExists {
 					response.Reply("Validator is already registered")
 				} else {
-					a.db.AddValidator(chainName, validatorAddress)
+					ctx.Database().AddValidator(chainName, validatorAddress)
 					r := fmt.Sprintf("Your validator %s is successfully registered", validatorAddress)
 					response.Reply(r)
 				}
@@ -77,15 +55,15 @@ func (a *Slackbot) Initializecommands() error {
 	})
 
 	// Command to remove validator address from db
-	a.bot.Command("remove-validator <validatorAddress>", &slacker.CommandDefinition{
+	skr.Command("remove-validator <validatorAddress>", &slacker.CommandDefinition{
 		Description: "remove an existing validator",
 		Examples:    []string{"remove-validator cosmos1a..."},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			validatorAddress := request.Param("validatorAddress")
-			if !a.db.HasValidator(validatorAddress) {
+			if !ctx.Database().HasValidator(validatorAddress) {
 				response.ReportError(fmt.Errorf("cannot delete a validator which is not in the registered validators"))
 			} else {
-				a.db.RemoveValidator(validatorAddress)
+				ctx.Database().RemoveValidator(validatorAddress)
 				r := fmt.Sprintf("Your validator %s is successfully removed", validatorAddress)
 				response.Reply(r)
 			}
@@ -93,9 +71,18 @@ func (a *Slackbot) Initializecommands() error {
 	})
 
 	// Creates keys which are used for voting
-	a.bot.Command("create-key <chainName> <keyNameOptional>", &slacker.CommandDefinition{
-		Description: "create a new account with key name.\nKeys need to be funded manually and given authorization to vote in order to use them while voting.\nThe granter must give the vote authorization to the grantee key before the voting can proceed.\nThe authorization to a grantee can be given by using the following command:\nFor Cosmos chain:\nUsage: simd tx authz grant <grantee> <authorization_type> --msg-type <msg_type> --from <granter> [flags]\nExample: simd tx authz grant cosmos1... --msg-type /cosmos.gov.v1beta1.MsgVote --from granter\nThe authorized keys can then be funded to have the ability to vote on behalf of the granter.\nThe following command can be used to fund the key:\nsimd tx bank send [from_key_or_address] [to_address] [amount] [flags]",
-		Examples:    []string{"create-key cosmoshub myKey"},
+	skr.Command("create-key <chainName> <keyNameOptional>", &slacker.CommandDefinition{
+		Description: `create a new account with key name.\n
+		Keys need to be funded manually and given authorization to vote in order to use them while voting.\n
+		The granter must give the vote authorization to the grantee key before the voting can proceed.\n
+		The authorization to a grantee can be given by using the following command:\n
+		For Cosmos chain:\n
+		Usage: simd tx authz grant <grantee> <authorization_type> --msg-type <msg_type> --from <granter> [flags]\n
+		Example: simd tx authz grant cosmos1... --msg-type /cosmos.gov.v1beta1.MsgVote --from granter\n
+		The authorized keys can then be funded to have the ability to vote on behalf of the granter.\n
+		The following command can be used to fund the key:\n
+		simd tx bank send [from_key_or_address] [to_address] [amount] [flags]`,
+		Examples: []string{"create-key cosmoshub myKey"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			keyName := request.StringParam("keyNameOptional", "")
 			chainName := request.Param("chainName")
@@ -103,43 +90,47 @@ func (a *Slackbot) Initializecommands() error {
 				keyName = chainName
 			}
 
-			err := a.key.CreateKeys(chainName, keyName)
+			err := keyring.CreateKeys(ctx, chainName, keyName)
 			if err != nil {
 				response.Reply(err.Error())
 			} else {
-				response.Reply(fmt.Sprintf("Successfully created your key with name %s.\n *NOTE*\n *This key cannot be used in voting until it has the vote authorization from granter and got funded. The vote authorization can be given using the following command:*\n ```simd tx authz grant <grantee> <authorization_type=generic> --msg-type /cosmos.gov.v1beta1.MsgVote  --from <granter> [flags]```\n\n *The authorized keys can be funded using the following command:* \n ```simd tx bank send [from_key_or_address] [to_address] [amount] [flags]```\n", keyName))
+				response.Reply(fmt.Sprintf("Successfully created your key with name %s.\n"+
+					" *NOTE*\n *This key cannot be used in voting until it has the vote authorization from granter and got funded. "+
+					"The vote authorization can be given using the following command:*\n "+
+					"```simd tx authz grant <grantee> <authorization_type=generic> --msg-type /cosmos.gov.v1beta1.MsgVote  --from <granter> [flags]```\n"+
+					"\n *The authorized keys can be funded using the following command:* \n "+
+					"```simd tx bank send [from_key_or_address] [to_address] [amount] [flags]```\n", keyName))
 			}
 		},
 	})
 
 	// Command to list all the commands present
-	a.bot.Command("list-commands", &slacker.CommandDefinition{
+	skr.Command("list-commands", &slacker.CommandDefinition{
 		Description: "Lists all commands",
 		Examples:    []string{"list-commands"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			r := " *SLACK BOT COMMANDS* \n\n *• register-validator*: registers the validator using chain name and validator address\n```Command : register-validator <chainName> <validatorAddress>```\n *• remove-validator* : removes an existing validator data using validator address\n```Command:remove-validator <validatorAddress>```\n *• list-keys* : Lists all keys\n```Command:list-keys```\n *• list-validators* : List of all registered validators addresses with associated chains\n```Command:list-validators```\n* • vote* : votes on a proposal\n```Command:vote <chainName> <proposalId> <voteOption> <gasPrices> <memoOptional> <metadataOptional>\n```\n* • votes-history* : Lists history of all votes for a given chain\n```Command:votes-history <chainName> <startDate> <endDateOptional>\n```\n *• create-key* : Create a new account with key name. This key name is used while voting\n```Command:create-key <chainName> <keyNameOptional>```\n"
+			r := " *SLACK BOT COMMANDS* \n\n *• register-validator*: registers the validator using chain name and validator address\n```Command : register-validator <chainName> <validatorAddress>```\n *• remove-validator* : removes an existing validator data using validator address\n```Command:remove-validator <validatorAddress>```\n *• list-keys* : Lists all keys\n```Command:list-keys```\n *• list-proposals* : Lists all Active unvoted proposals \n```Command:list-proposals```\n *• list-validators* : List of all registered validators addresses with associated chains\n```Command:list-validators```\n* • vote* : votes on a proposal\n```Command:vote <chainName> <proposalId> <voteOption> <gasPrices> <memoOptional> <metadataOptional>\n```\n* • votes-history* : Lists history of all votes for a given chain\n```Command:votes-history <chainName> <startDate> <endDateOptional>\n```\n *• create-key* : Create a new account with key name. This key name is used while voting\n```Command:create-key <chainName> <keyNameOptional>```\n"
 			response.Reply(r)
 		},
 	})
 
 	// Vote command is used to vote on the proposals based on proposal Id with vote option using key stored from db.
-	a.bot.Command(
+	skr.Command(
 		"vote <chainName> <proposalId> <voteOption> <gasPrices> <memoOptional> <metadataOptional>",
 		&slacker.CommandDefinition{
 			Description: "votes on the proposal",
 			Examples:    []string{"vote cosmoshub 12 YES 0.25uatom example_memo example_metadata"},
 			Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 				chainName := request.Param("chainName")
-				pID := request.Param("proposalId")
 
-				address, err := a.db.GetChainValidator(chainName)
+				db := ctx.Database()
+				address, err := db.GetChainValidator(chainName)
 				if err != nil {
 					response.ReportError(fmt.Errorf("failed to get validator address from the database: %v", err))
 					return
 				}
 
-				cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
-				chainInfo, err := a.vote.GetChainInfo(chainName, cr)
+				chainInfo, err := voting.GetChainInfo(ctx, chainName)
 				if err != nil {
 					response.ReportError(fmt.Errorf("failed to get chain-info: %v", err))
 					return
@@ -162,7 +153,7 @@ func (a *Slackbot) Initializecommands() error {
 				}
 
 				voteOption := request.Param("voteOption")
-				fromKey, err := a.db.GetChainKey(chainName)
+				fromKey, err := db.GetChainKey(chainName)
 				if err != nil {
 					response.ReportError(fmt.Errorf("error while getting key address of chain %s", chainName))
 					return
@@ -179,7 +170,8 @@ func (a *Slackbot) Initializecommands() error {
 					metadata = strings.Replace(metadata, "_", " ", -1)
 				}
 
-				result, err := a.vote.ExecVote(chainName, pID, granter.String(), voteOption, fromKey, metadata, memo, gasPrices, response)
+				proposalID := request.Param("proposalId")
+				result, err := voting.ExecVote(ctx, chainName, proposalID, granter.String(), voteOption, fromKey, metadata, memo, gasPrices, response)
 				if err != nil {
 					log.Printf("error on executing vote: %v", err)
 					response.ReportError(fmt.Errorf("error on executing vote: %v", err))
@@ -192,7 +184,7 @@ func (a *Slackbot) Initializecommands() error {
 	)
 
 	// Lists all votes stored in the database
-	a.bot.Command("votes-history <chainName> <startDate> <endDateOptional>", &slacker.CommandDefinition{
+	skr.Command("votes-history <chainName> <startDate> <endDateOptional>", &slacker.CommandDefinition{
 		Description: "lists history of all votes for a given chain",
 		Examples:    []string{"list-votes cosmoshub-4 2023-01-26  2023-02-30"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
@@ -204,7 +196,7 @@ func (a *Slackbot) Initializecommands() error {
 			}
 
 			endDate := request.StringParam("endDateOptional", "")
-			votes, err := a.db.GetVoteLogs(chainName, startDate, endDate)
+			votes, err := ctx.Database().GetVoteLogs(chainName, startDate, endDate)
 			if err != nil {
 				response.ReportError(err)
 			} else {
@@ -243,11 +235,11 @@ func (a *Slackbot) Initializecommands() error {
 	})
 
 	// Lists all keys stored in the database
-	a.bot.Command("list-keys", &slacker.CommandDefinition{
+	skr.Command("list-keys", &slacker.CommandDefinition{
 		Description: "lists all keys",
 		Examples:    []string{"list-keys"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			keys, err := a.db.GetKeys()
+			keys, err := ctx.Database().GetKeys()
 			if err != nil {
 				response.ReportError(err)
 			} else {
@@ -274,16 +266,23 @@ func (a *Slackbot) Initializecommands() error {
 					}
 				}
 			}
-
 		},
 	})
 
+	skr.Command("list-proposals", &slacker.CommandDefinition{
+		Description: "lists all proposals",
+		Examples:    []string{"list-proposals"},
+		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
+			targets.GetProposals(ctx)
+		},
+	})
 	// Command to list all registered validators
-	a.bot.Command("list-validators", &slacker.CommandDefinition{
+	skr.Command("list-validators", &slacker.CommandDefinition{
 		Description: "lists all validators addresses with associated chains",
 		Examples:    []string{"list-validators"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			validators, err := a.db.GetValidators()
+			db := ctx.Database()
+			validators, err := db.GetValidators()
 			if err != nil {
 				response.ReportError(err)
 				return
@@ -310,10 +309,11 @@ func (a *Slackbot) Initializecommands() error {
 			}
 		},
 	})
-	ctx, cancel := context.WithCancel(context.Background())
+
+	ctx1, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := a.bot.Listen(ctx)
+	err := skr.Listen(ctx1)
 	if err != nil {
 		return fmt.Errorf("%s", err)
 	}

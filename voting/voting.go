@@ -11,12 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/likhita-809/lens-bot/database"
+	"github.com/likhita-809/lens-bot/types"
 	"github.com/shomali11/slacker"
 	lensclient "github.com/strangelove-ventures/lens/client"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -27,6 +26,7 @@ import (
 
 var RegisrtyNameToMintscanName = map[string]string{
 	"cosmos":        "cosmos",
+	"cosmoshub":     "cosmos",
 	"osmosis":       "osmosis",
 	"regen":         "regen",
 	"akash":         "akash",
@@ -48,17 +48,29 @@ var RegisrtyNameToMintscanName = map[string]string{
 	"persistence":   "persistence",
 }
 
-type Vote struct {
-	Db *database.Sqlitedb
+// GetChainInfo related to chain Name
+func GetChainInfo(ctx types.Context, name string) (registry.ChainInfo, error) {
+	return ctx.ChainRegistry().GetChain(ctx.Context(), name)
 }
 
-// GetChainInfo related to chain Name
-func (v *Vote) GetChainInfo(name string, cr registry.ChainRegistry) (registry.ChainInfo, error) {
-	return cr.GetChain(context.Background(), name)
+func GetChainDenom(chainInfo registry.ChainInfo) (string, error) {
+	assetList, err := chainInfo.GetAssetList(context.Background())
+	if err != nil {
+		return "", err
+	}
+	assets := assetList.Assets
+	if len(assets) > 0 {
+		denom := assets[0].Base
+		return denom, nil
+	} else {
+		return "", fmt.Errorf("no assets found for %s chain", chainInfo.ChainName)
+	}
 }
 
 // Votes on the proposal using the given data and key
-func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, gasPrices string, responseWriter slacker.ResponseWriter) (string, error) {
+func ExecVote(ctx types.Context, chainName, pID, granter, vote,
+	fromKey, metadata, memo, gasPrices string, responseWriter slacker.ResponseWriter,
+) (string, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			responseWriter.Reply(fmt.Sprintf("Recovered from panic: %v", r))
@@ -67,22 +79,28 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 	}()
 
 	// Fetch chain info from chain registry
-	cr := registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore()))
-
-	chainInfo, err := v.GetChainInfo(chainName, cr)
+	chainInfo, err := GetChainInfo(ctx, chainName)
 	if err != nil {
 		return "", fmt.Errorf("chain info not found: %v", err)
 	}
 
 	//	Use Chain info to select random endpoint
-	rpc, err := chainInfo.GetRandomRPCEndpoint(context.Background())
+	rpc, err := chainInfo.GetRandomRPCEndpoint(ctx.Context())
 	if err != nil {
 		return "", fmt.Errorf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
 	}
-
-	_, err = sdk.ParseDecCoins(gasPrices)
+	denom, err := GetChainDenom(chainInfo)
 	if err != nil {
-		return "", fmt.Errorf("invalid fee format: %v", err)
+		return "", fmt.Errorf("failed to get denom from chain %s: %v", chainInfo.ChainID, err)
+	}
+	coins, err := sdk.ParseDecCoins(gasPrices)
+	if err != nil {
+		fmt.Printf("Error while parsing gasPrices :%v\nInvalid fee format, using default fee", err)
+		gasPrices = "0.25" + denom
+	} else {
+		if coins.Empty() {
+			gasPrices = "0.25" + denom
+		}
 	}
 
 	chainConfig := lensclient.ChainClientConfig{
@@ -111,7 +129,7 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		return "", fmt.Errorf("failed to build new chain client for %s. Err: %v", chainInfo.ChainID, err)
 	}
 
-	keyAddr, err := v.Db.GetKeyAddress(fromKey)
+	keyAddr, err := ctx.Database().GetKeyAddress(fromKey)
 	if err != nil {
 		return "", fmt.Errorf("error while getting address of %s key", fromKey)
 	}
@@ -120,7 +138,7 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 	if err != nil {
 		return "", fmt.Errorf("unable to convert string to uint64. Err: %v", err)
 	}
-	voteOption, err := v.stringToVoteOption(vote)
+	voteOption, err := stringToVoteOption(vote)
 	if err != nil {
 		return "", fmt.Errorf("unable to convert vote option string to sdk vote option. Err: %v", err)
 	}
@@ -170,7 +188,7 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 		}
 		return "", fmt.Errorf("failed to vote.Err: %v", err)
 	}
-	if err := v.Db.AddLog(chainName, pID, vote); err != nil {
+	if err := ctx.Database().AddLog(chainName, pID, vote); err != nil {
 		fmt.Printf("failed to store logs: %v", err)
 	}
 	mintscanName := chainName
@@ -182,7 +200,7 @@ func (v *Vote) ExecVote(chainName, pID, granter, vote, fromKey, metadata, memo, 
 }
 
 // Converts the string to a acceptable vote format
-func (v *Vote) stringToVoteOption(str string) (v1.VoteOption, error) {
+func stringToVoteOption(str string) (v1.VoteOption, error) {
 	str = strings.ToLower(str)
 	switch str {
 	case "yes":
@@ -200,7 +218,7 @@ func (v *Vote) stringToVoteOption(str string) (v1.VoteOption, error) {
 }
 
 // Gets valid v1 endpoints from Chain registry
-func (v *Vote) GetValidV1Endpoint(chainInfo registry.ChainInfo) (bool, error) {
+func GetValidV1Endpoint(chainInfo registry.ChainInfo) (bool, error) {
 	var out []string
 	for _, endpoint := range chainInfo.Apis.Rest {
 		u, err := url.Parse(endpoint.Address)

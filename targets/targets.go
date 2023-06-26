@@ -7,50 +7,42 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/likhita-809/lens-bot/client"
-	"github.com/likhita-809/lens-bot/config"
-	"github.com/likhita-809/lens-bot/database"
+	"github.com/likhita-809/lens-bot/types"
 	"github.com/robfig/cron"
+	"github.com/rs/zerolog"
 )
 
 // Cron wraps all required parameters to create cron jobs
 type Cron struct {
-	db  *database.Sqlitedb
-	cfg *config.Config
-	bot *client.Slackbot
+	ctx    types.Context
+	logger *zerolog.Logger
 }
 
 // NewCron sets necessary config and clients to begin cron jobs
-func NewCron(db *database.Sqlitedb, config *config.Config, bot *client.Slackbot) *Cron {
+func NewCron(ctx types.Context) *Cron {
 	return &Cron{
-		db:  db,
-		cfg: config,
-		bot: bot,
+		ctx:    ctx,
+		logger: ctx.Logger(),
 	}
 }
 
 // Start starts to create cron jobs which sends alerts on proposal alerts which have not been voted
 func (c *Cron) Start() error {
-	log.Println("Starting cron jobs...")
+	c.logger.Info().Msg("Starting cron jobs...")
 
 	cron := cron.New()
 
-	d := Data{
-		db:  c.db,
-		cfg: c.cfg,
-	}
-
 	// Everday at 8AM and 8PM
 	err := cron.AddFunc("0 0 8,20 * * *", func() {
-		d.GetProposals(c.db)
-		d.GetLowBalAccs(c.db)
+		GetProposals(c.ctx)
+		GetLowBalAccs(c.ctx)
 	})
 	if err != nil {
 		log.Println("Error adding Proposal cron job:", err)
 		return err
 	}
 	err = cron.AddFunc("@every 1h", func() {
-		SyncAuthzStatus(c.db)
+		SyncAuthzStatus(c.ctx)
 	})
 	if err != nil {
 		log.Println("Error adding Key Authorization cron job:", err)

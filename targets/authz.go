@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/likhita-809/lens-bot/database"
+	"github.com/likhita-809/lens-bot/types"
 )
 
 func getAuthzGrants(endpoint string) ([]interface{}, error) {
@@ -33,12 +33,12 @@ func getAuthzGrants(endpoint string) ([]interface{}, error) {
 
 // SyncAuthzStatus iterates over all validators account and update
 // authz grant status
-func SyncAuthzStatus(db *database.Sqlitedb) error {
-	keys, err := db.GetKeys()
+func SyncAuthzStatus(ctx types.Context) error {
+	keys, err := ctx.Database().GetKeys()
 	if err != nil {
 		return err
 	}
-	validators, err := db.GetValidators()
+	validators, err := ctx.Database().GetValidators()
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,9 @@ func SyncAuthzStatus(db *database.Sqlitedb) error {
 					return err
 				}
 				if len(g1) > 0 {
-					return db.UpdateAuthzStatus("true", key.KeyAddress)
+					if err := ctx.Database().UpdateAuthzStatus("true", key.KeyAddress); err != nil {
+						return err
+					}
 				}
 
 				ops = HTTPOptions{
@@ -73,9 +75,13 @@ func SyncAuthzStatus(db *database.Sqlitedb) error {
 				}
 
 				if len(g2) > 0 {
-					return db.UpdateAuthzStatus("true", key.KeyAddress)
+					if err := ctx.Database().UpdateAuthzStatus("true", key.KeyAddress); err != nil {
+						return err
+					}
 				}
-				return db.UpdateAuthzStatus("false", key.KeyAddress)
+				if err := ctx.Database().UpdateAuthzStatus("false", key.KeyAddress); err != nil {
+					return err
+				}
 			}
 		}
 	}
