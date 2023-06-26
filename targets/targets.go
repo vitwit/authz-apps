@@ -38,14 +38,14 @@ func (c *Cron) Start() error {
 		GetLowBalAccs(c.ctx)
 	})
 	if err != nil {
-		log.Println("Error adding Proposal cron job:", err)
+		log.Println("Error while adding Proposals and Low balance accounts alerting cron jobs:", err)
 		return err
 	}
 	err = cron.AddFunc("@every 1h", func() {
 		SyncAuthzStatus(c.ctx)
 	})
 	if err != nil {
-		log.Println("Error adding Key Authorization cron job:", err)
+		log.Println("Error while adding Key Authorization syncing cron job:", err)
 		return err
 	}
 	go cron.Start()
