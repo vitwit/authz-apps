@@ -1,5 +1,0 @@
-# Configure slack bot details to  get alerts
-[slack]
-slack_channel_id = "CHANNEL_ID"
-slack_bot_token = "xoxb-BOT_TOKEN"
-slack_app_token = "xapp-APP_TOKEN"
