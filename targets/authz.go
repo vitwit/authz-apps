@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/likhita-809/lens-bot/endpoints"
 	"github.com/likhita-809/lens-bot/types"
 )
 
@@ -44,14 +45,14 @@ func SyncAuthzStatus(ctx types.Context) error {
 	}
 
 	for _, key := range keys {
-		validEndpoint, err := GetValidEndpointForChain(key.ChainName)
+		validEndpoint, err := endpoints.GetValidEndpointForChain(key.ChainName)
 		if err != nil {
 			log.Printf("Error in getting valid LCD endpoints for %s chain", key.ChainName)
 			return err
 		}
 		for _, val := range validators {
 			if val.ChainName == key.ChainName {
-				ops := HTTPOptions{
+				ops := types.HTTPOptions{
 					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + val.Address + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.gov.v1beta1.MsgVote",
 					Method:   http.MethodGet,
 				}
@@ -65,7 +66,7 @@ func SyncAuthzStatus(ctx types.Context) error {
 					}
 				}
 
-				ops = HTTPOptions{
+				ops = types.HTTPOptions{
 					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + val.Address + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.gov.v1.MsgVote",
 					Method:   http.MethodGet,
 				}
