@@ -26,7 +26,7 @@ type (
 
 	voteLogs struct {
 		Date          int64
-		ChainID       string
+		ChainName     string
 		ProposalTitle string
 		ProposalID    string
 		VoteOption    string
@@ -305,7 +305,7 @@ func (a *Sqlitedb) GetVoteLogs(chainName, startDate, endDate string) ([]voteLogs
 	var k []voteLogs
 	for rows.Next() {
 		var data voteLogs
-		if err := rows.Scan(&data.Date, &data.ChainID, &data.ProposalTitle, &data.ProposalID, &data.VoteOption); err != nil {
+		if err := rows.Scan(&data.Date, &data.ChainName, &data.ProposalTitle, &data.ProposalID, &data.VoteOption); err != nil {
 			return k, err
 		}
 		k = append(k, data)

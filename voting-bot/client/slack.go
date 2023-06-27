@@ -213,14 +213,14 @@ func InitializeBotcommands(ctx types.Context) error {
 						slack.NewSectionBlock(
 							slack.NewTextBlockObject(
 								"mrkdwn",
-								fmt.Sprintf("*%s* ---- *%s* ---- Proposal *%s* ---- *%s*", date, vote.ChainID, vote.ProposalID, vote.VoteOption), false, false),
+								fmt.Sprintf("*%s* ---- *%s* ---- Proposal *%s* ---- *%s* ---- *%s*", date, vote.ChainName, vote.ProposalID, vote.ProposalTitle, vote.VoteOption), false, false),
 							nil, nil,
 						),
 					)
 				}
 
 				attachment := []slack.Block{
-					slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Date ---- Address ---- ProposalID ---- Vote", false, false)),
+					slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Date ---- ChainName ---- ProposalID ---- ProposalTitle ---- Vote", false, false)),
 				}
 				attachment = append(attachment, blocks...)
 
