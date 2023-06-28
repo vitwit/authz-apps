@@ -69,9 +69,9 @@ func TestKeys(t *testing.T) {
 	defer db.Close()
 	_, err = db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR PRIMARY KEY, keyName VARCHAR, keyAddress VARCHAR)")
 	if err != nil {
-		fmt.Println(err)
 		t.Fatalf("Failed to create test table: %v", err)
 	}
+	db.Exec("ALTER TABLE keys ADD COLUMN authzStatus VARCHAR DEFAULT 'false'")
 
 	sqlitedb := &Sqlitedb{db: db}
 
@@ -96,6 +96,7 @@ func TestKeys(t *testing.T) {
 		ChainName:  "chain1",
 		KeyName:    "keyname",
 		KeyAddress: "keyaddress",
+		Status:     "false",
 	}
 	assert.Equal(t, expectedLog, logs[0])
 }
@@ -126,7 +127,7 @@ func TestVoteLogs(t *testing.T) {
 
 	expectedLog := voteLogs{
 		Date:          time.Now().UTC().Unix(),
-		ChainID:       "chain1",
+		ChainName:     "chain1",
 		ProposalTitle: "proposaltitle",
 		ProposalID:    "proposal1",
 		VoteOption:    "yes",
