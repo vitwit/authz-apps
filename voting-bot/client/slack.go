@@ -220,7 +220,7 @@ func InitializeBotcommands(ctx types.Context) error {
 				}
 
 				attachment := []slack.Block{
-					slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Date ---- ChainName ---- ProposalID ---- ProposalTitle ---- Vote", false, false)),
+					slack.NewHeaderBlock(slack.NewTextBlockObject("plain_text", "Date ---- Network ---- ProposalID ---- Proposal Title ---- Vote Option", false, false)),
 				}
 				attachment = append(attachment, blocks...)
 
