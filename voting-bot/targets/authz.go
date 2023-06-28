@@ -28,7 +28,18 @@ func getAuthzGrants(endpoint string) ([]interface{}, error) {
 		log.Println("Failed to parse JSON data:", err)
 		return nil, err
 	}
-	grants := jsonData["grants"].([]interface{})
+
+	grantsInterface, ok := jsonData["grants"]
+	if !ok || grantsInterface == nil {
+		// handle the case when "grants" is not present or nil
+		return []interface{}(nil), nil
+	}
+
+	grants, ok := grantsInterface.([]interface{})
+	if !ok {
+		// handle the case when "grants" is not a slice of interfaces
+		return []interface{}(nil), nil
+	}
 	return grants, nil
 }
 
