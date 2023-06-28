@@ -2,7 +2,6 @@ package targets
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -33,13 +32,13 @@ func getAuthzGrants(endpoint string) ([]interface{}, error) {
 	grantsInterface, ok := jsonData["grants"]
 	if !ok || grantsInterface == nil {
 		// handle the case when "grants" is not present or nil
-		return nil, errors.New("grants not found")
+		return []interface{}(nil), nil
 	}
 
 	grants, ok := grantsInterface.([]interface{})
 	if !ok {
 		// handle the case when "grants" is not a slice of interfaces
-		return nil, errors.New("grants is not a slice of interfaces")
+		return []interface{}(nil), nil
 	}
 	return grants, nil
 }
