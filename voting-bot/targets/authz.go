@@ -52,8 +52,14 @@ func SyncAuthzStatus(ctx types.Context) error {
 		}
 		for _, val := range validators {
 			if val.ChainName == key.ChainName {
+
+				accAddr, err := convertValAddrToAccAddr(ctx, val.Address, key.ChainName)
+				if err != nil {
+					return err
+				}
+
 				ops := types.HTTPOptions{
-					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + val.Address + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.gov.v1beta1.MsgVote",
+					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + accAddr + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.gov.v1beta1.MsgVote",
 					Method:   http.MethodGet,
 				}
 				g1, err := getAuthzGrants(ops.Endpoint)
@@ -67,7 +73,7 @@ func SyncAuthzStatus(ctx types.Context) error {
 				}
 
 				ops = types.HTTPOptions{
-					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + val.Address + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.gov.v1.MsgVote",
+					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + accAddr + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.gov.v1.MsgVote",
 					Method:   http.MethodGet,
 				}
 				g2, err := getAuthzGrants(ops.Endpoint)
@@ -79,9 +85,6 @@ func SyncAuthzStatus(ctx types.Context) error {
 					if err := ctx.Database().UpdateAuthzStatus("true", key.KeyAddress); err != nil {
 						return err
 					}
-				}
-				if err := ctx.Database().UpdateAuthzStatus("false", key.KeyAddress); err != nil {
-					return err
 				}
 			}
 		}
