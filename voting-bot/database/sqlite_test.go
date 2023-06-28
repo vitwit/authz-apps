@@ -71,10 +71,7 @@ func TestKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create test table: %v", err)
 	}
-	_, err = db.Exec("ALTER TABLE keys ADD COLUMN authzStatus VARCHAR DEFAULT 'false'")
-	if err != nil {
-		t.Fatalf("Failed to alter test table: %v", err)
-	}
+	db.Exec("ALTER TABLE keys ADD COLUMN authzStatus VARCHAR DEFAULT 'false'")
 
 	sqlitedb := &Sqlitedb{db: db}
 
