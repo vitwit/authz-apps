@@ -105,8 +105,7 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 	return nil
 }
 
-// getValidatorVote to check validator voted for the proposal or not.
-func getValidatorVote(ctx types.Context, endpoint, proposalID, valAddr, chainName string) (string, error) {
+func convertValAddrToAccAddr(ctx types.Context, valAddr, chainName string) (string, error) {
 	chainInfo, err := ctx.ChainRegistry().GetChain(context.Background(), chainName)
 	if err != nil {
 		return "", err
@@ -126,6 +125,15 @@ func getValidatorVote(ctx types.Context, endpoint, proposalID, valAddr, chainNam
 
 	accAddrString := accAddr.String()
 	done()
+	return accAddrString, nil
+}
+
+// getValidatorVote to check validator voted for the proposal or not.
+func getValidatorVote(ctx types.Context, endpoint, proposalID, valAddr, chainName string) (string, error) {
+	accAddrString, err := convertValAddrToAccAddr(ctx, valAddr, chainName)
+	if err != nil {
+		return "", err
+	}
 
 	fmt.Println("chainID = ", chainName, "  Account Addr = ", accAddrString)
 	ops := types.HTTPOptions{
