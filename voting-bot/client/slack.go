@@ -31,8 +31,8 @@ func InitializeBotcommands(ctx types.Context) error {
 			cr := ctx.ChainRegistry()
 			chainInfo, err := cr.GetChain(ctx.Context(), chainName)
 			if err != nil {
-				response.Reply(fmt.Sprintf("failed to get chain information from registry: %s", err.Error()))
-				panic(err)
+				response.Reply(fmt.Sprintf("Failed to register validator. The chain %s is missing from the chain registry\n%s", chainName, err.Error()))
+				return
 			}
 
 			done := utils.SetBech32Prefixes(chainInfo)
