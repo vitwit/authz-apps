@@ -1,7 +1,6 @@
 package targets
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/vitwit/authz-apps/voting-bot/endpoints"
 	"github.com/vitwit/authz-apps/voting-bot/types"
+	"github.com/vitwit/authz-apps/voting-bot/utils"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -24,23 +24,15 @@ func GetLowBalAccs(ctx types.Context) error {
 		return fmt.Errorf("error while getting keys from db: %v", err)
 	}
 
-	var denom string
 	for _, key := range keys {
-		chainInfo, err := ctx.ChainRegistry().GetChain(context.Background(), key.ChainName)
-		if err != nil {
-			return fmt.Errorf("chain info not found: %v: %v", key.ChainName, err)
-		}
-
-		assetList, err := chainInfo.GetAssetList(context.Background())
-		if err != nil {
-			log.Printf("Error while getting asset list for %s chain", key.ChainName)
-			return err
-		}
-
-		if len(assetList.Assets) > 0 {
-			denom = assetList.Assets[0].Base
+		var baseDenom string
+		var coinDecimals int64 = 6
+		if info, ok := utils.ChainNameToDenomInfo[key.ChainName]; ok {
+			baseDenom = info.BaseDenom
+			coinDecimals = info.DenomUnits
 		} else {
-			return fmt.Errorf("base denom unit not found for %s chain", key.ChainName)
+			log.Printf("Error in getting valid LCD endpoints for %s chain", key.ChainName)
+			return fmt.Errorf("chain %s is not supported", key.ChainName)
 		}
 
 		endpoint, err := endpoints.GetValidEndpointForChain(key.ChainName)
@@ -49,7 +41,7 @@ func GetLowBalAccs(ctx types.Context) error {
 			return err
 		}
 		addr := key.KeyAddress
-		err = AlertOnLowBalance(ctx, endpoint, addr, denom)
+		err = AlertOnLowBalance(ctx, endpoint, addr, baseDenom, coinDecimals)
 		if err != nil {
 			log.Printf("error on sending low balance alert: %v", err)
 			return err
@@ -59,7 +51,7 @@ func GetLowBalAccs(ctx types.Context) error {
 }
 
 // Gets balance of an account and alerts if the balance is low
-func AlertOnLowBalance(ctx types.Context, endpoint, addr, denom string) error {
+func AlertOnLowBalance(ctx types.Context, endpoint, addr, denom string, coinDecimals int64) error {
 	ops := types.HTTPOptions{
 		Endpoint:    endpoint + "/cosmos/bank/v1beta1/balances/" + addr + "/by_denom",
 		Method:      http.MethodGet,
@@ -85,7 +77,7 @@ func AlertOnLowBalance(ctx types.Context, endpoint, addr, denom string) error {
 		return fmt.Errorf("unable to convert amount string to int")
 	}
 	coin := sdk.NewCoin(balance.Balance.Denom, amount)
-	if !coin.Amount.GT(math.NewInt(1)) {
+	if !coin.Amount.GT(math.NewInt(1).Mul(sdk.NewInt(coinDecimals))) {
 		err := SendLowBalanceAlerts(ctx, addr, balance.Balance.Amount, balance.Balance.Denom)
 		if err != nil {
 			log.Printf("error while sending low balance alert: %v", err)
