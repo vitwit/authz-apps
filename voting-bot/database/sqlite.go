@@ -155,7 +155,7 @@ func (a *Sqlitedb) AddLog(chainName, proposalTitle, proposalID, voteOption strin
 }
 
 func (a *Sqlitedb) AddRewards(chainId, denom, valAddr, rewards, commission string) error {
-	stmt, err := a.db.Prepare("INSERT INTO rewards_commission(chainId, denom, valAddress, rewards, commission, date) values(?,?,?,?,?)")
+	stmt, err := a.db.Prepare("INSERT INTO rewards_commission(chainId, denom, valAddress, rewards, commission, date) values(?,?,?,?,?,?)")
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,6 @@ package targets
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -258,23 +257,13 @@ func getRewardAmount(res *sdk.TxResponse, eventType string) (sdk.Coins, error) {
 	for _, event := range res.Events {
 		if event.Type == eventType {
 			for _, attr := range event.Attributes {
-				var attribute types.EventAttribute
-				bz, err := json.Marshal(attr)
-				if err != nil {
-					return nil, fmt.Errorf("error marshalling event attribute: %v", err)
-				}
-
-				if err := json.Unmarshal(bz, &attribute); err != nil {
-					return nil, fmt.Errorf("error unmarshalling event attribute: %v", err)
-				}
-
-				if attribute.Key == "amount" {
-					rewards, err := sdk.ParseCoinsNormalized(attribute.Value)
+				if string(attr.Key) == "amount" {
+					rewards, err := sdk.ParseCoinsNormalized(string(attr.Value))
 					if err != nil {
 						return nil, fmt.Errorf("error parsing reward coins: %v", err)
 					}
 					for _, reward := range rewards {
-						totalRewards.Add(reward)
+						totalRewards = totalRewards.Add(reward)
 					}
 				}
 			}

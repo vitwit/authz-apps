@@ -94,9 +94,4 @@ type (
 		VotingStartTime string `json:"voting_start_time"`
 		VotingEndTime   string `json:"voting_end_time"`
 	}
-
-	EventAttribute struct {
-		Key   string `json:"key"`
-		Value string `json:"value"`
-	}
 )
