@@ -342,3 +342,49 @@ func (a *Sqlitedb) GetVoteLogs(chainName, startDate, endDate string) ([]voteLogs
 
 	return k, nil
 }
+
+// Gets required data regarding votes
+func (a *Sqlitedb) GetRewards(chainId, date string) ([]rewardsCommission, error) {
+	log.Printf("Fetching rewards...")
+	var k []rewardsCommission
+
+	if date != "" {
+		query := "SELECT chainId, denom, valAddress, rewards, commission, date FROM rewards_commission WHERE chainId = ? AND date = ? "
+		rows, err := a.db.Query(query, chainId, date)
+		if err != nil {
+			return []rewardsCommission{}, err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var data rewardsCommission
+			if err := rows.Scan(&data.ChainID, &data.Denom, &data.ValAddr, &data.Rewards, &data.Commission, &data.Date); err != nil {
+				return k, err
+			}
+			k = append(k, data)
+		}
+		if err := rows.Err(); err != nil {
+			return k, err
+		}
+	} else {
+		query := "SELECT chainId, denom, valAddress, rewards, commission, date FROM rewards_commission WHERE chainId = ? "
+		rows, err := a.db.Query(query, chainId)
+		if err != nil {
+			return []rewardsCommission{}, err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var data rewardsCommission
+			if err := rows.Scan(&data.ChainID, &data.Denom, &data.ValAddr, &data.Rewards, &data.Commission, &data.Date); err != nil {
+				return k, err
+			}
+			k = append(k, data)
+		}
+		if err := rows.Err(); err != nil {
+			return k, err
+		}
+	}
+
+	return k, nil
+}

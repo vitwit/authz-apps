@@ -33,7 +33,11 @@ func TestWithdraw(t *testing.T) {
 	defer ctx.Database().Close()
 	err := withdraw(ctx, chainClient)
 	require.NoError(t, err)
-	require.Equal(t, 0, 1)
+
+	rewards, err := ctx.Database().GetRewards(os.Getenv("CHAINID"), "2023-07-24")
+	require.NoError(t, err)
+
+	fmt.Println("rewards: ", rewards)
 }
 
 func withdraw(ctx types.Context, chainClient lensclient.ChainClient) error {
