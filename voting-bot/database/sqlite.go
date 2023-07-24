@@ -343,7 +343,7 @@ func (a *Sqlitedb) GetVoteLogs(chainName, startDate, endDate string) ([]voteLogs
 	return k, nil
 }
 
-// Gets required data regarding votes
+// Gets required data regarding rewards
 func (a *Sqlitedb) GetRewards(chainId, date string) ([]rewardsCommission, error) {
 	log.Printf("Fetching rewards...")
 	var k []rewardsCommission
