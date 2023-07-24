@@ -1,12 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"sync"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
+	"github.com/gorilla/mux"
 	"github.com/shomali11/slacker"
 	"github.com/vitwit/authz-apps/voting-bot/client"
 	"github.com/vitwit/authz-apps/voting-bot/config"
@@ -30,6 +33,16 @@ func main() {
 		}
 	}()
 
+	// Initialize the router
+	router := mux.NewRouter()
+
+	// Define REST API endpoints
+	router.HandleFunc("/rewards", getRewardsHandler(db)).Methods("GET")
+
+	// Start the server
+	logger.Info().Msg("Server started at http://localhost:8080")
+	log.Error().Err(http.ListenAndServe(":8080", router))
+
 	cfg, err := config.ReadConfigFromFile()
 	if err != nil {
 		logger.Error().Err(err)
@@ -49,4 +62,27 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	wg.Wait()
+}
+
+// TODO: seperate file
+func getRewardsHandler(db *database.Sqlitedb) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		params := r.URL.Query()
+		chainId := params.Get("id")
+		date := params.Get("date")
+
+		rewards, err := db.GetRewards(chainId, date)
+		if err != nil {
+			http.Error(w, fmt.Errorf("Error while getting rewards: %w", err).Error(), http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		err = json.NewEncoder(w).Encode(rewards)
+		if err != nil {
+			http.Error(w, fmt.Errorf("Error while encoding rewards: %w", err).Error(), http.StatusInternalServerError)
+			return
+		}
+	}
 }
