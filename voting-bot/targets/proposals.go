@@ -78,6 +78,9 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 
 		ctx.Logger().Info().Msgf("pending proposals = ", len(p.Proposals), "  chain-name = ", val.ChainName)
 		for _, proposal := range p.Proposals {
+			if err := ctx.Database().AddLog(val.ChainName, proposal.Content.Title, proposal.ProposalID, ""); err != nil {
+				fmt.Printf("failed to store vote logs: %v", err)
+			}
 			validatorVote, err := getValidatorVote(ctx, endpoint, proposal.ProposalID, val.Address, val.ChainName)
 			if err != nil {
 				return err
@@ -90,8 +93,11 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 					pID:           proposal.ProposalID,
 					votingEndTime: proposal.VotingEndTime,
 				})
+			} else {
+				if err := ctx.Database().UpdateVoteLog(val.ChainName, proposal.ProposalID, validatorVote); err != nil {
+					fmt.Printf("failed to update vote log: %v", err)
+				}
 			}
-
 		}
 
 		if len(missedProposals) > 0 {

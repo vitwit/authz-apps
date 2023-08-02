@@ -2,7 +2,6 @@ package voting
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,7 +14,6 @@ import (
 	"github.com/shomali11/slacker"
 	lensclient "github.com/strangelove-ventures/lens/client"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
-	"github.com/vitwit/authz-apps/voting-bot/endpoints"
 	"github.com/vitwit/authz-apps/voting-bot/types"
 	"go.uber.org/zap"
 
@@ -189,12 +187,8 @@ func ExecVote(ctx types.Context, chainName, pID, granter, vote,
 			return "", fmt.Errorf("failed to vote on proposal: code(%d) msg(%s)", res.Code, res.Logs)
 		}
 		return "", fmt.Errorf("failed to vote.Err: %v", err)
-	}
-	pTitle, err := getProposalTitle(chainName, pID)
-	if err != nil {
-		fmt.Printf("failed to store logs: %v", err)
 	} else {
-		if err = ctx.Database().AddLog(chainName, pTitle, pID, vote); err != nil {
+		if err = ctx.Database().UpdateVoteLog(chainName, pID, vote); err != nil {
 			fmt.Printf("failed to store logs: %v", err)
 		}
 	}
@@ -205,33 +199,6 @@ func ExecVote(ctx types.Context, chainName, pID, granter, vote,
 	}
 
 	return fmt.Sprintf("Trasaction broadcasted: https://mintscan.io/%s/txs/%s", mintscanName, res.TxHash), nil
-}
-
-func getProposalTitle(chainName, pID string) (string, error) {
-	endpoint, err := endpoints.GetValidEndpointForChain(chainName)
-	if err != nil {
-		log.Printf("Error in getting valid LCD endpoints for %s chain", chainName)
-
-		return "", err
-	}
-	var p types.Proposal
-	ops := types.HTTPOptions{
-		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + pID,
-		Method:   http.MethodGet,
-	}
-	resp, err := endpoints.HitHTTPTarget(ops)
-	if err != nil {
-		log.Printf("Error while getting http response: %v", err)
-		return "", err
-	}
-
-	err = json.Unmarshal(resp.Body, &p)
-	if err != nil {
-		log.Printf("Error while unmarshalling the proposals: %v", err)
-		return "", err
-	}
-
-	return p.Content.Title, nil
 }
 
 // Converts the string to a acceptable vote format
