@@ -133,4 +133,36 @@ func TestVoteLogs(t *testing.T) {
 		VoteOption:    "yes",
 	}
 	assert.Equal(t, expectedLog, logs[0])
+
+	err = sqlitedb.AddLog("chain1", "proposaltitle2", "proposal2", "")
+	assert.NoError(t, err)
+
+	err = sqlitedb.UpdateVoteLog("chain1", "proposal2", "no")
+	assert.NoError(t, err)
+
+	// vote on non-existing proposal, this will not be stored in logs
+	err = sqlitedb.UpdateVoteLog("chain1", "proposal3", "yes")
+	assert.NoError(t, err)
+
+	logs, err = sqlitedb.GetVoteLogs("chain1", "2007-04-01", "")
+	assert.NoError(t, err)
+	assert.Len(t, logs, 2)
+
+	expectedLogs := []voteLogs{
+		{
+			Date:          time.Now().UTC().Unix(),
+			ChainName:     "chain1",
+			ProposalTitle: "proposaltitle",
+			ProposalID:    "proposal1",
+			VoteOption:    "yes",
+		},
+		{
+			Date:          time.Now().UTC().Unix(),
+			ChainName:     "chain1",
+			ProposalTitle: "proposaltitle2",
+			ProposalID:    "proposal2",
+			VoteOption:    "no",
+		},
+	}
+	assert.Equal(t, expectedLogs, logs)
 }

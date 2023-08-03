@@ -57,7 +57,7 @@ func (a *Sqlitedb) InitializeTables() error {
 		return err
 	}
 
-	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS logs (date INTEGER ,chainName VARCHAR, proposalId VARCHAR, voteOption VARCHAR)")
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS logs (date INTEGER, chainName VARCHAR, proposalId VARCHAR, voteOption VARCHAR)")
 	if err != nil {
 		return err
 	}
@@ -128,6 +128,20 @@ func (a *Sqlitedb) UpdateAuthzStatus(status, keyAddress string) error {
 	return err
 }
 
+// Update vote logs information
+func (a *Sqlitedb) UpdateVoteLog(chainName, proposalID, voteOption string) error {
+	stmt, err := a.db.Prepare("UPDATE logs SET voteOption = ? WHERE chainName = ? AND proposalID = ?")
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(voteOption, chainName, proposalID)
+	return err
+}
+
+// Adds vote logs information
 func (a *Sqlitedb) AddLog(chainName, proposalTitle, proposalID, voteOption string) error {
 	stmt, err := a.db.Prepare("INSERT INTO logs(date, chainName, proposalTitle, proposalID, voteOption) values(?,?,?,?,?)")
 	if err != nil {
