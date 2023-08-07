@@ -2,14 +2,17 @@ package targets
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
+	"strconv"
 	"time"
 
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 	"github.com/slack-go/slack"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	"github.com/vitwit/authz-apps/voting-bot/database"
 	"github.com/vitwit/authz-apps/voting-bot/endpoints"
@@ -20,8 +23,8 @@ import (
 
 type (
 	MissedProposal struct {
-		accAddr       string
-		pTitle        string
+		accAddr string
+		//pTitle        string
 		pID           string
 		votingEndTime string
 	}
@@ -56,39 +59,41 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 
 			return err
 		}
-		ops := types.HTTPOptions{
-			Endpoint:    endpoint + "/cosmos/gov/v1beta1/proposals",
-			Method:      http.MethodGet,
-			QueryParams: types.QueryParams{"proposal_status": "2"},
-		}
-		resp, err := endpoints.HitHTTPTarget(ops)
+		creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: false})
+		ctx1, _ := context.WithTimeout(context.Background(), 5*time.Second)
+		grpcConn, err := grpc.DialContext(ctx1, endpoint, grpc.WithTransportCredentials(creds))
 		if err != nil {
-			log.Printf("Error while getting http response: %v", err)
 			return err
 		}
-
-		var p types.Proposals
-		err = json.Unmarshal(resp.Body, &p)
+		defer grpcConn.Close()
+		queryclient := govtypes.NewQueryClient(grpcConn)
+		req := &govtypes.QueryProposalsRequest{
+			ProposalStatus: 2,
+		}
+		resp, err := queryclient.Proposals(
+			context.Background(),
+			req,
+		)
 		if err != nil {
-			log.Printf("Error while unmarshalling the proposals: %v", err)
 			return err
 		}
 
 		var missedProposals []MissedProposal
 
-		ctx.Logger().Info().Msgf("pending proposals = ", len(p.Proposals), "  chain-name = ", val.ChainName)
-		for _, proposal := range p.Proposals {
-			validatorVote, err := getValidatorVote(ctx, endpoint, proposal.ProposalID, val.Address, val.ChainName)
+		ctx.Logger().Info().Msgf("pending proposals = ", len(resp.Proposals), "  chain-name = ", val.ChainName)
+		for _, proposal := range resp.Proposals {
+
+			validatorVote, err := getValidatorVote(ctx, endpoint, string(proposal.Content.Value), val.Address, val.ChainName)
 			if err != nil {
 				return err
 			}
 
 			if validatorVote == "" {
 				missedProposals = append(missedProposals, MissedProposal{
-					accAddr:       val.Address,
-					pTitle:        proposal.Content.Title,
-					pID:           proposal.ProposalID,
-					votingEndTime: proposal.VotingEndTime,
+					accAddr: val.Address,
+					//pTitle:        proposal.Content.Title,
+					pID:           strconv.FormatUint(uint64(proposal.ProposalId), 10),
+					votingEndTime: time.Time.String(proposal.VotingEndTime),
 				})
 			}
 
@@ -136,26 +141,29 @@ func getValidatorVote(ctx types.Context, endpoint, proposalID, valAddr, chainNam
 	}
 
 	fmt.Println("chainID = ", chainName, "  Account Addr = ", accAddrString)
-	ops := types.HTTPOptions{
-		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals/" + proposalID + "/votes/" + accAddrString,
-		Method:   http.MethodGet,
-	}
-	resp, err := endpoints.HitHTTPTarget(ops)
+	creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: false})
+	ctx1, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	grpcConn, err := grpc.DialContext(ctx1, endpoint, grpc.WithTransportCredentials(creds))
 	if err != nil {
-		log.Printf("Error while getting http response: %v", err)
 		return "", err
 	}
-
-	var v types.Vote
-	err = json.Unmarshal(resp.Body, &v)
+	defer grpcConn.Close()
+	queryclient := govtypes.NewQueryClient(grpcConn)
+	req := &govtypes.QueryVoteRequest{
+		ProposalId: 801,
+		Voter:      accAddrString,
+	}
+	resp, err := queryclient.Vote(
+		context.Background(),
+		req,
+	)
 	if err != nil {
-		log.Printf("Error while unmarshalling the proposal votes: %v", err)
 		return "", err
 	}
 
 	validatorVoted := ""
-	for _, value := range v.Vote.Options {
-		validatorVoted = value.Option
+	for _, value := range resp.Vote.Options {
+		validatorVoted = string(value.Option)
 	}
 
 	return validatorVoted, nil
@@ -175,7 +183,7 @@ func sendVotingPeriodProposalAlerts(ctx types.Context, chainName string, proposa
 		blocks = append(blocks, slack.NewSectionBlock(
 			slack.NewTextBlockObject(
 				"mrkdwn",
-				fmt.Sprintf("*%s*", p.pTitle),
+				fmt.Sprintf("*title*"),
 				false, false,
 			),
 			nil, nil))

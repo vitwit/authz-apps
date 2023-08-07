@@ -17,6 +17,7 @@ require (
 	github.com/strangelove-ventures/lens v0.6.0
 	github.com/stretchr/testify v1.8.2
 	go.uber.org/zap v1.23.0
+	google.golang.org/grpc v1.52.0
 	gopkg.in/go-playground/validator.v9 v9.31.0
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -157,7 +158,6 @@ require (
 	google.golang.org/api v0.107.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20221227171554-f9683d7f8bef // indirect
-	google.golang.org/grpc v1.52.0 // indirect
 	google.golang.org/protobuf v1.28.2-0.20220831092852-f930b1dc76e8 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
