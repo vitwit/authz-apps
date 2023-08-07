@@ -96,10 +96,10 @@ func ExecVote(ctx types.Context, chainName, pID, granter, vote,
 	coins, err := sdk.ParseDecCoins(gasPrices)
 	if err != nil {
 		fmt.Printf("Error while parsing gasPrices :%v\nInvalid fee format, using default fee", err)
-		gasPrices = "0.25" + denom
+		gasPrices = "0.75" + denom
 	} else {
 		if coins.Empty() {
-			gasPrices = "0.25" + denom
+			gasPrices = "0.75" + denom
 		}
 	}
 
@@ -112,7 +112,7 @@ func ExecVote(ctx types.Context, chainName, pID, granter, vote,
 		GasPrices:      gasPrices,
 		Debug:          true,
 		Timeout:        "20s",
-		GasAdjustment:  1.4,
+		GasAdjustment:  1.5,
 		OutputFormat:   "json",
 		SignModeStr:    "direct",
 		Modules:        lensclient.ModuleBasics,
