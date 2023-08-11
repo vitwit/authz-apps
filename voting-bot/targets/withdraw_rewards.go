@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 
 	"github.com/slack-go/slack"
 	lensclient "github.com/strangelove-ventures/lens/client"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
 	"github.com/vitwit/authz-apps/voting-bot/types"
+	"github.com/vitwit/authz-apps/voting-bot/utils"
 	"github.com/vitwit/authz-apps/voting-bot/voting"
 	"go.uber.org/zap"
 
@@ -21,6 +21,11 @@ import (
 	"github.com/vitwit/authz-apps/voting-bot/endpoints"
 )
 
+const WITHDRAW_REWARDS_TYPEURL = "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward"
+const WITHDRAW_COMMISSION = "/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission"
+
+// Withdraw retrieves validator rewards and commissions using authz if
+// available, and then stores them in the database.
 func Withdraw(ctx types.Context) error {
 	keys, err := ctx.Database().GetKeys()
 	if err != nil {
@@ -32,7 +37,7 @@ func Withdraw(ctx types.Context) error {
 	}
 
 	for _, key := range keys {
-		validEndpoint, err := endpoints.GetValidEndpointForChain(key.ChainName)
+		lcd, err := endpoints.GetValidEndpointForChain(key.ChainName)
 		if err != nil {
 			log.Printf("Error in getting valid LCD endpoints for %s chain", key.ChainName)
 			return err
@@ -48,21 +53,18 @@ func Withdraw(ctx types.Context) error {
 			if val.ChainName == key.ChainName {
 				var msgs []*cdctypes.Any
 
-				accAddr, err := convertValAddrToAccAddr(ctx, val.Address, key.ChainName)
+				granter, err := convertValAddrToAccAddr(ctx, val.Address, key.ChainName)
 				if err != nil {
 					return err
 				}
 
-				ops := types.HTTPOptions{
-					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + accAddr + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward",
-					Method:   http.MethodGet,
-				}
-				g1, err := getAuthzGrants(ops.Endpoint)
+				hasAuthz, err := utils.HasAuthzGrant(lcd, granter, key.KeyAddress, WITHDRAW_REWARDS_TYPEURL)
 				if err != nil {
 					return err
 				}
-				if len(g1) > 0 {
-					msg, err := withdrawRewardsMsg(accAddr, val.Address)
+
+				if hasAuthz {
+					msg, err := withdrawRewardsMsg(granter, val.Address)
 					if err != nil {
 						log.Printf("Error in creating withdraw rewards message for %s", val.Address)
 						return err
@@ -71,16 +73,12 @@ func Withdraw(ctx types.Context) error {
 					msgs = append(msgs, msg)
 				}
 
-				ops = types.HTTPOptions{
-					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + accAddr + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission",
-					Method:   http.MethodGet,
-				}
-				g2, err := getAuthzGrants(ops.Endpoint)
+				hasAuthz, err = utils.HasAuthzGrant(lcd, granter, key.KeyAddress, WITHDRAW_COMMISSION)
 				if err != nil {
 					return err
 				}
 
-				if len(g2) > 0 {
+				if hasAuthz {
 					msg, err := withdrawCommissionMsg(val.Address)
 					if err != nil {
 						log.Printf("Error in creating withdraw commission message for %s", val.Address)
@@ -88,6 +86,10 @@ func Withdraw(ctx types.Context) error {
 					}
 
 					msgs = append(msgs, msg)
+				}
+
+				if len(msgs) == 0 {
+					return nil
 				}
 
 				res, err := executeMsgs(chainClient, msgs, key.KeyAddress)
@@ -149,7 +151,7 @@ func createChainClient(ctx types.Context, chainName, keyName string) (registry.C
 		return registry.ChainInfo{}, lensclient.ChainClient{}, fmt.Errorf("failed to get denom from chain %s: %v", chainInfo.ChainID, err)
 	}
 
-	gasPrices := "0.25" + denom
+	gasPrices := "0.55" + denom
 
 	chainConfig := lensclient.ChainClientConfig{
 		Key:            keyName,
