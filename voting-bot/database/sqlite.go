@@ -32,6 +32,15 @@ type (
 		VoteOption    string
 	}
 
+	rewardsCommission struct {
+		ChainID    string
+		Denom      string
+		ValAddr    string
+		Rewards    string
+		Commission string
+		Date       string
+	}
+
 	Sqlitedb struct {
 		db *sql.DB
 	}
@@ -68,6 +77,11 @@ func (a *Sqlitedb) InitializeTables() error {
 	}
 
 	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR PRIMARY KEY, keyName VARCHAR, keyAddress VARCHAR)")
+	if err != nil {
+		return err
+	}
+
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS rewards_commission (chainId VARCHAR, denom VARCHAR, valAddress VARCHAR, rewards VARCHAR, commission VARCHAR, date VARCHAR)")
 	if err != nil {
 		return err
 	}
@@ -151,6 +165,18 @@ func (a *Sqlitedb) AddLog(chainName, proposalTitle, proposalID, voteOption strin
 	defer stmt.Close()
 
 	_, err = stmt.Exec(time.Now().UTC().Unix(), chainName, proposalTitle, proposalID, voteOption)
+	return err
+}
+
+func (a *Sqlitedb) AddRewards(chainId, denom, valAddr, rewards, commission string) error {
+	stmt, err := a.db.Prepare("INSERT INTO rewards_commission(chainId, denom, valAddress, rewards, commission, date) values(?,?,?,?,?,?)")
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(chainId, denom, valAddr, rewards, commission, time.Now().Format("2006-01-02"))
 	return err
 }
 
@@ -326,6 +352,52 @@ func (a *Sqlitedb) GetVoteLogs(chainName, startDate, endDate string) ([]voteLogs
 	}
 	if err = rows.Err(); err != nil {
 		return k, err
+	}
+
+	return k, nil
+}
+
+// Gets required data regarding rewards
+func (a *Sqlitedb) GetRewards(chainId, date string) ([]rewardsCommission, error) {
+	log.Printf("Fetching rewards...")
+	var k []rewardsCommission
+
+	if date != "" {
+		query := "SELECT chainId, denom, valAddress, rewards, commission, date FROM rewards_commission WHERE chainId = ? AND date = ? "
+		rows, err := a.db.Query(query, chainId, date)
+		if err != nil {
+			return []rewardsCommission{}, err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var data rewardsCommission
+			if err := rows.Scan(&data.ChainID, &data.Denom, &data.ValAddr, &data.Rewards, &data.Commission, &data.Date); err != nil {
+				return k, err
+			}
+			k = append(k, data)
+		}
+		if err := rows.Err(); err != nil {
+			return k, err
+		}
+	} else {
+		query := "SELECT chainId, denom, valAddress, rewards, commission, date FROM rewards_commission WHERE chainId = ? "
+		rows, err := a.db.Query(query, chainId)
+		if err != nil {
+			return []rewardsCommission{}, err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var data rewardsCommission
+			if err := rows.Scan(&data.ChainID, &data.Denom, &data.ValAddr, &data.Rewards, &data.Commission, &data.Date); err != nil {
+				return k, err
+			}
+			k = append(k, data)
+		}
+		if err := rows.Err(); err != nil {
+			return k, err
+		}
 	}
 
 	return k, nil

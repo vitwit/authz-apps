@@ -44,6 +44,15 @@ func (c *Cron) Start() error {
 		log.Println("Error while adding Key Authorization syncing cron job:", err)
 		return err
 	}
+
+	err = cron.AddFunc("@monthly", func() {
+		Withdraw(c.ctx)
+	})
+	if err != nil {
+		log.Println("Error while adding withdraw rewards and commission cron job:", err)
+		return err
+	}
+
 	go cron.Start()
 
 	return nil

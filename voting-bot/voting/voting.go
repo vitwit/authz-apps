@@ -53,7 +53,7 @@ func GetChainInfo(ctx types.Context, name string) (registry.ChainInfo, error) {
 	return ctx.ChainRegistry().GetChain(ctx.Context(), name)
 }
 
-func getChainDenom(chainInfo registry.ChainInfo) (string, error) {
+func GetChainDenom(chainInfo registry.ChainInfo) (string, error) {
 	assetList, err := chainInfo.GetAssetList(context.Background())
 	if err != nil {
 		return "", err
@@ -89,7 +89,7 @@ func ExecVote(ctx types.Context, chainName, pID, granter, vote,
 	if err != nil {
 		return "", fmt.Errorf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
 	}
-	denom, err := getChainDenom(chainInfo)
+	denom, err := GetChainDenom(chainInfo)
 	if err != nil {
 		return "", fmt.Errorf("failed to get denom from chain %s: %v", chainInfo.ChainID, err)
 	}
