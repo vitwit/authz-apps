@@ -3,6 +3,9 @@ package types
 import (
 	"context"
 
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/simapp"
+	simappparams "github.com/cosmos/cosmos-sdk/simapp/params"
 	"github.com/shomali11/slacker"
 	"github.com/vitwit/authz-apps/voting-bot/config"
 	"github.com/vitwit/authz-apps/voting-bot/database"
@@ -23,6 +26,8 @@ type Context struct {
 	slacker  *slacker.Slacker
 
 	chainRegistry registry.ChainRegistry
+
+	cdc simappparams.EncodingConfig
 }
 
 // create a new context
@@ -36,6 +41,7 @@ func NewContext(
 		cfg:           cfg,
 		slacker:       slacker,
 		chainRegistry: registry.DefaultChainRegistry(zap.New(zapcore.NewNopCore())),
+		cdc:           simapp.MakeTestEncodingConfig(),
 	}
 }
 
@@ -85,4 +91,8 @@ func (c Context) Logger() *zerolog.Logger {
 
 func (c Context) ChainRegistry() registry.ChainRegistry {
 	return c.chainRegistry
+}
+
+func (c Context) Codec() codec.Codec {
+	return c.cdc.Codec
 }

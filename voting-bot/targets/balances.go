@@ -1,19 +1,21 @@
 package targets
 
 import (
-	"encoding/json"
+	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
-	"net/http"
+	"time"
 
-	"cosmossdk.io/math"
 	"github.com/slack-go/slack"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
-	"github.com/vitwit/authz-apps/voting-bot/endpoints"
 	"github.com/vitwit/authz-apps/voting-bot/types"
 	"github.com/vitwit/authz-apps/voting-bot/utils"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
 // Gets accounts with low balances (i.e., 1ATOM) and alerts on them
@@ -35,13 +37,19 @@ func GetLowBalAccs(ctx types.Context) error {
 			return fmt.Errorf("chain %s is not supported", key.ChainName)
 		}
 
-		endpoint, err := endpoints.GetValidEndpointForChain(key.ChainName)
+		chainInfo, err := ctx.ChainRegistry().GetChain(ctx.Context(), key.ChainName)
 		if err != nil {
-			log.Printf("Error in getting valid LCD endpoints for %s chain", key.ChainName)
 			return err
 		}
+
+		grpcEndpoint, err := chainInfo.GetActiveGRPCEndpoint(ctx.Context())
+		if err != nil {
+			log.Printf("Error in getting valid GRPC endpoint for %s chain", key.ChainName)
+			return err
+		}
+
 		addr := key.KeyAddress
-		err = AlertOnLowBalance(ctx, endpoint, addr, baseDenom, coinDecimals)
+		err = AlertOnLowBalance(ctx, grpcEndpoint, addr, baseDenom, coinDecimals)
 		if err != nil {
 			log.Printf("error on sending low balance alert: %v", err)
 			return err
@@ -52,33 +60,31 @@ func GetLowBalAccs(ctx types.Context) error {
 
 // Gets balance of an account and alerts if the balance is low
 func AlertOnLowBalance(ctx types.Context, endpoint, addr, denom string, coinDecimals int64) error {
-	ops := types.HTTPOptions{
-		Endpoint:    endpoint + "/cosmos/bank/v1beta1/balances/" + addr + "/by_denom",
-		Method:      http.MethodGet,
-		QueryParams: types.QueryParams{"denom": denom},
-	}
 
-	resp, err := endpoints.HitHTTPTarget(ops)
+	creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: false})
+	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(creds))
 	if err != nil {
-		log.Printf("Error in external rpc: %v", err)
-		log.Printf("⛔⛔ Unreachable to EXTERNAL RPC :: %s and the ERROR is : %v\n\n", ops.Endpoint, err.Error())
+		log.Printf("Failed to connect to %s: %v", endpoint, err)
+		return err
+	}
+	defer conn.Close()
+
+	ctx1, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	client := banktypes.NewQueryClient(conn)
+
+	balance, err := client.Balance(ctx1, &banktypes.QueryBalanceRequest{
+		Address: addr,
+		Denom:   denom,
+	})
+	if err != nil {
+		log.Printf("Failed to getbalance %s: %v", addr, err)
 		return err
 	}
 
-	var balance types.Balance
-	err = json.Unmarshal(resp.Body, &balance)
-	if err != nil {
-		log.Printf("Error while unmarshalling the balances: %v", err)
-		return err
-	}
-
-	amount, ok := sdk.NewIntFromString(balance.Balance.Amount)
-	if !ok {
-		return fmt.Errorf("unable to convert amount string to int")
-	}
-	coin := sdk.NewCoin(balance.Balance.Denom, amount)
-	if !coin.Amount.GT(math.NewInt(1).Mul(sdk.NewInt(coinDecimals))) {
-		err := SendLowBalanceAlerts(ctx, addr, balance.Balance.Amount, balance.Balance.Denom)
+	if balance.Balance.IsGTE(sdk.NewCoin(denom, sdk.NewInt(1).Mul(sdk.NewInt(coinDecimals)))) {
+		err := SendLowBalanceAlerts(ctx, addr, balance.Balance.Amount.String(), balance.Balance.Denom)
 		if err != nil {
 			log.Printf("error while sending low balance alert: %v", err)
 			return err

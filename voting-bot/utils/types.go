@@ -5,6 +5,69 @@ type DenomInfo struct {
 	DenomUnits int64
 }
 
+var GovV1Support = map[string]map[string]bool{
+	"cosmos": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"osmosis": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"regen": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"akash": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"juno": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"umee": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"omniflix": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"comdex": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"mars": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"desmos": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"evmos": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"stargaze": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"quicksilver": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"crescent": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"passage": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+}
+
 var ChainNameToDenomInfo = map[string]DenomInfo{
 	"cosmos": {
 		BaseDenom:  "uatom",

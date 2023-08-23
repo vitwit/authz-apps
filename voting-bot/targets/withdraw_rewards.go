@@ -18,7 +18,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/authz"
 	distribution "github.com/cosmos/cosmos-sdk/x/distribution/types"
-	"github.com/vitwit/authz-apps/voting-bot/endpoints"
 )
 
 const WITHDRAW_REWARDS_TYPEURL = "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward"
@@ -37,15 +36,14 @@ func Withdraw(ctx types.Context) error {
 	}
 
 	for _, key := range keys {
-		lcd, err := endpoints.GetValidEndpointForChain(key.ChainName)
-		if err != nil {
-			log.Printf("Error in getting valid LCD endpoints for %s chain", key.ChainName)
-			return err
-		}
-
 		chainInfo, chainClient, err := createChainClient(ctx, key.ChainName, key.KeyName)
 		if err != nil {
 			log.Printf("Error in creating chain client for %s chain", key.ChainName)
+			return err
+		}
+
+		grpcEndpoint, err := chainInfo.GetActiveGRPCEndpoint(ctx.Context())
+		if err != nil {
 			return err
 		}
 
@@ -58,7 +56,7 @@ func Withdraw(ctx types.Context) error {
 					return err
 				}
 
-				hasAuthz, err := utils.HasAuthzGrant(lcd, granter, key.KeyAddress, WITHDRAW_REWARDS_TYPEURL)
+				hasAuthz, err := utils.HasAuthzGrant(grpcEndpoint, granter, key.KeyAddress, WITHDRAW_REWARDS_TYPEURL)
 				if err != nil {
 					return err
 				}
@@ -73,7 +71,7 @@ func Withdraw(ctx types.Context) error {
 					msgs = append(msgs, msg)
 				}
 
-				hasAuthz, err = utils.HasAuthzGrant(lcd, granter, key.KeyAddress, WITHDRAW_COMMISSION)
+				hasAuthz, err = utils.HasAuthzGrant(grpcEndpoint, granter, key.KeyAddress, WITHDRAW_COMMISSION)
 				if err != nil {
 					return err
 				}
