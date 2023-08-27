@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/slack-go/slack"
@@ -229,6 +230,9 @@ func getValidatorVoteV1(ctx types.Context, client govv1types.QueryClient, propos
 		Voter:      accAddrString,
 	})
 	if err != nil {
+		if strings.Contains(err.Error(), "not found for proposal") {
+			return "", nil
+		}
 		log.Printf("Error while getting  v1 vote response: %v", err)
 		return "", err
 	}
@@ -258,7 +262,10 @@ func getValidatorVoteV1beta1(ctx types.Context, client govv1beta1types.QueryClie
 		Voter:      accAddrString,
 	})
 	if err != nil {
-		log.Printf("Error while getting vote response: %v", err)
+		if strings.Contains(err.Error(), "not found for proposal") {
+			return "", nil
+		}
+		log.Printf("Error while getting v1beta1 vote response: %v", err)
 		return "", err
 	}
 
