@@ -37,7 +37,17 @@ func SyncAuthzStatus(ctx types.Context) error {
 					return err
 				}
 
-				hasAuthz, err := utils.HasAuthzGrant(validEndpoint, granter, key.KeyAddress, MSG_VOTE_TYPEURL_V1BETA1)
+				chainInfo, err := ctx.ChainRegistry().GetChain(ctx.Context(), key.ChainName)
+				if err != nil {
+					return err
+				}
+
+				grpcEndpoint, err := chainInfo.GetActiveGRPCEndpoint(ctx.Context())
+				if err != nil {
+					return err
+				}
+
+				hasAuthz, err := utils.HasAuthzGrant(grpcEndpoint, granter, key.KeyAddress, MSG_VOTE_TYPEURL_V1BETA1)
 				if err != nil {
 					return err
 				}

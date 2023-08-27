@@ -37,13 +37,40 @@ type (
 		List []Target
 	}
 
-	// Proposals struct holds result of array of proposals
-	Proposals struct {
-		Proposals  []Proposal `json:"proposals"`
+	// ProposalsLegacy struct holds result of array of legacy proposals
+	ProposalsLegacy struct {
+		Proposals  []LegacyProposal `json:"proposals"`
 		Pagination struct {
 			NextKey string `json:"next_key"`
 			Total   string `json:"total"`
 		} `json:"pagination"`
+	}
+
+	// Proposals struct holds result of array of proposals
+	V1Proposals struct {
+		Proposals []Proposal `json:"proposals"`
+	}
+
+	Proposal struct {
+		ID            string      `json:"id"`
+		Messages      []Message   `json:"messages"`
+		Status        string      `json:"status"`
+		Metadata      interface{} `json:"metadata"`
+		VotingEndTime string      `json:"voting_end_time"`
+	}
+
+	Message struct {
+		Type  string `json:"@type"`
+		Title string `json:"title"`
+	}
+
+	Metadata struct {
+		Title             string   `json:"title"`
+		Authors           []string `json:"authors"`
+		Summary           string   `json:"summary"`
+		Details           string   `json:"details"`
+		ProposalForumURL  string   `json:"proposal_forum_url"`
+		VoteOptionContext string   `json:"vote_option_context"`
 	}
 
 	// Balance struct holds the parameters of balance of grantee
@@ -66,7 +93,7 @@ type (
 			}
 		}
 	}
-	Proposal struct {
+	LegacyProposal struct {
 		ProposalID string `json:"proposal_id"`
 		Content    struct {
 			Type        string `json:"@type"`

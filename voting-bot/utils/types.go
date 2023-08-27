@@ -1,8 +1,95 @@
 package utils
 
+var RegisrtyNameToMintscanName = map[string]string{
+	"cosmos":        "cosmos",
+	"cosmoshub":     "cosmos",
+	"osmosis":       "osmosis",
+	"regen":         "regen",
+	"akash":         "akash",
+	"stride":        "stride",
+	"juno":          "juno",
+	"umee":          "umee",
+	"omniflixhub":   "omniflix",
+	"axelar":        "axelar",
+	"bandchain":     "bandchain",
+	"comdex":        "comdex",
+	"desmos":        "desmos",
+	"emoney":        "emoney",
+	"evmos":         "evmos",
+	"gravitybridge": "gravity-bridge",
+	"tgrade":        "tgrade",
+	"stargaze":      "stargaze",
+	"sentinel":      "sentinel",
+	"quicksilver":   "quicksilver",
+	"persistence":   "persistence",
+}
+
 type DenomInfo struct {
 	BaseDenom  string
 	DenomUnits int64
+}
+
+var GovV1Support = map[string]map[string]bool{
+	"cosmos": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"osmosis": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"regen": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"akash": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"juno": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"umee": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"omniflix": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"comdex": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"mars": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"desmos": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"evmos": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"stargaze": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"quicksilver": {
+		"govv1_enabled": true,
+		"authz_enabled": true,
+	},
+	"crescent": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
+	"passage": {
+		"govv1_enabled": false,
+		"authz_enabled": true,
+	},
 }
 
 var ChainNameToDenomInfo = map[string]DenomInfo{
