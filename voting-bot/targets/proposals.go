@@ -60,9 +60,6 @@ func GetProposals(ctx types.Context) {
 // Alerts on Active Proposals
 func alertOnProposals(ctx types.Context, networks []string, validators []database.Validator) error {
 	for _, val := range validators {
-		if val.ChainName != "cosmoshub" {
-			continue
-		}
 
 		chainInfo, err := ctx.ChainRegistry().GetChain(ctx.Context(), val.ChainName)
 		if err != nil {
@@ -268,7 +265,7 @@ func getValidatorVoteV1beta1(ctx types.Context, client govv1beta1types.QueryClie
 		if strings.Contains(err.Error(), "not found for proposal") {
 			return "", nil
 		}
-		log.Printf("Error while getting vote response: %v", err)
+		log.Printf("Error while getting v1beta1 vote response: %v", err)
 		return "", err
 	}
 
