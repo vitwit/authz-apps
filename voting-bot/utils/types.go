@@ -1,5 +1,29 @@
 package utils
 
+var RegisrtyNameToMintscanName = map[string]string{
+	"cosmos":        "cosmos",
+	"cosmoshub":     "cosmos",
+	"osmosis":       "osmosis",
+	"regen":         "regen",
+	"akash":         "akash",
+	"stride":        "stride",
+	"juno":          "juno",
+	"umee":          "umee",
+	"omniflixhub":   "omniflix",
+	"axelar":        "axelar",
+	"bandchain":     "bandchain",
+	"comdex":        "comdex",
+	"desmos":        "desmos",
+	"emoney":        "emoney",
+	"evmos":         "evmos",
+	"gravitybridge": "gravity-bridge",
+	"tgrade":        "tgrade",
+	"stargaze":      "stargaze",
+	"sentinel":      "sentinel",
+	"quicksilver":   "quicksilver",
+	"persistence":   "persistence",
+}
+
 type DenomInfo struct {
 	BaseDenom  string
 	DenomUnits int64

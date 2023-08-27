@@ -15,6 +15,7 @@ import (
 	lensclient "github.com/strangelove-ventures/lens/client"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
 	"github.com/vitwit/authz-apps/voting-bot/types"
+	"github.com/vitwit/authz-apps/voting-bot/utils"
 	"go.uber.org/zap"
 
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -23,30 +24,6 @@ import (
 	v1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 	"github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 )
-
-var RegisrtyNameToMintscanName = map[string]string{
-	"cosmos":        "cosmos",
-	"cosmoshub":     "cosmos",
-	"osmosis":       "osmosis",
-	"regen":         "regen",
-	"akash":         "akash",
-	"stride":        "stride",
-	"juno":          "juno",
-	"umee":          "umee",
-	"omniflixhub":   "omniflix",
-	"axelar":        "axelar",
-	"bandchain":     "bandchain",
-	"comdex":        "comdex",
-	"desmos":        "desmos",
-	"emoney":        "emoney",
-	"evmos":         "evmos",
-	"gravitybridge": "gravity-bridge",
-	"tgrade":        "tgrade",
-	"stargaze":      "stargaze",
-	"sentinel":      "sentinel",
-	"quicksilver":   "quicksilver",
-	"persistence":   "persistence",
-}
 
 // GetChainInfo related to chain Name
 func GetChainInfo(ctx types.Context, name string) (registry.ChainInfo, error) {
@@ -103,21 +80,7 @@ func ExecVote(ctx types.Context, chainName, pID, granter, vote,
 		}
 	}
 
-	chainConfig := lensclient.ChainClientConfig{
-		Key:            fromKey,
-		ChainID:        chainInfo.ChainID,
-		RPCAddr:        rpc,
-		AccountPrefix:  chainInfo.Bech32Prefix,
-		KeyringBackend: "test",
-		GasPrices:      gasPrices,
-		Debug:          true,
-		Timeout:        "20s",
-		GasAdjustment:  1.5,
-		OutputFormat:   "json",
-		SignModeStr:    "direct",
-		Modules:        lensclient.ModuleBasics,
-	}
-
+	chainConfig := utils.GetChainConfig(fromKey, chainInfo, gasPrices, rpc)
 	curDir, err := os.Getwd()
 	if err != nil {
 		return "", fmt.Errorf("error while getting current directory: %v", err)
@@ -194,7 +157,7 @@ func ExecVote(ctx types.Context, chainName, pID, granter, vote,
 	}
 
 	mintscanName := chainName
-	if newName, ok := RegisrtyNameToMintscanName[chainName]; ok {
+	if newName, ok := utils.RegisrtyNameToMintscanName[chainName]; ok {
 		mintscanName = newName
 	}
 

@@ -9,6 +9,7 @@ import (
 
 	lensclient "github.com/strangelove-ventures/lens/client"
 	"github.com/vitwit/authz-apps/voting-bot/types"
+	"github.com/vitwit/authz-apps/voting-bot/utils"
 	"go.uber.org/zap"
 )
 
@@ -27,17 +28,7 @@ func CreateKeys(ctx types.Context, chainName, keyName string) error {
 		return fmt.Errorf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
 	}
 
-	chainConfig := lensclient.ChainClientConfig{
-		ChainID:        chainInfo.ChainID,
-		RPCAddr:        rpc,
-		AccountPrefix:  chainInfo.Bech32Prefix,
-		KeyringBackend: "test",
-		Debug:          true,
-		Timeout:        "20s",
-		OutputFormat:   "json",
-		SignModeStr:    "direct",
-		Modules:        lensclient.ModuleBasics,
-	}
+	chainConfig := utils.GetChainConfig("", chainInfo, "", rpc)
 
 	curDir, err := os.Getwd()
 	if err != nil {
@@ -76,7 +67,6 @@ func CreateKeys(ctx types.Context, chainName, keyName string) error {
 		address = res.Address
 	}
 
-	chainConfig.Key = keyName
 	if err := ctx.Database().AddKey(chainName, keyName, address); err != nil {
 		return err
 	}

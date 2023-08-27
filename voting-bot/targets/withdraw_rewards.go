@@ -97,7 +97,7 @@ func Withdraw(ctx types.Context) error {
 				}
 
 				mintscanName := val.ChainName
-				if newName, ok := voting.RegisrtyNameToMintscanName[val.ChainName]; ok {
+				if newName, ok := utils.RegisrtyNameToMintscanName[val.ChainName]; ok {
 					mintscanName = newName
 				}
 
@@ -151,20 +151,7 @@ func createChainClient(ctx types.Context, chainName, keyName string) (registry.C
 
 	gasPrices := "0.55" + denom
 
-	chainConfig := lensclient.ChainClientConfig{
-		Key:            keyName,
-		ChainID:        chainInfo.ChainID,
-		RPCAddr:        rpc,
-		AccountPrefix:  chainInfo.Bech32Prefix,
-		KeyringBackend: "test",
-		GasPrices:      gasPrices,
-		Debug:          true,
-		Timeout:        "20s",
-		GasAdjustment:  1.4,
-		OutputFormat:   "json",
-		SignModeStr:    "direct",
-		Modules:        lensclient.ModuleBasics,
-	}
+	chainConfig := utils.GetChainConfig(keyName, chainInfo, gasPrices, rpc)
 
 	curDir, err := os.Getwd()
 	if err != nil {
