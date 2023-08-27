@@ -40,8 +40,11 @@ func main() {
 	router.HandleFunc("/rewards", getRewardsHandler(db)).Methods("GET")
 
 	// // Start the server
-	logger.Info().Msg("REST server started on 8080 port")
-	log.Error().Err(http.ListenAndServe(":8080", router))
+
+	go func() {
+		logger.Info().Msg("REST server started on 8080 port")
+		log.Error().Err(http.ListenAndServe(":8080", router))
+	}()
 
 	cfg, err := config.ReadConfigFromFile()
 	if err != nil {
