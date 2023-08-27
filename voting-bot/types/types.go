@@ -60,8 +60,15 @@ type (
 	}
 
 	Message struct {
-		Type  string `json:"@type"`
-		Title string `json:"title"`
+		Type    string  `json:"@type"`
+		Title   string  `json:"title"`
+		Content Content `json:"content"`
+	}
+
+	Content struct {
+		Type        string `json:"@type"`
+		Title       string `json:"title"`
+		Description string `json:"description"`
 	}
 
 	Metadata struct {

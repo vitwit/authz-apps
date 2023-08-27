@@ -329,7 +329,7 @@ func getTitleFromProposal(proposal types.Proposal) (string, error) {
 	message := proposal.Messages[0]
 
 	if message.Type == "/cosmos.gov.v1.MsgExecLegacyContent" {
-		return message.Title, nil
+		return message.Content.Title, nil
 	}
 
 	if message.Title != "" {
