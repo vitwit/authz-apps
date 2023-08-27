@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
@@ -33,14 +34,14 @@ func main() {
 	}()
 
 	// Initialize the router
-	// router := mux.NewRouter()
+	router := mux.NewRouter()
 
 	// // Define REST API endpoints
-	// router.HandleFunc("/rewards", getRewardsHandler(db)).Methods("GET")
+	router.HandleFunc("/rewards", getRewardsHandler(db)).Methods("GET")
 
 	// // Start the server
-	// logger.Info().Msg("Server started at http://localhost:8080")
-	// log.Error().Err(http.ListenAndServe(":8080", router))
+	logger.Info().Msg("REST server started on 8080 port")
+	log.Error().Err(http.ListenAndServe(":8080", router))
 
 	cfg, err := config.ReadConfigFromFile()
 	if err != nil {

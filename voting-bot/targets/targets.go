@@ -29,13 +29,9 @@ func (c *Cron) Start() error {
 	cron := cron.New()
 
 	// Everday at 8AM and 8PM
-	// err := cron.AddFunc("0 0 8,20 * * *", func() {
-	// 	GetProposals(c.ctx)
-	// 	GetLowBalAccs(c.ctx)
-	// })
-	err := cron.AddFunc("@every 1m", func() {
+	err := cron.AddFunc("0 0 8,20 * * *", func() {
 		GetProposals(c.ctx)
-		// GetLowBalAccs(c.ctx)
+		GetLowBalAccs(c.ctx)
 	})
 	if err != nil {
 		log.Println("Error while adding Proposals and Low balance accounts alerting cron jobs:", err)
