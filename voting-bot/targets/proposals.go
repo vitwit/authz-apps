@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/slack-go/slack"
@@ -59,6 +60,9 @@ func GetProposals(ctx types.Context) {
 // Alerts on Active Proposals
 func alertOnProposals(ctx types.Context, networks []string, validators []database.Validator) error {
 	for _, val := range validators {
+		if val.ChainName != "cosmoshub" {
+			continue
+		}
 
 		chainInfo, err := ctx.ChainRegistry().GetChain(ctx.Context(), val.ChainName)
 		if err != nil {
@@ -229,6 +233,9 @@ func getValidatorVoteV1(ctx types.Context, client govv1types.QueryClient, propos
 		Voter:      accAddrString,
 	})
 	if err != nil {
+		if strings.Contains(err.Error(), "not found for proposal") {
+			return "", nil
+		}
 		log.Printf("Error while getting  v1 vote response: %v", err)
 		return "", err
 	}
@@ -258,6 +265,9 @@ func getValidatorVoteV1beta1(ctx types.Context, client govv1beta1types.QueryClie
 		Voter:      accAddrString,
 	})
 	if err != nil {
+		if strings.Contains(err.Error(), "not found for proposal") {
+			return "", nil
+		}
 		log.Printf("Error while getting vote response: %v", err)
 		return "", err
 	}
