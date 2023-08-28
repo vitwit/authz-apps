@@ -25,8 +25,9 @@ var RegisrtyNameToMintscanName = map[string]string{
 }
 
 type DenomInfo struct {
-	BaseDenom  string
-	DenomUnits int64
+	BaseDenom    string
+	DisplayDenom string
+	DenomUnits   int64
 }
 
 var GovV1Support = map[string]map[string]bool{
@@ -94,91 +95,114 @@ var GovV1Support = map[string]map[string]bool{
 
 var ChainNameToDenomInfo = map[string]DenomInfo{
 	"cosmos": {
-		BaseDenom:  "uatom",
-		DenomUnits: 6,
+		BaseDenom:    "uatom",
+		DisplayDenom: "ATOM",
+		DenomUnits:   6,
 	},
 	"cosmoshub": {
-		BaseDenom:  "uatom",
-		DenomUnits: 6,
+		BaseDenom:    "uatom",
+		DisplayDenom: "ATOM",
+		DenomUnits:   6,
 	},
 	"osmosis": {
-		BaseDenom:  "uosmo",
-		DenomUnits: 6,
+		BaseDenom:    "uosmo",
+		DisplayDenom: "OSMO",
+		DenomUnits:   6,
 	},
 	"regen": {
-		BaseDenom:  "uregen",
-		DenomUnits: 6,
+		BaseDenom:    "uregen",
+		DisplayDenom: "REGEN",
+		DenomUnits:   6,
 	},
 	"akash": {
-		BaseDenom:  "uakt",
-		DenomUnits: 6,
+		BaseDenom:    "uakt",
+		DisplayDenom: "AKT",
+		DenomUnits:   6,
 	},
 	"stride": {
-		BaseDenom:  "ustride",
-		DenomUnits: 6,
+		BaseDenom:    "ustride",
+		DisplayDenom: "STRIDE",
+		DenomUnits:   6,
 	},
 	"juno": {
-		BaseDenom:  "ujuno",
-		DenomUnits: 6,
+		BaseDenom:    "ujuno",
+		DisplayDenom: "JUNO",
+		DenomUnits:   6,
 	},
 	"umee": {
-		BaseDenom:  "uumee",
-		DenomUnits: 6,
+		BaseDenom:    "uumee",
+		DisplayDenom: "UMEE",
+		DenomUnits:   6,
 	},
 	"omniflixhub": {
-		BaseDenom:  "uflix",
-		DenomUnits: 6,
+		BaseDenom:    "uflix",
+		DisplayDenom: "FLIX",
+		DenomUnits:   6,
 	},
 	"axelar": {
-		BaseDenom:  "uaxl",
-		DenomUnits: 6,
+		BaseDenom:    "uaxl",
+		DisplayDenom: "AXL",
+		DenomUnits:   6,
 	},
 	"bandchain": {
-		BaseDenom:  "uband",
-		DenomUnits: 6,
+		BaseDenom:    "uband",
+		DisplayDenom: "BAND",
+		DenomUnits:   6,
 	},
 	"comdex": {
-		BaseDenom:  "ucmdx",
-		DenomUnits: 6,
+		BaseDenom:    "ucmdx",
+		DisplayDenom: "CMDX",
+		DenomUnits:   6,
 	},
 	"desmos": {
-		BaseDenom:  "udsm",
+		BaseDenom:    "udsm",
+		DisplayDenom: "DSM",
+
 		DenomUnits: 6,
 	},
 	"emoney": {
-		BaseDenom:  "ungm",
-		DenomUnits: 6,
+		BaseDenom:    "ungm",
+		DisplayDenom: "NGM",
+		DenomUnits:   6,
 	},
 	"evmos": {
-		BaseDenom:  "aevmos",
-		DenomUnits: 18,
+		BaseDenom:    "aevmos",
+		DisplayDenom: "EVMOS",
+		DenomUnits:   18,
 	},
 	"gravitybridge": {
-		BaseDenom:  "ugraviton",
-		DenomUnits: 6,
+		BaseDenom:    "ugraviton",
+		DisplayDenom: "GRAV",
+		DenomUnits:   6,
 	},
 	"tgrade": {
-		BaseDenom:  "utgd",
-		DenomUnits: 6,
+		BaseDenom:    "utgd",
+		DisplayDenom: "TGD",
+		DenomUnits:   6,
 	},
 	"stargaze": {
-		BaseDenom:  "ustars",
-		DenomUnits: 6,
+		BaseDenom:    "ustars",
+		DisplayDenom: "STARS",
+		DenomUnits:   6,
 	},
 	"sentinel": {
-		BaseDenom:  "udvpn",
-		DenomUnits: 6,
+		BaseDenom:    "udvpn",
+		DisplayDenom: "DVPN",
+		DenomUnits:   6,
 	},
 	"quicksilver": {
-		BaseDenom:  "uqck",
-		DenomUnits: 6,
+		BaseDenom:    "uqck",
+		DisplayDenom: "QCK",
+		DenomUnits:   6,
 	},
 	"persistence": {
-		BaseDenom:  "uxprt",
-		DenomUnits: 6,
+		BaseDenom:    "uxprt",
+		DisplayDenom: "XPRT",
+		DenomUnits:   6,
 	},
 	"passage": {
-		BaseDenom:  "upasg",
-		DenomUnits: 6,
+		BaseDenom:    "upasg",
+		DisplayDenom: "PSG",
+		DenomUnits:   6,
 	},
 }
