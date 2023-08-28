@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	"github.com/slack-go/slack"
@@ -29,9 +30,11 @@ func GetLowBalAccs(ctx types.Context) error {
 	for _, key := range keys {
 		var baseDenom string
 		var coinDecimals int64 = 6
+		var displayDenom string
 		if info, ok := utils.ChainNameToDenomInfo[key.ChainName]; ok {
 			baseDenom = info.BaseDenom
 			coinDecimals = info.DenomUnits
+			displayDenom = info.DisplayDenom
 		} else {
 			log.Printf("Error in getting valid LCD endpoints for %s chain", key.ChainName)
 			return fmt.Errorf("chain %s is not supported", key.ChainName)
@@ -49,7 +52,7 @@ func GetLowBalAccs(ctx types.Context) error {
 		}
 
 		addr := key.KeyAddress
-		err = AlertOnLowBalance(ctx, grpcEndpoint, addr, baseDenom, coinDecimals)
+		err = AlertOnLowBalance(ctx, grpcEndpoint, addr, baseDenom, coinDecimals, displayDenom)
 		if err != nil {
 			log.Printf("error on sending low balance alert: %v", err)
 			return err
@@ -59,7 +62,7 @@ func GetLowBalAccs(ctx types.Context) error {
 }
 
 // Gets balance of an account and alerts if the balance is low
-func AlertOnLowBalance(ctx types.Context, endpoint, addr, denom string, coinDecimals int64) error {
+func AlertOnLowBalance(ctx types.Context, endpoint, addr, denom string, coinDecimals int64, displayDenom string) error {
 
 	creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: false})
 	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(creds))
@@ -83,8 +86,8 @@ func AlertOnLowBalance(ctx types.Context, endpoint, addr, denom string, coinDeci
 		return err
 	}
 
-	if balance.Balance.IsGTE(sdk.NewCoin(denom, sdk.NewInt(1).Mul(sdk.NewInt(coinDecimals)))) {
-		err := SendLowBalanceAlerts(ctx, addr, balance.Balance.Amount.String(), balance.Balance.Denom)
+	if balance.Balance.IsLTE(sdk.NewCoin(denom, sdk.NewInt(int64(math.Pow(10, float64(coinDecimals)))))) {
+		err := sendLowBalanceAlerts(ctx, addr, balance.Balance.Amount.Quo(sdk.NewInt(int64(math.Pow(10, float64(coinDecimals))))).String(), displayDenom)
 		if err != nil {
 			log.Printf("error while sending low balance alert: %v", err)
 			return err
@@ -94,13 +97,13 @@ func AlertOnLowBalance(ctx types.Context, endpoint, addr, denom string, coinDeci
 	return nil
 }
 
-// SendLowBalanceAlerts which sends alerts on low balance grantee accounts
-func SendLowBalanceAlerts(ctx types.Context, addr, amount, denom string) error {
+// sendLowBalanceAlerts which sends alerts on low balance grantee accounts
+func sendLowBalanceAlerts(ctx types.Context, addr, amount, displayDenom string) error {
 	api := ctx.Slacker().APIClient()
 
 	attachment := []slack.Block{
 		slack.NewHeaderBlock(
-			slack.NewTextBlockObject("plain_text", fmt.Sprintf("%s is low on balance\nAvailable balance: %s%s", addr, amount, denom), false, false),
+			slack.NewTextBlockObject("plain_text", fmt.Sprintf("%s is low on balance\nAvailable balance: %s%s", addr, amount, displayDenom), false, false),
 		),
 	}
 
