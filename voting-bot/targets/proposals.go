@@ -9,7 +9,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -60,7 +59,6 @@ func GetProposals(ctx types.Context) {
 // Alerts on Active Proposals
 func alertOnProposals(ctx types.Context, networks []string, validators []database.Validator) error {
 	for _, val := range validators {
-
 		chainInfo, err := ctx.ChainRegistry().GetChain(ctx.Context(), val.ChainName)
 		if err != nil {
 			return err
@@ -111,8 +109,9 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 				title, err := getTitleFromProposal(proposal)
 				if err != nil {
 					log.Printf("failed to get proposal title: %v", err)
-					return err
+					title = "Unknown title"
 				}
+
 				if err := ctx.Database().AddLog(val.ChainName, title, fmt.Sprint(proposal.ID), ""); err != nil {
 					fmt.Printf("failed to store vote logs: %v", err)
 				}
@@ -355,24 +354,14 @@ func getTitleFromString(metadataStr string) (string, error) {
 		return "", nil
 	}
 
-	var metadata map[string]interface{}
-	err := json.Unmarshal([]byte(metadataStr), &metadata)
-	if err != nil {
-		return "", err
-	}
-
-	// Check if the metadata is an IPFS link
-	if reflect.TypeOf(metadata["title"]).String() == "string" {
-		ipfsLink := metadata["title"].(string)
-		if len(ipfsLink) > 0 && ipfsLink[:8] == "ipfs://" {
-			ipfsTitle, err := fetchMetadataFromIPFS(ipfsLink)
-			return ipfsTitle, err
-		}
+	if strings.Contains(metadataStr, "ipfs://") {
+		ipfsTitle, err := fetchMetadataFromIPFS(metadataStr[7:])
+		return ipfsTitle, err
 	}
 
 	// Otherwise, unmarshal and get the title
 	var meta types.Metadata
-	err = json.Unmarshal([]byte(metadataStr), &meta)
+	err := json.Unmarshal([]byte(metadataStr), &meta)
 	if err != nil {
 		return "", err
 	}
@@ -380,8 +369,13 @@ func getTitleFromString(metadataStr string) (string, error) {
 	return meta.Title, nil
 }
 
+type GovMetadata struct {
+	Title   string `json:"title"`
+	Summary string `json:"summary"`
+}
+
 func fetchMetadataFromIPFS(ipfsLink string) (string, error) {
-	resp, err := http.Get(ipfsLink)
+	resp, err := http.Get("https://ipfs.io/ipfs/" + ipfsLink)
 	if err != nil {
 		return "", err
 	}
@@ -392,5 +386,11 @@ func fetchMetadataFromIPFS(ipfsLink string) (string, error) {
 		return "", err
 	}
 
-	return string(body), nil
+	var meta types.Metadata
+	err = json.Unmarshal(body, &meta)
+	if err != nil {
+		return "", err
+	}
+
+	return meta.Title, nil
 }
