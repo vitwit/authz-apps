@@ -36,7 +36,7 @@ var GovV1Support = map[string]map[string]bool{
 		"authz_enabled": true,
 	},
 	"osmosis": {
-		"govv1_enabled": true,
+		"govv1_enabled": false,
 		"authz_enabled": true,
 	},
 	"regen": {
@@ -48,7 +48,7 @@ var GovV1Support = map[string]map[string]bool{
 		"authz_enabled": true,
 	},
 	"juno": {
-		"govv1_enabled": false,
+		"govv1_enabled": true,
 		"authz_enabled": true,
 	},
 	"umee": {
