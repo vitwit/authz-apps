@@ -66,20 +66,28 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 
 		endpoint, err := endpoints.GetValidEndpointForChain(val.ChainName)
 		if err != nil {
-			return err
+			if err := sendNoActiveEndpointAlert(ctx, "REST", val.ChainName); err != nil {
+				return err
+			}
+			continue
 		}
 
 		grpcEndpoint, err := chainInfo.GetActiveGRPCEndpoint(ctx.Context())
 		if err != nil {
-			log.Printf("Error while getting grpc endpoint : %v", err)
-			return err
+			if err := sendNoActiveEndpointAlert(ctx, "gRPC", val.ChainName); err != nil {
+				return err
+			}
+			continue
 		}
 
 		creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: false})
 		conn, err := grpc.Dial(grpcEndpoint, grpc.WithTransportCredentials(creds))
 		if err != nil {
 			log.Printf("Failed to connect to %s: %v", grpcEndpoint, err)
-			return err
+			if err := sendNoActiveEndpointAlert(ctx, "gRPC", val.ChainName); err != nil {
+				return err
+			}
+			continue
 		}
 		defer conn.Close()
 
@@ -178,6 +186,8 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 			}
 		}
 
+		log.Println("Network name = ", val.ChainName)
+		log.Println("Missed proposals = ", len(missedProposals))
 		if len(missedProposals) > 0 {
 			err = sendVotingPeriodProposalAlerts(ctx, val.ChainName, missedProposals)
 			if err != nil {
@@ -274,6 +284,26 @@ func getValidatorVoteV1beta1(ctx types.Context, client govv1beta1types.QueryClie
 	}
 
 	return validatorVoted, nil
+}
+
+func sendNoActiveEndpointAlert(ctx types.Context, backendType string, chainName string) error {
+	api := ctx.Slacker().APIClient()
+
+	attachment := []slack.Block{
+		slack.NewHeaderBlock(
+			slack.NewTextBlockObject("plain_text", fmt.Sprintf("No active %s endpoint available for %s", backendType, chainName), false, false),
+		),
+	}
+
+	_, _, err := api.PostMessage(
+		ctx.Config().Slack.ChannelID,
+		slack.MsgOptionBlocks(attachment...),
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // sendVotingPeriodProposalAlerts which send alerts of voting period proposals
