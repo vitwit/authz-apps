@@ -73,10 +73,10 @@ func ExecVote(ctx types.Context, chainName, pID, granter, vote,
 	coins, err := sdk.ParseDecCoins(gasPrices)
 	if err != nil {
 		fmt.Printf("Error while parsing gasPrices :%v\nInvalid fee format, using default fee", err)
-		gasPrices = "0.75" + denom
+		gasPrices = "0.99" + denom
 	} else {
 		if coins.Empty() {
-			gasPrices = "0.75" + denom
+			gasPrices = "0.99" + denom
 		}
 	}
 
@@ -142,12 +142,12 @@ func ExecVote(ctx types.Context, chainName, pID, granter, vote,
 		Msgs:    []*cdctypes.Any{msgAny},
 	}
 
-	responseWriter.Reply(fmt.Sprintf("voting %s on %s proposal %d", voteOption, chainName, proposalID))
+	// responseWriter.Reply(fmt.Sprintf("voting %s on %s proposal %d", voteOption, chainName, proposalID))
 	// Send msg and get response
 	res, err := chainClient.SendMsg(context.Background(), req, memo)
 	if err != nil {
 		if res != nil {
-			return "", fmt.Errorf("failed to vote on proposal: code(%d) msg(%s)", res.Code, res.Logs)
+			return "", fmt.Errorf("failed to vote on proposal: code(%d) msg(%s)", res.Code, res.RawLog)
 		}
 		return "", fmt.Errorf("failed to vote.Err: %v", err)
 	} else {
