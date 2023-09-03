@@ -2,14 +2,12 @@ package targets
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -18,11 +16,6 @@ import (
 	"github.com/vitwit/authz-apps/voting-bot/endpoints"
 	"github.com/vitwit/authz-apps/voting-bot/types"
 	"github.com/vitwit/authz-apps/voting-bot/utils"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-
-	govv1types "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
-	govv1beta1types "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 )
 
 type (
@@ -56,15 +49,6 @@ func GetProposals(ctx types.Context) {
 // Alerts on Active Proposals
 func alertOnProposals(ctx types.Context, networks []string, validators []database.Validator) {
 	for _, val := range validators {
-		fmt.Println("=======================")
-		fmt.Println(val.ChainName)
-		fmt.Println("=======================")
-		chainInfo, err := ctx.ChainRegistry().GetChain(ctx.Context(), val.ChainName)
-		if err != nil {
-			log.Printf("failed to get chain-info %s", val.ChainName)
-			continue
-		}
-
 		endpoint, err := endpoints.GetValidEndpointForChain(val.ChainName)
 		if err != nil {
 			log.Printf("no active REST endpoint for %s", val.ChainName)
@@ -72,119 +56,76 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 			continue
 		}
 
-		grpcEndpoint, err := chainInfo.GetActiveGRPCEndpoint(ctx.Context())
-		if err != nil {
-			log.Printf("no active GRPC endpoint for %s", val.ChainName)
-			sendPlainAlert(ctx, fmt.Sprintf("No active %s endpoint available for %s", "gRPC", val.ChainName))
-			continue
-		}
-
-		creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: false})
-		conn, err := grpc.Dial(grpcEndpoint, grpc.WithTransportCredentials(creds))
-		if err != nil {
-			log.Printf("Failed to connect to %s: %v", grpcEndpoint, err)
-			sendPlainAlert(ctx, fmt.Sprintf("No active %s endpoint available for %s", "gRPC", val.ChainName))
-			continue
-		}
-		defer conn.Close()
-
 		var missedProposals []MissedProposal
 		if utils.GovV1Support[val.ChainName]["govv1_enabled"] {
-			ops := types.HTTPOptions{
-				Endpoint:    endpoint + "/cosmos/gov/v1/proposals",
-				Method:      http.MethodGet,
-				QueryParams: types.QueryParams{"proposal_status": "2"},
-			}
-			resp, err := endpoints.HitHTTPTarget(ops)
+
+			proposals, err := GetActiveProposals(ctx, true, endpoint)
 			if err != nil {
-				log.Printf("Error while getting http response: %v", err)
-				sendPlainAlert(ctx, fmt.Sprintf("Error while getting http response: %v for %s", err, val.ChainName))
+				log.Printf("failed to get active proposal for %s", val.ChainName)
+				sendPlainAlert(ctx, fmt.Sprintf("failed to get active proposals for chain %s: %v", val.ChainName, err))
 				continue
 			}
 
-			var proposals types.V1Proposals
-			err = json.Unmarshal(resp.Body, &proposals)
-			if err != nil {
-				log.Printf("Error while unmarshalling proposals: %v", err)
-			}
-
-			for _, proposal := range proposals.Proposals {
-				client := govv1types.NewQueryClient(conn)
-
-				title, err := getTitleFromProposal(proposal)
-				if err != nil {
-					log.Printf("failed to get proposal title: %v", err)
-					title = "Unknown title"
-				}
-
-				if err := ctx.Database().AddLog(val.ChainName, title, fmt.Sprint(proposal.ID), ""); err != nil {
+			for _, proposal := range proposals {
+				if err := ctx.Database().AddLog(val.ChainName, proposal.Title, proposal.ProposalID, ""); err != nil {
 					fmt.Printf("failed to store vote logs: %v", err)
 				}
-				validatorVote, err := getValidatorVoteV1(ctx, client, proposal.ID, val.Address, val.ChainName)
+
+				vote, err := GetValidatorVoteOption(ctx, true, val.ChainName, endpoint, proposal.ProposalID, val.Address)
 				if err != nil {
-					sendPlainAlert(ctx, fmt.Sprintf("Failed to get validator vote on %s : %s", val.ChainName, err.Error()))
+					log.Printf("failed to get validator vote for %s", val.ChainName)
+					sendPlainAlert(ctx, fmt.Sprintf("failed to get validator vote fo %s: %v", val.ChainName, err))
 					continue
 				}
 
-				if validatorVote == "" {
+				if vote == "" {
 					missedProposals = append(missedProposals, MissedProposal{
 						accAddr:       val.Address,
-						pTitle:        title,
-						pID:           proposal.ID,
-						votingEndTime: proposal.VotingEndTime,
+						pTitle:        proposal.Title,
+						pID:           proposal.ProposalID,
+						votingEndTime: proposal.VotingEndTime.String(),
 					})
 				} else {
-					if err := ctx.Database().UpdateVoteLog(val.ChainName, proposal.ID, validatorVote); err != nil {
+					if err := ctx.Database().UpdateVoteLog(val.ChainName, proposal.ProposalID, vote); err != nil {
 						fmt.Printf("failed to update vote log: %v", err)
 					}
 				}
 			}
 
 		} else {
-			ops := types.HTTPOptions{
-				Endpoint:    endpoint + "/cosmos/gov/v1beta1/proposals",
-				Method:      http.MethodGet,
-				QueryParams: types.QueryParams{"proposal_status": "2"},
-			}
-			resp, err := endpoints.HitHTTPTarget(ops)
+			proposals, err := GetActiveProposals(ctx, false, endpoint)
 			if err != nil {
-				log.Printf("Error while getting http response: %v", err)
-				sendPlainAlert(ctx, fmt.Sprintf("Error while getting http response: %v for %s", err, val.ChainName))
+				log.Printf("failed to get active proposal for %s", val.ChainName)
+				sendPlainAlert(ctx, fmt.Sprintf("failed to get active proposals for chain %s: %v", val.ChainName, err))
 				continue
 			}
 
-			var proposals types.ProposalsLegacy
-			err = json.Unmarshal(resp.Body, &proposals)
-			if err != nil {
-				log.Printf("Error while unmarshalling proposals: %v", err)
-			}
-
-			client := govv1beta1types.NewQueryClient(conn)
-			for _, proposal := range proposals.Proposals {
-				if err := ctx.Database().AddLog(val.ChainName, proposal.Content.Title, proposal.ProposalID, ""); err != nil {
+			for _, proposal := range proposals {
+				if err := ctx.Database().AddLog(val.ChainName, proposal.Title, proposal.ProposalID, ""); err != nil {
 					fmt.Printf("failed to store vote logs: %v", err)
 				}
-				validatorVote, err := getValidatorVoteV1beta1(ctx, client, proposal.ProposalID, val.Address, val.ChainName)
+
+				vote, err := GetValidatorVoteOption(ctx, false, val.ChainName, endpoint, proposal.ProposalID, val.Address)
 				if err != nil {
-					if err := sendPlainAlert(ctx, fmt.Sprintf("Failed to get validator vote on %s : %s", val.ChainName, err.Error())); err != nil {
-						continue
-					}
+					log.Printf("failed to get validator vote for %s", val.ChainName)
+					sendPlainAlert(ctx, fmt.Sprintf("failed to get validator vote fo %s: %v", val.ChainName, err))
 					continue
 				}
 
-				if validatorVote == "" {
+				if vote == "" {
 					missedProposals = append(missedProposals, MissedProposal{
 						accAddr:       val.Address,
-						pTitle:        proposal.Content.Title,
+						pTitle:        proposal.Title,
 						pID:           proposal.ProposalID,
-						votingEndTime: proposal.VotingEndTime,
+						votingEndTime: proposal.VotingEndTime.String(),
 					})
 				} else {
-					if err := ctx.Database().UpdateVoteLog(val.ChainName, proposal.ProposalID, validatorVote); err != nil {
+					if err := ctx.Database().UpdateVoteLog(val.ChainName, proposal.ProposalID, vote); err != nil {
 						fmt.Printf("failed to update vote log: %v", err)
 					}
 				}
 			}
+
 		}
 
 		log.Println("Network name = ", val.ChainName)
@@ -196,93 +137,6 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 			}
 		}
 	}
-}
-
-func convertValAddrToAccAddr(ctx types.Context, valAddr, chainName string) (string, error) {
-	chainInfo, err := ctx.ChainRegistry().GetChain(context.Background(), chainName)
-	if err != nil {
-		return "", err
-	}
-
-	done := utils.SetBech32Prefixes(chainInfo)
-	addr, err := utils.ValAddressFromBech32(valAddr)
-	if err != nil {
-		done()
-		return "", err
-	}
-
-	accAddr, err := utils.AccAddressFromHexUnsafe(hex.EncodeToString(addr.Bytes()))
-	if err != nil {
-		return "", err
-	}
-
-	accAddrString := accAddr.String()
-	done()
-	return accAddrString, nil
-}
-
-// getValidatorVoteV1 to check validator voted for the proposal or not.
-func getValidatorVoteV1(ctx types.Context, client govv1types.QueryClient, proposalID string, valAddr, chainName string) (string, error) {
-	accAddrString, err := convertValAddrToAccAddr(ctx, valAddr, chainName)
-	if err != nil {
-		return "", err
-	}
-
-	pID, err := strconv.ParseUint(proposalID, 10, 64)
-	if err != nil {
-		return "", err
-	}
-
-	resp, err := client.Vote(ctx.Context(), &govv1types.QueryVoteRequest{
-		ProposalId: pID,
-		Voter:      accAddrString,
-	})
-	if err != nil {
-		if strings.Contains(err.Error(), "not found for proposal") {
-			return "", nil
-		}
-		log.Printf("Error while getting  v1 vote response: %v", err)
-		return "", err
-	}
-
-	validatorVoted := ""
-	for _, value := range resp.Vote.Options {
-		validatorVoted = value.Option.String()
-	}
-
-	return validatorVoted, nil
-}
-
-// getValidatorVoteV1beta1 to check validator voted for the proposal or not.
-func getValidatorVoteV1beta1(ctx types.Context, client govv1beta1types.QueryClient, proposalID string, valAddr, chainName string) (string, error) {
-	accAddrString, err := convertValAddrToAccAddr(ctx, valAddr, chainName)
-	if err != nil {
-		return "", err
-	}
-
-	pID, err := strconv.ParseUint(proposalID, 10, 64)
-	if err != nil {
-		return "", err
-	}
-
-	resp, err := client.Vote(ctx.Context(), &govv1beta1types.QueryVoteRequest{
-		ProposalId: pID,
-		Voter:      accAddrString,
-	})
-	if err != nil {
-		if strings.Contains(err.Error(), "not found for proposal") {
-			return "", nil
-		}
-		log.Printf("Error while getting v1beta1 vote response: %v", err)
-		return "", err
-	}
-
-	validatorVoted := ""
-	for _, value := range resp.Vote.Options {
-		validatorVoted = value.Option.String()
-	}
-
-	return validatorVoted, nil
 }
 
 func sendPlainAlert(ctx types.Context, msg string) error {
@@ -347,6 +201,146 @@ func sendVotingPeriodProposalAlerts(ctx types.Context, chainName string, proposa
 	}
 
 	return nil
+}
+
+type ActiveProposalResult struct {
+	ProposalID    string
+	Title         string
+	VotingEndTime time.Time
+}
+
+func GetActiveProposals(ctx types.Context, isV1 bool, restEndpoint string) ([]ActiveProposalResult, error) {
+	if isV1 {
+		resp, err := endpoints.HitHTTPTarget(types.HTTPOptions{
+			Endpoint:    restEndpoint + "/cosmos/gov/v1/proposals",
+			Method:      http.MethodGet,
+			QueryParams: types.QueryParams{"proposal_status": "2"},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		var proposals types.Proposals
+		if err := json.Unmarshal(resp.Body, &proposals); err != nil {
+			return nil, err
+		}
+
+		var result []ActiveProposalResult
+		for _, proposal := range proposals.Proposals {
+			title, err := getTitleFromProposal(proposal)
+			if err != nil {
+				title = "Unknown title"
+			}
+
+			endTime, err := time.Parse(time.RFC3339, proposal.VotingEndTime)
+			if err != nil {
+				return nil, err
+			}
+
+			result = append(result, ActiveProposalResult{
+				ProposalID:    proposal.ID,
+				Title:         title,
+				VotingEndTime: endTime,
+			})
+		}
+
+		return result, nil
+	} else {
+		resp, err := endpoints.HitHTTPTarget(types.HTTPOptions{
+			Endpoint:    restEndpoint + "/cosmos/gov/v1beta1/proposals",
+			Method:      http.MethodGet,
+			QueryParams: types.QueryParams{"proposal_status": "2"},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		var proposals types.LegacyProposals
+		if err := json.Unmarshal(resp.Body, &proposals); err != nil {
+			return nil, err
+		}
+
+		var result []ActiveProposalResult
+		for _, proposal := range proposals.Proposals {
+			endTime, err := time.Parse(time.RFC3339, proposal.VotingEndTime)
+			if err != nil {
+				return nil, err
+			}
+
+			result = append(result, ActiveProposalResult{
+				ProposalID:    proposal.ProposalID,
+				Title:         proposal.Content.Title,
+				VotingEndTime: endTime,
+			})
+		}
+
+		return result, nil
+	}
+}
+
+func GetValidatorVoteOption(ctx types.Context, isV1 bool, chainName, restEndpoint, proposalID, validatorAddress string) (string, error) {
+	accAddrString, err := ConvertValAddrToAccAddr(ctx, validatorAddress, chainName)
+	if err != nil {
+		return "", err
+	}
+
+	if isV1 {
+		resp, err := endpoints.HitHTTPTarget(types.HTTPOptions{
+			Endpoint: restEndpoint + "/cosmos/gov/v1/proposals/" + proposalID + "/votes/" + accAddrString,
+			Method:   http.MethodGet,
+		})
+		if err != nil {
+			return "", err
+		}
+
+		var vote types.VoteResponse
+		if err := json.Unmarshal(resp.Body, &vote); err != nil {
+			return "", err
+		}
+
+		if len(vote.Vote.Options) == 0 {
+			return "", nil
+		}
+
+		if len(vote.Vote.Options) == 1 {
+			return vote.Vote.Options[0].Option, nil
+		}
+
+		var voteResult string
+		for _, option := range vote.Vote.Options {
+			voteResult += fmt.Sprintf("%s-%s", option.Option, option.Weight)
+		}
+
+		return voteResult, nil
+
+	} else {
+		resp, err := endpoints.HitHTTPTarget(types.HTTPOptions{
+			Endpoint: restEndpoint + "/cosmos/gov/v1beta1/proposals/" + proposalID + "/votes/" + accAddrString,
+			Method:   http.MethodGet,
+		})
+		if err != nil {
+			return "", err
+		}
+		var vote types.LegacyVoteResponse
+		if err := json.Unmarshal(resp.Body, &vote); err != nil {
+			return "", err
+		}
+
+		if len(vote.Vote.Options) == 0 {
+			return "", nil
+		}
+
+		if len(vote.Vote.Options) == 1 {
+			return vote.Vote.Options[0].Option, nil
+		}
+
+		var voteResult string
+		for _, option := range vote.Vote.Options {
+			voteResult += fmt.Sprintf("%s-%s", option.Option, option.Weight)
+		}
+
+		return voteResult, nil
+	}
 }
 
 func getTitleFromProposal(proposal types.Proposal) (string, error) {
@@ -422,4 +416,27 @@ func fetchMetadataFromIPFS(ipfsLink string) (string, error) {
 	}
 
 	return meta.Title, nil
+}
+
+func ConvertValAddrToAccAddr(ctx types.Context, valAddr, chainName string) (string, error) {
+	chainInfo, err := ctx.ChainRegistry().GetChain(context.Background(), chainName)
+	if err != nil {
+		return "", err
+	}
+
+	done := utils.SetBech32Prefixes(chainInfo)
+	addr, err := utils.ValAddressFromBech32(valAddr)
+	if err != nil {
+		done()
+		return "", err
+	}
+
+	accAddr, err := utils.AccAddressFromHexUnsafe(hex.EncodeToString(addr.Bytes()))
+	if err != nil {
+		return "", err
+	}
+
+	accAddrString := accAddr.String()
+	done()
+	return accAddrString, nil
 }

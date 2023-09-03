@@ -32,22 +32,12 @@ func SyncAuthzStatus(ctx types.Context) error {
 		for _, val := range validators {
 			if val.ChainName == key.ChainName {
 
-				granter, err := convertValAddrToAccAddr(ctx, val.Address, key.ChainName)
+				granter, err := ConvertValAddrToAccAddr(ctx, val.Address, key.ChainName)
 				if err != nil {
 					return err
 				}
 
-				chainInfo, err := ctx.ChainRegistry().GetChain(ctx.Context(), key.ChainName)
-				if err != nil {
-					return err
-				}
-
-				grpcEndpoint, err := chainInfo.GetActiveGRPCEndpoint(ctx.Context())
-				if err != nil {
-					return err
-				}
-
-				hasAuthz, err := utils.HasAuthzGrant(grpcEndpoint, granter, key.KeyAddress, MSG_VOTE_TYPEURL_V1BETA1)
+				hasAuthz, err := utils.HasAuthzGrant(validEndpoint, granter, key.KeyAddress, MSG_VOTE_TYPEURL_V1BETA1)
 				if err != nil {
 					return err
 				}

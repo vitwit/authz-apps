@@ -9,6 +9,7 @@ import (
 	"github.com/slack-go/slack"
 	lensclient "github.com/strangelove-ventures/lens/client"
 	registry "github.com/strangelove-ventures/lens/client/chain_registry"
+	"github.com/vitwit/authz-apps/voting-bot/endpoints"
 	"github.com/vitwit/authz-apps/voting-bot/types"
 	"github.com/vitwit/authz-apps/voting-bot/utils"
 	"github.com/vitwit/authz-apps/voting-bot/voting"
@@ -42,21 +43,22 @@ func Withdraw(ctx types.Context) error {
 			return err
 		}
 
-		grpcEndpoint, err := chainInfo.GetActiveGRPCEndpoint(ctx.Context())
-		if err != nil {
-			return err
-		}
-
 		for _, val := range validators {
 			if val.ChainName == key.ChainName {
+				validEndpoint, err := endpoints.GetValidEndpointForChain(key.ChainName)
+				if err != nil {
+					log.Printf("Error in getting valid LCD endpoints for %s chain", key.ChainName)
+					return err
+				}
+
 				var msgs []*cdctypes.Any
 
-				granter, err := convertValAddrToAccAddr(ctx, val.Address, key.ChainName)
+				granter, err := ConvertValAddrToAccAddr(ctx, val.Address, key.ChainName)
 				if err != nil {
 					return err
 				}
 
-				hasAuthz, err := utils.HasAuthzGrant(grpcEndpoint, granter, key.KeyAddress, WITHDRAW_REWARDS_TYPEURL)
+				hasAuthz, err := utils.HasAuthzGrant(validEndpoint, granter, key.KeyAddress, WITHDRAW_REWARDS_TYPEURL)
 				if err != nil {
 					return err
 				}
@@ -71,7 +73,7 @@ func Withdraw(ctx types.Context) error {
 					msgs = append(msgs, msg)
 				}
 
-				hasAuthz, err = utils.HasAuthzGrant(grpcEndpoint, granter, key.KeyAddress, WITHDRAW_COMMISSION)
+				hasAuthz, err = utils.HasAuthzGrant(validEndpoint, granter, key.KeyAddress, WITHDRAW_COMMISSION)
 				if err != nil {
 					return err
 				}
