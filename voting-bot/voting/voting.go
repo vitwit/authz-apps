@@ -142,7 +142,7 @@ func ExecVote(ctx types.Context, chainName, pID, granter, vote,
 		Msgs:    []*cdctypes.Any{msgAny},
 	}
 
-	// responseWriter.Reply(fmt.Sprintf("voting %s on %s proposal %d", voteOption, chainName, proposalID))
+	responseWriter.Reply(fmt.Sprintf("voting %s on %s proposal %d", voteOption, chainName, proposalID))
 	// Send msg and get response
 	res, err := chainClient.SendMsg(context.Background(), req, memo)
 	if err != nil {
