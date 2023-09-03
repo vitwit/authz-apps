@@ -61,11 +61,13 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 	for _, val := range validators {
 		chainInfo, err := ctx.ChainRegistry().GetChain(ctx.Context(), val.ChainName)
 		if err != nil {
-			return err
+			log.Printf("failed to get chain-info %s", val.ChainName)
+			continue
 		}
 
 		endpoint, err := endpoints.GetValidEndpointForChain(val.ChainName)
 		if err != nil {
+			log.Printf("no active REST endpoint for %s", val.ChainName)
 			if err := sendPlainAlert(ctx, fmt.Sprintf("No active %s endpoint available for %s", "REST", val.ChainName)); err != nil {
 				return err
 			}
@@ -74,6 +76,7 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 
 		grpcEndpoint, err := chainInfo.GetActiveGRPCEndpoint(ctx.Context())
 		if err != nil {
+			log.Printf("no active GRPC endpoint for %s", val.ChainName)
 			if err := sendPlainAlert(ctx, fmt.Sprintf("No active %s endpoint available for %s", "gRPC", val.ChainName)); err != nil {
 				return err
 			}
@@ -178,7 +181,7 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 				validatorVote, err := getValidatorVoteV1beta1(ctx, client, proposal.ProposalID, val.Address, val.ChainName)
 				if err != nil {
 					if err := sendPlainAlert(ctx, fmt.Sprintf("Failed to get validator vote on %s : %s", val.ChainName, err.Error())); err != nil {
-						return err
+						continue
 					}
 					continue
 				}
