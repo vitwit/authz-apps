@@ -101,7 +101,10 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 			resp, err := endpoints.HitHTTPTarget(ops)
 			if err != nil {
 				log.Printf("Error while getting http response: %v", err)
-				return err
+				if err := sendPlainAlert(ctx, fmt.Sprintf("Error while getting http response: %v for %s", err, val.ChainName)); err != nil {
+					return err
+				}
+				continue
 			}
 
 			var proposals types.V1Proposals
@@ -154,7 +157,10 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 			resp, err := endpoints.HitHTTPTarget(ops)
 			if err != nil {
 				log.Printf("Error while getting http response: %v", err)
-				return err
+				if err := sendPlainAlert(ctx, fmt.Sprintf("Error while getting http response: %v for %s", err, val.ChainName)); err != nil {
+					return err
+				}
+				continue
 			}
 
 			var proposals types.ProposalsLegacy
