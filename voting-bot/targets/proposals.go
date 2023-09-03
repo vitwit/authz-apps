@@ -50,15 +50,15 @@ func GetProposals(ctx types.Context) {
 		}
 	}
 
-	err = alertOnProposals(ctx, networks, vals)
-	if err != nil {
-		log.Printf("Error while alerting on proposals: %s", err)
-	}
+	alertOnProposals(ctx, networks, vals)
 }
 
 // Alerts on Active Proposals
-func alertOnProposals(ctx types.Context, networks []string, validators []database.Validator) error {
+func alertOnProposals(ctx types.Context, networks []string, validators []database.Validator) {
 	for _, val := range validators {
+		fmt.Println("=======================")
+		fmt.Println(val.ChainName)
+		fmt.Println("=======================")
 		chainInfo, err := ctx.ChainRegistry().GetChain(ctx.Context(), val.ChainName)
 		if err != nil {
 			log.Printf("failed to get chain-info %s", val.ChainName)
@@ -68,18 +68,14 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 		endpoint, err := endpoints.GetValidEndpointForChain(val.ChainName)
 		if err != nil {
 			log.Printf("no active REST endpoint for %s", val.ChainName)
-			if err := sendPlainAlert(ctx, fmt.Sprintf("No active %s endpoint available for %s", "REST", val.ChainName)); err != nil {
-				return err
-			}
+			sendPlainAlert(ctx, fmt.Sprintf("No active %s endpoint available for %s", "REST", val.ChainName))
 			continue
 		}
 
 		grpcEndpoint, err := chainInfo.GetActiveGRPCEndpoint(ctx.Context())
 		if err != nil {
 			log.Printf("no active GRPC endpoint for %s", val.ChainName)
-			if err := sendPlainAlert(ctx, fmt.Sprintf("No active %s endpoint available for %s", "gRPC", val.ChainName)); err != nil {
-				return err
-			}
+			sendPlainAlert(ctx, fmt.Sprintf("No active %s endpoint available for %s", "gRPC", val.ChainName))
 			continue
 		}
 
@@ -87,9 +83,7 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 		conn, err := grpc.Dial(grpcEndpoint, grpc.WithTransportCredentials(creds))
 		if err != nil {
 			log.Printf("Failed to connect to %s: %v", grpcEndpoint, err)
-			if err := sendPlainAlert(ctx, fmt.Sprintf("No active %s endpoint available for %s", "gRPC", val.ChainName)); err != nil {
-				return err
-			}
+			sendPlainAlert(ctx, fmt.Sprintf("No active %s endpoint available for %s", "gRPC", val.ChainName))
 			continue
 		}
 		defer conn.Close()
@@ -104,9 +98,7 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 			resp, err := endpoints.HitHTTPTarget(ops)
 			if err != nil {
 				log.Printf("Error while getting http response: %v", err)
-				if err := sendPlainAlert(ctx, fmt.Sprintf("Error while getting http response: %v for %s", err, val.ChainName)); err != nil {
-					return err
-				}
+				sendPlainAlert(ctx, fmt.Sprintf("Error while getting http response: %v for %s", err, val.ChainName))
 				continue
 			}
 
@@ -114,7 +106,6 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 			err = json.Unmarshal(resp.Body, &proposals)
 			if err != nil {
 				log.Printf("Error while unmarshalling proposals: %v", err)
-				return err
 			}
 
 			for _, proposal := range proposals.Proposals {
@@ -131,9 +122,7 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 				}
 				validatorVote, err := getValidatorVoteV1(ctx, client, proposal.ID, val.Address, val.ChainName)
 				if err != nil {
-					if err := sendPlainAlert(ctx, fmt.Sprintf("Failed to get validator vote on %s : %s", val.ChainName, err.Error())); err != nil {
-						return err
-					}
+					sendPlainAlert(ctx, fmt.Sprintf("Failed to get validator vote on %s : %s", val.ChainName, err.Error()))
 					continue
 				}
 
@@ -160,9 +149,7 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 			resp, err := endpoints.HitHTTPTarget(ops)
 			if err != nil {
 				log.Printf("Error while getting http response: %v", err)
-				if err := sendPlainAlert(ctx, fmt.Sprintf("Error while getting http response: %v for %s", err, val.ChainName)); err != nil {
-					return err
-				}
+				sendPlainAlert(ctx, fmt.Sprintf("Error while getting http response: %v for %s", err, val.ChainName))
 				continue
 			}
 
@@ -170,7 +157,6 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 			err = json.Unmarshal(resp.Body, &proposals)
 			if err != nil {
 				log.Printf("Error while unmarshalling proposals: %v", err)
-				return err
 			}
 
 			client := govv1beta1types.NewQueryClient(conn)
@@ -207,11 +193,9 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 			err = sendVotingPeriodProposalAlerts(ctx, val.ChainName, missedProposals)
 			if err != nil {
 				log.Printf("error on sending voting period proposals alert: %v", err)
-				return err
 			}
 		}
 	}
-	return nil
 }
 
 func convertValAddrToAccAddr(ctx types.Context, valAddr, chainName string) (string, error) {
