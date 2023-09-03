@@ -83,7 +83,7 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 						accAddr:       val.Address,
 						pTitle:        proposal.Title,
 						pID:           proposal.ProposalID,
-						votingEndTime: proposal.VotingEndTime.String(),
+						votingEndTime: proposal.VotingEndTime,
 					})
 				} else {
 					if err := ctx.Database().UpdateVoteLog(val.ChainName, proposal.ProposalID, vote); err != nil {
@@ -117,7 +117,7 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 						accAddr:       val.Address,
 						pTitle:        proposal.Title,
 						pID:           proposal.ProposalID,
-						votingEndTime: proposal.VotingEndTime.String(),
+						votingEndTime: proposal.VotingEndTime,
 					})
 				} else {
 					if err := ctx.Database().UpdateVoteLog(val.ChainName, proposal.ProposalID, vote); err != nil {
@@ -206,7 +206,7 @@ func sendVotingPeriodProposalAlerts(ctx types.Context, chainName string, proposa
 type ActiveProposalResult struct {
 	ProposalID    string
 	Title         string
-	VotingEndTime time.Time
+	VotingEndTime string
 }
 
 func GetActiveProposals(ctx types.Context, isV1 bool, restEndpoint string) ([]ActiveProposalResult, error) {
@@ -232,15 +232,10 @@ func GetActiveProposals(ctx types.Context, isV1 bool, restEndpoint string) ([]Ac
 				title = "Unknown title"
 			}
 
-			endTime, err := time.Parse(time.RFC3339, proposal.VotingEndTime)
-			if err != nil {
-				return nil, err
-			}
-
 			result = append(result, ActiveProposalResult{
 				ProposalID:    proposal.ID,
 				Title:         title,
-				VotingEndTime: endTime,
+				VotingEndTime: proposal.VotingEndTime,
 			})
 		}
 
@@ -262,15 +257,10 @@ func GetActiveProposals(ctx types.Context, isV1 bool, restEndpoint string) ([]Ac
 
 		var result []ActiveProposalResult
 		for _, proposal := range proposals.Proposals {
-			endTime, err := time.Parse(time.RFC3339, proposal.VotingEndTime)
-			if err != nil {
-				return nil, err
-			}
-
 			result = append(result, ActiveProposalResult{
 				ProposalID:    proposal.ProposalID,
 				Title:         proposal.Content.Title,
-				VotingEndTime: endTime,
+				VotingEndTime: proposal.VotingEndTime,
 			})
 		}
 
