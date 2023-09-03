@@ -66,7 +66,7 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 
 		endpoint, err := endpoints.GetValidEndpointForChain(val.ChainName)
 		if err != nil {
-			if err := sendNoActiveEndpointAlert(ctx, "REST", val.ChainName); err != nil {
+			if err := sendPlainAlert(ctx, fmt.Sprintf("No active %s endpoint available for %s", "REST", val.ChainName)); err != nil {
 				return err
 			}
 			continue
@@ -74,7 +74,7 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 
 		grpcEndpoint, err := chainInfo.GetActiveGRPCEndpoint(ctx.Context())
 		if err != nil {
-			if err := sendNoActiveEndpointAlert(ctx, "gRPC", val.ChainName); err != nil {
+			if err := sendPlainAlert(ctx, fmt.Sprintf("No active %s endpoint available for %s", "gRPC", val.ChainName)); err != nil {
 				return err
 			}
 			continue
@@ -84,7 +84,7 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 		conn, err := grpc.Dial(grpcEndpoint, grpc.WithTransportCredentials(creds))
 		if err != nil {
 			log.Printf("Failed to connect to %s: %v", grpcEndpoint, err)
-			if err := sendNoActiveEndpointAlert(ctx, "gRPC", val.ChainName); err != nil {
+			if err := sendPlainAlert(ctx, fmt.Sprintf("No active %s endpoint available for %s", "gRPC", val.ChainName)); err != nil {
 				return err
 			}
 			continue
@@ -125,7 +125,10 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 				}
 				validatorVote, err := getValidatorVoteV1(ctx, client, proposal.ID, val.Address, val.ChainName)
 				if err != nil {
-					return err
+					if err := sendPlainAlert(ctx, fmt.Sprintf("Failed to get validator vote on %s : %s", val.ChainName, err.Error())); err != nil {
+						return err
+					}
+					continue
 				}
 
 				if validatorVote == "" {
@@ -168,7 +171,10 @@ func alertOnProposals(ctx types.Context, networks []string, validators []databas
 				}
 				validatorVote, err := getValidatorVoteV1beta1(ctx, client, proposal.ProposalID, val.Address, val.ChainName)
 				if err != nil {
-					return err
+					if err := sendPlainAlert(ctx, fmt.Sprintf("Failed to get validator vote on %s : %s", val.ChainName, err.Error())); err != nil {
+						return err
+					}
+					continue
 				}
 
 				if validatorVote == "" {
@@ -286,12 +292,12 @@ func getValidatorVoteV1beta1(ctx types.Context, client govv1beta1types.QueryClie
 	return validatorVoted, nil
 }
 
-func sendNoActiveEndpointAlert(ctx types.Context, backendType string, chainName string) error {
+func sendPlainAlert(ctx types.Context, msg string) error {
 	api := ctx.Slacker().APIClient()
 
 	attachment := []slack.Block{
 		slack.NewHeaderBlock(
-			slack.NewTextBlockObject("plain_text", fmt.Sprintf("No active %s endpoint available for %s", backendType, chainName), false, false),
+			slack.NewTextBlockObject("plain_text", msg, false, false),
 		),
 	}
 

@@ -4,7 +4,7 @@ go 1.20
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
 
-replace github.com/strangelove-ventures/lens => github.com/aleem1314/lens v0.0.0-20230821064018-0bccd6cd8c7c
+replace github.com/strangelove-ventures/lens => github.com/aleem1314/lens v0.0.0-20230903071852-8a51c9f3dc89
 
 require (
 	github.com/cosmos/cosmos-sdk v0.46.4
@@ -96,7 +96,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.1 // indirect
 	github.com/googleapis/gax-go/v2 v2.7.0 // indirect
-	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect

@@ -74,8 +74,8 @@ github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuy
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d/go.mod h1:rBZYJk541a8SKzHPHnH3zbiI+7dagKZ0cgpgrD7Fyho=
-github.com/aleem1314/lens v0.0.0-20230821064018-0bccd6cd8c7c h1:hmS9v7atI0hHwMVb2aecwYrXQLmHNNP7OYTFqHQmaKM=
-github.com/aleem1314/lens v0.0.0-20230821064018-0bccd6cd8c7c/go.mod h1:bVMMytEgiExdTQ8TmBVb+KkzZZPaCjLMgqd9arrxZg0=
+github.com/aleem1314/lens v0.0.0-20230903071852-8a51c9f3dc89 h1:M837tV/Lq75XgRuG3n2C5OvzUqY2gzraiCtb2OXsyGc=
+github.com/aleem1314/lens v0.0.0-20230903071852-8a51c9f3dc89/go.mod h1:bVMMytEgiExdTQ8TmBVb+KkzZZPaCjLMgqd9arrxZg0=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-metrics v0.4.0 h1:yCQqn7dwca4ITXb+CbubHmedzaQYHhNhrEXLYUeEe8Q=

@@ -156,16 +156,43 @@ func (a *Sqlitedb) UpdateVoteLog(chainName, proposalID, voteOption string) error
 }
 
 // Adds vote logs information
-func (a *Sqlitedb) AddLog(chainName, proposalTitle, proposalID, voteOption string) error {
-	stmt, err := a.db.Prepare("INSERT INTO logs(date, chainName, proposalTitle, proposalID, voteOption) values(?,?,?,?,?)")
+func (s *Sqlitedb) AddLog(chainName, proposalTitle, proposalID, voteOption string) error {
+	stmt, err := s.db.Prepare("SELECT EXISTS(SELECT 1 FROM logs WHERE chainName = ? and proposalID = ?)")
 	if err != nil {
+		log.Println(err)
+	}
+
+	var exists bool
+	err = stmt.QueryRow(chainName, proposalID).Scan(&exists)
+	if err != nil {
+		log.Println(err)
+	}
+
+	stmt.Close()
+
+	if exists && voteOption != "" {
+		stmt, err = s.db.Prepare("UPDATE logs SET date=?, proposalTitle=?, voteOption=? WHERE chainName=? AND proposalID=?")
+		if err != nil {
+			return err
+		}
+
+		defer stmt.Close()
+
+		_, err = stmt.Exec(time.Now().UTC().Unix(), proposalTitle, voteOption, chainName, proposalID)
+		return err
+	} else {
+
+		stmt, err = s.db.Prepare("INSERT INTO logs(date, chainName, proposalTitle, proposalID, voteOption) values(?,?,?,?,?)")
+		if err != nil {
+			return err
+		}
+
+		defer stmt.Close()
+
+		_, err = stmt.Exec(time.Now().UTC().Unix(), chainName, proposalTitle, proposalID, voteOption)
 		return err
 	}
 
-	defer stmt.Close()
-
-	_, err = stmt.Exec(time.Now().UTC().Unix(), chainName, proposalTitle, proposalID, voteOption)
-	return err
 }
 
 func (a *Sqlitedb) AddRewards(chainId, denom, valAddr, rewards, commission string) error {
