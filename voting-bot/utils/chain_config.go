@@ -15,7 +15,7 @@ func GetChainConfig(from string, chainInfo chain_registry.ChainInfo, gasPrices s
 		GasPrices:      gasPrices,
 		Debug:          true,
 		Timeout:        "30s",
-		GasAdjustment:  1.4,
+		GasAdjustment:  1.6,
 		OutputFormat:   "json",
 		SignModeStr:    "direct",
 		Modules:        lensclient.ModuleBasics,

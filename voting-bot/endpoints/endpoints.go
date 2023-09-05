@@ -3,9 +3,12 @@ package endpoints
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -67,32 +70,54 @@ func GetAllLCDEndpoints(c registry.ChainInfo) (out []string, err error) {
 	return
 }
 
+func shuffleArray(arr []string) {
+	// Iterate over the array from the last element to the first
+	// and swap each element with a randomly chosen element before it.
+	for i := len(arr) - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		arr[i], arr[j] = arr[j], arr[i]
+	}
+}
+
 // Gets a valid LCD endpoint from all the LCD endpoints
 func GetValidLCDEndpoint(endpoints []string) (string, error) {
-	var validEndpoint bool
+	shuffleArray(endpoints)
 	for _, endpoint := range endpoints {
-		validEndpoint = GetStatus(endpoint)
-		if validEndpoint {
+		if checkEndpointHealth(endpoint) {
 			return endpoint, nil
 		}
 	}
-	return "", nil
+
+	return "", errors.New("no active rest provider")
 }
 
-// Gets proposals current stauts
-func GetStatus(endpoint string) bool {
+type SyncResponse struct {
+	Syncing bool `json:"syncing"`
+}
+
+// Gets rest endpoint stauts
+func checkEndpointHealth(endpoint string) bool {
 	ops := types.HTTPOptions{
-		Endpoint: endpoint + "/cosmos/gov/v1beta1/proposals",
+		Endpoint: endpoint + "/cosmos/base/tendermint/v1beta1/syncing",
 		Method:   http.MethodGet,
 	}
 
 	resp, err := HitHTTPTarget(ops)
 	if err != nil {
-		log.Printf("Error in external rpc: %v", err)
-		log.Printf("⛔⛔ Unreachable to EXTERNAL RPC :: %s and the ERROR is : %v\n\n", ops.Endpoint, err.Error())
 		return false
 	}
-	return resp.StatusCode == http.StatusOK
+
+	if resp.StatusCode != http.StatusOK {
+		return false
+	}
+
+	var result SyncResponse
+	if err := json.Unmarshal(resp.Body, &result); err != nil {
+		// TODO: Figure out other way to check node syncing status, few networks does not implement tendermint RPC wrapper
+		return true
+	}
+
+	return !result.Syncing
 }
 
 // HitHTTPTarget to hit the target and get response
@@ -143,7 +168,7 @@ func newHTTPRequest(ops types.HTTPOptions) (*http.Request, error) {
 
 // Creates response
 func makeResponse(res *http.Response) (*types.PingResp, error) {
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return &types.PingResp{}, err
 	}
