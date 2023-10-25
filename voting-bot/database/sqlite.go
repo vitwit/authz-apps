@@ -17,13 +17,6 @@ type (
 		Address   string
 	}
 
-	keys struct {
-		ChainName  string
-		KeyName    string
-		KeyAddress string
-		Status     string
-	}
-
 	voteLogs struct {
 		Date          int64
 		ChainName     string
@@ -32,13 +25,13 @@ type (
 		VoteOption    string
 	}
 
-	rewardsCommission struct {
-		ChainID    string
-		Denom      string
-		ValAddr    string
-		Rewards    string
-		Commission string
-		Date       string
+	RewardsCommission struct {
+		ChainID    string `json:"chainID"`
+		Denom      string `json:"denom"`
+		ValAddr    string `json:"val_addr"`
+		Rewards    string `json:"rewards"`
+		Commission string `json:"commission"`
+		Date       string `json:"date"`
 	}
 
 	Sqlitedb struct {
@@ -71,23 +64,17 @@ func (a *Sqlitedb) InitializeTables() error {
 		return err
 	}
 
-	_, err = a.db.Exec("ALTER TABLE logs ADD COLUMN proposalTitle VARCHAR")
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR, keyName VARCHAR, granteeAddress VARCHAR, type VARCHAR, PRIMARY KEY (chainName, type))")
 	if err != nil {
 		return err
 	}
 
-	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR PRIMARY KEY, keyName VARCHAR, keyAddress VARCHAR)")
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS income (chainId VARCHAR, denom VARCHAR, valAddress VARCHAR, rewards VARCHAR, commission VARCHAR, date VARCHAR)")
 	if err != nil {
 		return err
 	}
 
-	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS rewards_commission (chainId VARCHAR, denom VARCHAR, valAddress VARCHAR, rewards VARCHAR, commission VARCHAR, date VARCHAR)")
-	if err != nil {
-		return err
-	}
-
-	_, err = a.db.Exec("ALTER TABLE keys ADD COLUMN authzStatus VARCHAR DEFAULT 'false'")
-	return err
+	return nil
 }
 
 // Stores validator information
@@ -113,32 +100,6 @@ func (s *Sqlitedb) RemoveValidator(address string) error {
 	defer stmt.Close()
 
 	_, err = stmt.Exec(address)
-	return err
-}
-
-// Stores Keys information
-func (a *Sqlitedb) AddKey(chainName, keyName, keyAddress string) error {
-	stmt, err := a.db.Prepare("INSERT INTO keys(chainName, keyName, keyAddress) values(?,?,?)")
-	if err != nil {
-		return err
-	}
-
-	defer stmt.Close()
-
-	_, err = stmt.Exec(chainName, keyName, keyAddress)
-	return err
-}
-
-// Updates authorization status
-func (a *Sqlitedb) UpdateAuthzStatus(status, keyAddress string) error {
-	stmt, err := a.db.Prepare("UPDATE keys SET authzStatus = ? WHERE keyAddress = ?")
-	if err != nil {
-		return err
-	}
-
-	defer stmt.Close()
-
-	_, err = stmt.Exec(status, keyAddress)
 	return err
 }
 
@@ -196,7 +157,7 @@ func (s *Sqlitedb) AddLog(chainName, proposalTitle, proposalID, voteOption strin
 }
 
 func (a *Sqlitedb) AddRewards(chainId, denom, valAddr, rewards, commission string) error {
-	stmt, err := a.db.Prepare("INSERT INTO rewards_commission(chainId, denom, valAddress, rewards, commission, date) values(?,?,?,?,?,?)")
+	stmt, err := a.db.Prepare("INSERT INTO income(chainId, denom, valAddress, rewards, commission, date) values(?,?,?,?,?,?)")
 	if err != nil {
 		return err
 	}
@@ -267,39 +228,6 @@ func (s *Sqlitedb) GetValidatorAddress() (ValidatorAddress []string, err error) 
 	return ValidatorAddress, nil
 }
 
-// Gets Key address of a specific key
-func (a *Sqlitedb) GetKeyAddress(key string) (string, error) {
-	var addr string
-	stmt, err := a.db.Prepare("SELECT keyAddress FROM keys WHERE keyName=?")
-	if err != nil {
-		return "", err
-	}
-	defer stmt.Close()
-
-	err = stmt.QueryRow(key).Scan(&addr)
-	if err != nil {
-		return "", err
-	}
-
-	return addr, nil
-}
-
-func (a *Sqlitedb) GetChainKey(ChainName string) (string, error) {
-	var addr string
-	stmt, err := a.db.Prepare("SELECT keyName FROM keys WHERE chainName=?")
-	if err != nil {
-		return "", err
-	}
-	defer stmt.Close()
-
-	err = stmt.QueryRow(ChainName).Scan(&addr)
-	if err != nil {
-		return "", err
-	}
-
-	return addr, nil
-}
-
 func (a *Sqlitedb) GetChainValidator(ChainName string) (string, error) {
 	var addr string
 	stmt, err := a.db.Prepare("SELECT address FROM validators WHERE chainName=?")
@@ -316,34 +244,8 @@ func (a *Sqlitedb) GetChainValidator(ChainName string) (string, error) {
 	return addr, nil
 }
 
-// Gets required data regarding keys
-func (a *Sqlitedb) GetKeys() ([]keys, error) {
-	log.Printf("Fetching keys...")
-
-	rows, err := a.db.Query("SELECT chainName, keyName, keyAddress, authzStatus FROM keys")
-	if err != nil {
-		return []keys{}, err
-	}
-	defer rows.Close()
-
-	var k []keys
-	for rows.Next() {
-		var data keys
-		if err := rows.Scan(&data.ChainName, &data.KeyName, &data.KeyAddress, &data.Status); err != nil {
-			return k, err
-		}
-		k = append(k, data)
-	}
-	if err = rows.Err(); err != nil {
-		return k, err
-	}
-
-	return k, nil
-}
-
 // Gets required data regarding votes
 func (a *Sqlitedb) GetVoteLogs(chainName, startDate, endDate string) ([]voteLogs, error) {
-	log.Printf("Fetching votes...")
 	layout := "2006-01-02"
 	start, err := time.Parse(layout, startDate)
 	if err != nil {
@@ -385,20 +287,20 @@ func (a *Sqlitedb) GetVoteLogs(chainName, startDate, endDate string) ([]voteLogs
 }
 
 // Gets required data regarding rewards
-func (a *Sqlitedb) GetRewards(chainId, date string) ([]rewardsCommission, error) {
+func (a *Sqlitedb) GetRewards(chainId, date string) ([]RewardsCommission, error) {
 	log.Printf("Fetching rewards...")
-	var k []rewardsCommission
+	var k []RewardsCommission
 
 	if date != "" {
-		query := "SELECT chainId, denom, valAddress, rewards, commission, date FROM rewards_commission WHERE chainId = ? AND date = ? "
+		query := "SELECT chainId, denom, valAddress, rewards, commission, date FROM income WHERE chainId = ? AND date = ? ORDER BY date DESC"
 		rows, err := a.db.Query(query, chainId, date)
 		if err != nil {
-			return []rewardsCommission{}, err
+			return []RewardsCommission{}, err
 		}
 		defer rows.Close()
 
 		for rows.Next() {
-			var data rewardsCommission
+			var data RewardsCommission
 			if err := rows.Scan(&data.ChainID, &data.Denom, &data.ValAddr, &data.Rewards, &data.Commission, &data.Date); err != nil {
 				return k, err
 			}
@@ -408,15 +310,15 @@ func (a *Sqlitedb) GetRewards(chainId, date string) ([]rewardsCommission, error)
 			return k, err
 		}
 	} else {
-		query := "SELECT chainId, denom, valAddress, rewards, commission, date FROM rewards_commission WHERE chainId = ? "
+		query := "SELECT chainId, denom, valAddress, rewards, commission, date FROM income WHERE chainId = ? ORDER BY date DESC"
 		rows, err := a.db.Query(query, chainId)
 		if err != nil {
-			return []rewardsCommission{}, err
+			return []RewardsCommission{}, err
 		}
 		defer rows.Close()
 
 		for rows.Next() {
-			var data rewardsCommission
+			var data RewardsCommission
 			if err := rows.Scan(&data.ChainID, &data.Denom, &data.ValAddr, &data.Rewards, &data.Commission, &data.Date); err != nil {
 				return k, err
 			}

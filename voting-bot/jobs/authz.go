@@ -1,4 +1,4 @@
-package targets
+package jobs
 
 import (
 	"log"
@@ -37,24 +37,24 @@ func SyncAuthzStatus(ctx types.Context) error {
 					return err
 				}
 
-				hasAuthz, err := utils.HasAuthzGrant(validEndpoint, granter, key.KeyAddress, MSG_VOTE_TYPEURL_V1BETA1)
+				hasAuthz, err := utils.HasAuthzGrant(validEndpoint, granter, key.GranteeAddress, MSG_VOTE_TYPEURL_V1BETA1)
 				if err != nil {
 					return err
 				}
 
 				if hasAuthz {
-					if err := ctx.Database().UpdateAuthzStatus("true", key.KeyAddress); err != nil {
+					if err := ctx.Database().UpdateAuthzStatus("true", key.GranteeAddress, "voting"); err != nil {
 						return err
 					}
 				}
 
-				hasAuthz, err = utils.HasAuthzGrant(validEndpoint, granter, key.KeyAddress, MSG_VOTE_TYPEURL_V1)
+				hasAuthz, err = utils.HasAuthzGrant(validEndpoint, granter, key.GranteeAddress, MSG_VOTE_TYPEURL_V1)
 				if err != nil {
 					return err
 				}
 
 				if hasAuthz {
-					if err := ctx.Database().UpdateAuthzStatus("true", key.KeyAddress); err != nil {
+					if err := ctx.Database().UpdateAuthzStatus("true", key.GranteeAddress, "voting"); err != nil {
 						return err
 					}
 				}

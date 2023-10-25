@@ -1,4 +1,4 @@
-package targets
+package jobs
 
 import (
 	"context"
@@ -51,7 +51,7 @@ func GetLowBalAccs(ctx types.Context) error {
 			return err
 		}
 
-		addr := key.KeyAddress
+		addr := key.GranteeAddress
 		err = AlertOnLowBalance(ctx, grpcEndpoint, addr, baseDenom, coinDecimals, displayDenom)
 		if err != nil {
 			log.Printf("error on sending low balance alert: %v", err)
@@ -82,7 +82,7 @@ func AlertOnLowBalance(ctx types.Context, endpoint, addr, denom string, coinDeci
 		Denom:   denom,
 	})
 	if err != nil {
-		log.Printf("Failed to getbalance %s: %v", addr, err)
+		log.Printf("Failed to get balance %s: %v", addr, err)
 		return err
 	}
 

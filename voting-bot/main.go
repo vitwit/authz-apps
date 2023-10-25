@@ -14,7 +14,7 @@ import (
 	"github.com/vitwit/authz-apps/voting-bot/client"
 	"github.com/vitwit/authz-apps/voting-bot/config"
 	"github.com/vitwit/authz-apps/voting-bot/database"
-	"github.com/vitwit/authz-apps/voting-bot/targets"
+	"github.com/vitwit/authz-apps/voting-bot/jobs"
 	"github.com/vitwit/authz-apps/voting-bot/types"
 )
 
@@ -57,7 +57,7 @@ func main() {
 
 	fmt.Println(bot.BotCommands())
 
-	cron := targets.NewCron(ctx)
+	cron := jobs.NewCron(ctx)
 	cron.Start()
 
 	client.InitializeBotcommands(ctx)
@@ -77,14 +77,14 @@ func getRewardsHandler(db *database.Sqlitedb) http.HandlerFunc {
 
 		rewards, err := db.GetRewards(chainId, date)
 		if err != nil {
-			http.Error(w, fmt.Errorf("Error while getting rewards: %w", err).Error(), http.StatusBadRequest)
+			http.Error(w, fmt.Errorf("error while getting rewards: %w", err).Error(), http.StatusBadRequest)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(w).Encode(rewards)
 		if err != nil {
-			http.Error(w, fmt.Errorf("Error while encoding rewards: %w", err).Error(), http.StatusInternalServerError)
+			http.Error(w, fmt.Errorf("error while encoding rewards: %w", err).Error(), http.StatusInternalServerError)
 			return
 		}
 	}
