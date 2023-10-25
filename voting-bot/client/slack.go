@@ -10,8 +10,8 @@ import (
 
 	"github.com/shomali11/slacker"
 	"github.com/slack-go/slack"
+	"github.com/vitwit/authz-apps/voting-bot/jobs"
 	"github.com/vitwit/authz-apps/voting-bot/keyring"
-	"github.com/vitwit/authz-apps/voting-bot/targets"
 	"github.com/vitwit/authz-apps/voting-bot/types"
 	"github.com/vitwit/authz-apps/voting-bot/utils"
 	"github.com/vitwit/authz-apps/voting-bot/voting"
@@ -71,7 +71,7 @@ func InitializeBotcommands(ctx types.Context) error {
 	})
 
 	// Creates keys which are used for voting
-	skr.Command("create-key <chainName> <keyNameOptional>", &slacker.CommandDefinition{
+	skr.Command("create-key <chainName> <keyType> <keyNameOptional>", &slacker.CommandDefinition{
 		Description: `create a new account with key name.\n
 		Keys need to be funded manually and given authorization to vote in order to use them while voting.\n
 		The granter must give the vote authorization to the grantee key before the voting can proceed.\n
@@ -82,15 +82,20 @@ func InitializeBotcommands(ctx types.Context) error {
 		The authorized keys can then be funded to have the ability to vote on behalf of the granter.\n
 		The following command can be used to fund the key:\n
 		simd tx bank send [from_key_or_address] [to_address] [amount] [flags]`,
-		Examples: []string{"create-key cosmoshub myKey"},
+		Examples: []string{"create-key cosmoshub voting myKey"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
 			keyName := request.StringParam("keyNameOptional", "")
 			chainName := request.Param("chainName")
+			keyType := request.StringParam("keyType", "")
+
+			if keyType != "voting" && keyType != "rewards" {
+				response.Reply("Invalid key-type. Must be either \"voting\" or \"rewards\"")
+			}
 			if keyName == "" {
 				keyName = chainName
 			}
 
-			err := keyring.CreateKeys(ctx, chainName, keyName)
+			err := keyring.CreateKeys(ctx, chainName, keyName, keyType)
 			if err != nil {
 				response.Reply(err.Error())
 			} else {
@@ -153,7 +158,7 @@ func InitializeBotcommands(ctx types.Context) error {
 				}
 
 				voteOption := request.Param("voteOption")
-				fromKey, err := db.GetChainKey(chainName)
+				fromKey, err := db.GetChainKey(chainName, "voting")
 				if err != nil {
 					response.ReportError(fmt.Errorf("error while getting key address of chain %s", chainName))
 					return
@@ -248,10 +253,10 @@ func InitializeBotcommands(ctx types.Context) error {
 				event := botCtx.Event()
 
 				var tableData [][]string
-				tableData = append(tableData, []string{"Network", "Key name", "Address", "Authz Enabled"})
+				tableData = append(tableData, []string{"Network", "Key name", "Address", "Authz Enabled", "Key Type"})
 
 				for _, key := range keys {
-					row := []string{key.ChainName, key.KeyName, key.KeyAddress, key.Status}
+					row := []string{key.ChainName, key.KeyName, key.GranteeAddress, key.AuthzStatus, key.Type}
 					tableData = append(tableData, row)
 				}
 
@@ -273,7 +278,7 @@ func InitializeBotcommands(ctx types.Context) error {
 		Description: "lists all proposals",
 		Examples:    []string{"list-proposals"},
 		Handler: func(botCtx slacker.BotContext, request slacker.Request, response slacker.ResponseWriter) {
-			targets.GetProposals(ctx)
+			jobs.GetProposals(ctx)
 		},
 	})
 	// Command to list all registered validators

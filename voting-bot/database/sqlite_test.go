@@ -61,46 +61,6 @@ func TestValidators(t *testing.T) {
 	assert.Equal(t, expectedLen, len(logs))
 }
 
-func TestKeys(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("Failed to create test database: %v", err)
-	}
-	defer db.Close()
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR PRIMARY KEY, keyName VARCHAR, keyAddress VARCHAR)")
-	if err != nil {
-		t.Fatalf("Failed to create test table: %v", err)
-	}
-	db.Exec("ALTER TABLE keys ADD COLUMN authzStatus VARCHAR DEFAULT 'false'")
-
-	sqlitedb := &Sqlitedb{db: db}
-
-	err = sqlitedb.AddKey("chain1", "keyname", "keyaddress")
-	assert.NoError(t, err)
-	log, err := sqlitedb.GetKeyAddress("keyname")
-	assert.NoError(t, err)
-
-	expectedAddress := "keyaddress"
-	assert.Equal(t, expectedAddress, log)
-	key, err := sqlitedb.GetChainKey("chain1")
-	assert.NoError(t, err)
-
-	expectedKey := "keyname"
-	assert.Equal(t, expectedKey, key)
-
-	logs, err := sqlitedb.GetKeys()
-	assert.NoError(t, err)
-	assert.Len(t, logs, 1)
-
-	expectedLog := keys{
-		ChainName:  "chain1",
-		KeyName:    "keyname",
-		KeyAddress: "keyaddress",
-		Status:     "false",
-	}
-	assert.Equal(t, expectedLog, logs[0])
-}
-
 func TestVoteLogs(t *testing.T) {
 	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {

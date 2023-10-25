@@ -1,9 +1,9 @@
-package targets
+package jobs
 
 import (
 	"log"
 
-	"github.com/robfig/cron"
+	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 	"github.com/vitwit/authz-apps/voting-bot/types"
 )
@@ -29,7 +29,7 @@ func (c *Cron) Start() error {
 	cron := cron.New()
 
 	// Everday at 8AM and 8PM
-	err := cron.AddFunc("0 0 8,20 * * *", func() {
+	_, err := cron.AddFunc("0 8,20 * * *", func() {
 		GetProposals(c.ctx)
 		GetLowBalAccs(c.ctx)
 	})
@@ -37,7 +37,7 @@ func (c *Cron) Start() error {
 		log.Println("Error while adding Proposals and Low balance accounts alerting cron jobs:", err)
 		return err
 	}
-	err = cron.AddFunc("@every 1h", func() {
+	_, err = cron.AddFunc("@every 24h", func() {
 		SyncAuthzStatus(c.ctx)
 	})
 	if err != nil {
@@ -45,8 +45,11 @@ func (c *Cron) Start() error {
 		return err
 	}
 
-	err = cron.AddFunc("@monthly", func() {
-		Withdraw(c.ctx)
+	_, err = cron.AddFunc("@monthly", func() {
+		log.Printf("Running withdraw commission CRON job....")
+		if err := Withdraw(c.ctx); err != nil {
+			log.Println("Error while adding Key Authorization syncing cron job:", err)
+		}
 	})
 	if err != nil {
 		log.Println("Error while adding withdraw rewards and commission cron job:", err)

@@ -32,6 +32,7 @@ require (
 	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/holiman/uint256 v1.2.0 // indirect
 	github.com/rakyll/statik v0.1.7 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/tklauser/numcpus v0.4.0 // indirect
 )
 

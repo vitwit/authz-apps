@@ -65,7 +65,7 @@ func withdraw(ctx types.Context, chainClient lensclient.ChainClient) error {
 				}
 
 				ops := types.HTTPOptions{
-					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + accAddr + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward",
+					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + accAddr + "&grantee=" + key.GranteeAddress + "&msg_url_type=/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward",
 					Method:   http.MethodGet,
 				}
 				fmt.Println("ENDPOINT: ", ops.Endpoint)
@@ -84,7 +84,7 @@ func withdraw(ctx types.Context, chainClient lensclient.ChainClient) error {
 				}
 
 				ops = types.HTTPOptions{
-					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + accAddr + "&grantee=" + key.KeyAddress + "&msg_url_type=/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission",
+					Endpoint: validEndpoint + "/cosmos/authz/v1beta1/grants?granter=" + accAddr + "&grantee=" + key.GranteeAddress + "&msg_url_type=/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission",
 					Method:   http.MethodGet,
 				}
 				fmt.Println("ENDPOINT: ", ops.Endpoint)
@@ -103,7 +103,7 @@ func withdraw(ctx types.Context, chainClient lensclient.ChainClient) error {
 					msgs = append(msgs, msg)
 				}
 
-				res, err := executeMsgs(chainClient, msgs, key.KeyAddress)
+				res, err := executeMsgs(chainClient, msgs, key.GranteeAddress)
 				if err != nil {
 					log.Printf("Error in executing messages message for %s", val.Address)
 					return err
@@ -178,8 +178,8 @@ func setup(t *testing.T) (types.Context, lensclient.ChainClient) {
 
 	chainName := os.Getenv("CHAINID")
 	keyName := os.Getenv("GRANTEE")
-	keyAddress := os.Getenv("grantee_addr")
-	require.NoError(t, db.AddKey(chainName, keyName, keyAddress))
+	GranteeAddress := os.Getenv("grantee_addr")
+	require.NoError(t, db.AddAuthzKey(chainName, keyName, GranteeAddress, "rewards"))
 
 	valAddr := os.Getenv("val_addr")
 	require.NoError(t, db.AddValidator(chainName, valAddr))

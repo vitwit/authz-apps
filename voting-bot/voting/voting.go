@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -66,6 +67,7 @@ func ExecVote(ctx types.Context, chainName, pID, granter, vote,
 	if err != nil {
 		return "", fmt.Errorf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
 	}
+
 	denom, err := GetChainDenom(chainInfo)
 	if err != nil {
 		return "", fmt.Errorf("failed to get denom from chain %s: %v", chainInfo.ChainID, err)
@@ -87,12 +89,12 @@ func ExecVote(ctx types.Context, chainName, pID, granter, vote,
 	}
 
 	// Create client object to pull chain info
-	chainClient, err := lensclient.NewChainClient(zap.L(), &chainConfig, curDir, os.Stdin, os.Stdout)
+	chainClient, err := lensclient.NewChainClient(zap.L(), &chainConfig, filepath.Join(curDir, "voting-keys"), os.Stdin, os.Stdout)
 	if err != nil {
 		return "", fmt.Errorf("failed to build new chain client for %s. Err: %v", chainInfo.ChainID, err)
 	}
 
-	keyAddr, err := ctx.Database().GetKeyAddress(fromKey)
+	keyAddr, err := ctx.Database().GetAuthzKeyAddress(fromKey, "voting")
 	if err != nil {
 		return "", fmt.Errorf("error while getting address of %s key", fromKey)
 	}

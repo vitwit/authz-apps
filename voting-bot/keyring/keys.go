@@ -14,7 +14,7 @@ import (
 )
 
 // Creates keys using chain name and chain registry
-func CreateKeys(ctx types.Context, chainName, keyName string) error {
+func CreateKeys(ctx types.Context, chainName, keyName, keyType string) error {
 	// Fetch chain info from chain registry
 	cr := ctx.ChainRegistry()
 	chainInfo, err := cr.GetChain(context.Background(), chainName)
@@ -43,8 +43,8 @@ func CreateKeys(ctx types.Context, chainName, keyName string) error {
 
 	// If a mnemonic seed phrase exists, use the same seed phrase for all accounts.
 	var address string
-	if hasMnemonicSeed() {
-		seed, err := readSeedFile()
+	if hasMnemonicSeed(keyType) {
+		seed, err := readSeedFile(keyType)
 		if err != nil {
 			return err
 		}
@@ -60,24 +60,23 @@ func CreateKeys(ctx types.Context, chainName, keyName string) error {
 		}
 
 		// store Mnemonic seed
-		if err := storeMnemonicSeed(res.Mnemonic); err != nil {
+		if err := storeMnemonicSeed(keyType, res.Mnemonic); err != nil {
 			return err
 		}
 
 		address = res.Address
 	}
 
-	if err := ctx.Database().AddKey(chainName, keyName, address); err != nil {
+	if err := ctx.Database().AddAuthzKey(chainName, keyName, address, keyType); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-var SEED_FILE = filepath.Join("keys", "seed.txt")
-
-func readSeedFile() (string, error) {
-	stream, err := os.ReadFile(SEED_FILE)
+func readSeedFile(keyType string) (string, error) {
+	seedFile := getSeedfilePath(keyType)
+	stream, err := os.ReadFile(seedFile)
 	if err != nil {
 		return "", err
 	}
@@ -85,9 +84,24 @@ func readSeedFile() (string, error) {
 	return string(stream), err
 }
 
+func getSeedfilePath(keyType string) string {
+	var seedFile string
+	switch keyType {
+	case "voting":
+		seedFile = filepath.Join("voting-keys", "keys", "seed.txt")
+	case "rewards":
+		seedFile = filepath.Join("reward-keys", "keys", "seed.txt")
+	default:
+		panic("invalid option. Key-type must be either \"voting\" or \"rewards\"")
+	}
+
+	return seedFile
+}
+
 // hasMnemonicSeed returns true if SEED_FILE exists
-func hasMnemonicSeed() bool {
-	if _, err := os.Stat(SEED_FILE); errors.Is(err, os.ErrNotExist) {
+func hasMnemonicSeed(keyType string) bool {
+	seedFile := getSeedfilePath(keyType)
+	if _, err := os.Stat(seedFile); errors.Is(err, os.ErrNotExist) {
 		return false
 	}
 
@@ -95,16 +109,29 @@ func hasMnemonicSeed() bool {
 }
 
 // storeMnemonicSeed stores mnemonic seed string the SEED_FILE.
-func storeMnemonicSeed(seed string) error {
-	if _, err := os.Stat("keys"); errors.Is(err, os.ErrNotExist) {
-		err := os.Mkdir("keys", os.ModePerm)
-		if err != nil {
-			return err
+func storeMnemonicSeed(keyType, seed string) error {
+	var keyTypeName string
+	if keyType == "voting" {
+		if _, err := os.Stat(filepath.Join("voting-keys", "keys")); os.IsNotExist(err) {
+			err := os.MkdirAll(filepath.Join("voting-keys", "keys"), os.ModePerm)
+			if err != nil {
+				return err
+			}
 		}
+		keyTypeName = "voting-keys"
+	} else if keyType == "rewards" {
+		if _, err := os.Stat(filepath.Join("reward-keys", "keys")); os.IsNotExist(err) {
+			err := os.MkdirAll(filepath.Join("reward-keys", "keys"), os.ModePerm)
+			if err != nil {
+				return err
+			}
+		}
+		keyTypeName = "reward-keys"
+	} else {
+		return errors.New("invalid option. Key-type must be either \"voting\" or \"rewards\"")
 	}
 
-	f, err := os.Create(SEED_FILE)
-
+	f, err := os.Create(filepath.Join(keyTypeName, "keys", "seed.txt"))
 	if err != nil {
 		return err
 	}

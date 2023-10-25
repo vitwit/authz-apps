@@ -1,4 +1,4 @@
-package targets
+package jobs
 
 import (
 	"context"
@@ -31,12 +31,17 @@ func Withdraw(ctx types.Context) error {
 	if err != nil {
 		return err
 	}
+
 	validators, err := ctx.Database().GetValidators()
 	if err != nil {
 		return err
 	}
 
 	for _, key := range keys {
+		if key.Type != "rewards" {
+			continue // TODO: fetch only rewards records
+		}
+
 		chainInfo, chainClient, err := createChainClient(ctx, key.ChainName, key.KeyName)
 		if err != nil {
 			log.Printf("Error in creating chain client for %s chain", key.ChainName)
@@ -52,13 +57,12 @@ func Withdraw(ctx types.Context) error {
 				}
 
 				var msgs []*cdctypes.Any
-
 				granter, err := ConvertValAddrToAccAddr(ctx, val.Address, key.ChainName)
 				if err != nil {
 					return err
 				}
 
-				hasAuthz, err := utils.HasAuthzGrant(validEndpoint, granter, key.KeyAddress, WITHDRAW_REWARDS_TYPEURL)
+				hasAuthz, err := utils.HasAuthzGrant(validEndpoint, granter, key.GranteeAddress, WITHDRAW_REWARDS_TYPEURL)
 				if err != nil {
 					return err
 				}
@@ -73,7 +77,7 @@ func Withdraw(ctx types.Context) error {
 					msgs = append(msgs, msg)
 				}
 
-				hasAuthz, err = utils.HasAuthzGrant(validEndpoint, granter, key.KeyAddress, WITHDRAW_COMMISSION)
+				hasAuthz, err = utils.HasAuthzGrant(validEndpoint, granter, key.GranteeAddress, WITHDRAW_COMMISSION)
 				if err != nil {
 					return err
 				}
@@ -92,7 +96,7 @@ func Withdraw(ctx types.Context) error {
 					return nil
 				}
 
-				res, err := executeMsgs(chainClient, msgs, key.KeyAddress)
+				res, err := executeMsgs(chainClient, msgs, key.GranteeAddress)
 				if err != nil {
 					log.Printf("Error in creating withdraw commission message for %s", val.Address)
 					return err
@@ -146,6 +150,7 @@ func createChainClient(ctx types.Context, chainName, keyName string) (registry.C
 	if err != nil {
 		return registry.ChainInfo{}, lensclient.ChainClient{}, fmt.Errorf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
 	}
+
 	denom, err := voting.GetChainDenom(chainInfo)
 	if err != nil {
 		return registry.ChainInfo{}, lensclient.ChainClient{}, fmt.Errorf("failed to get denom from chain %s: %v", chainInfo.ChainID, err)
