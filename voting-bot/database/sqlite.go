@@ -59,12 +59,12 @@ func (a *Sqlitedb) InitializeTables() error {
 		return err
 	}
 
-	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS logs (date INTEGER, chainName VARCHAR, proposalId VARCHAR, voteOption VARCHAR)")
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS logs (date INTEGER, chainName VARCHAR, proposalId VARCHAR, voteOption VARCHAR, proposalTitle VARCHAR)")
 	if err != nil {
 		return err
 	}
 
-	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR, keyName VARCHAR, granteeAddress VARCHAR, type VARCHAR, PRIMARY KEY (chainName, type))")
+	_, err = a.db.Exec("CREATE TABLE IF NOT EXISTS keys (chainName VARCHAR, keyName VARCHAR, granteeAddress VARCHAR, type VARCHAR, authzStatus VARCHAR DEFAULT 'false', PRIMARY KEY (chainName, type))")
 	if err != nil {
 		return err
 	}
@@ -118,15 +118,17 @@ func (a *Sqlitedb) UpdateVoteLog(chainName, proposalID, voteOption string) error
 
 // Adds vote logs information
 func (s *Sqlitedb) AddLog(chainName, proposalTitle, proposalID, voteOption string) error {
-	stmt, err := s.db.Prepare("SELECT EXISTS(SELECT 1 FROM logs WHERE chainName = ? and proposalID = ?)")
+	stmt, err := s.db.Prepare("SELECT EXISTS(SELECT 1 FROM logs WHERE chainName = ? AND proposalID = ?)")
 	if err != nil {
 		log.Println(err)
+		return err
 	}
 
 	var exists bool
 	err = stmt.QueryRow(chainName, proposalID).Scan(&exists)
 	if err != nil {
 		log.Println(err)
+		return err
 	}
 
 	stmt.Close()
@@ -142,7 +144,6 @@ func (s *Sqlitedb) AddLog(chainName, proposalTitle, proposalID, voteOption strin
 		_, err = stmt.Exec(time.Now().UTC().Unix(), proposalTitle, voteOption, chainName, proposalID)
 		return err
 	} else {
-
 		stmt, err = s.db.Prepare("INSERT INTO logs(date, chainName, proposalTitle, proposalID, voteOption) values(?,?,?,?,?)")
 		if err != nil {
 			return err
