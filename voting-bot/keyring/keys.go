@@ -35,6 +35,12 @@ func CreateKeys(ctx types.Context, chainName, keyName, keyType string) error {
 		return fmt.Errorf("error while getting current directory: %v", err)
 	}
 
+	if keyType == "rewards" {
+		curDir = filepath.Join(curDir, "reward-keys")
+	} else {
+		curDir = filepath.Join(curDir, "voting-keys")
+	}
+
 	// Create client object to pull chain info
 	chainClient, err := lensclient.NewChainClient(zap.L(), &chainConfig, curDir, os.Stdin, os.Stdout)
 	if err != nil {

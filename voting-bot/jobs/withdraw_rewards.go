@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/slack-go/slack"
 	lensclient "github.com/strangelove-ventures/lens/client"
@@ -166,7 +167,7 @@ func createChainClient(ctx types.Context, chainName, keyName string) (registry.C
 	}
 
 	// Create client object to pull chain info
-	chainClient, err := lensclient.NewChainClient(zap.L(), &chainConfig, curDir, os.Stdin, os.Stdout)
+	chainClient, err := lensclient.NewChainClient(zap.L(), &chainConfig, filepath.Join(curDir, "reward-keys"), os.Stdin, os.Stdout)
 	if err != nil {
 		return registry.ChainInfo{}, lensclient.ChainClient{}, fmt.Errorf("failed to build new chain client for %s. Err: %v", chainInfo.ChainID, err)
 	}
