@@ -54,25 +54,30 @@ func Withdraw(ctx types.Context) error {
 				validEndpoint, err := endpoints.GetValidEndpointForChain(key.ChainName)
 				if err != nil {
 					log.Printf("Error in getting valid LCD endpoints for %s chain", key.ChainName)
-					return err
+
+					sendPlainAlert(ctx, fmt.Sprintf("withdraw rewards and commission job: Error in getting valid LCD endpoints for %s chain", key.ChainName))
+					continue
 				}
 
 				var msgs []*cdctypes.Any
 				granter, err := ConvertValAddrToAccAddr(ctx, val.Address, key.ChainName)
 				if err != nil {
-					return err
+					sendPlainAlert(ctx, fmt.Sprintf("withdraw rewards and commission job: failed to decode validator address for %s chain: %s", key.ChainName, err.Error()))
+					continue
 				}
 
 				hasAuthz, err := utils.HasAuthzGrant(validEndpoint, granter, key.GranteeAddress, WITHDRAW_REWARDS_TYPEURL)
 				if err != nil {
-					return err
+					sendPlainAlert(ctx, fmt.Sprintf("withdraw rewards and commission job: failed to get authz status for %s chain: %s", key.ChainName, err.Error()))
+					continue
 				}
 
 				if hasAuthz {
 					msg, err := withdrawRewardsMsg(granter, val.Address)
 					if err != nil {
 						log.Printf("Error in creating withdraw rewards message for %s", val.Address)
-						return err
+						sendPlainAlert(ctx, fmt.Sprintf("withdraw rewards and commission job: Error in creating withdraw rewards message for %s chain: %s", key.ChainName, err.Error()))
+						continue
 					}
 
 					msgs = append(msgs, msg)
@@ -80,14 +85,15 @@ func Withdraw(ctx types.Context) error {
 
 				hasAuthz, err = utils.HasAuthzGrant(validEndpoint, granter, key.GranteeAddress, WITHDRAW_COMMISSION)
 				if err != nil {
-					return err
+					sendPlainAlert(ctx, fmt.Sprintf("withdraw rewards and commission job: failed to get authz status for %s chain: %s", key.ChainName, err.Error()))
+					continue
 				}
 
 				if hasAuthz {
 					msg, err := withdrawCommissionMsg(val.Address)
 					if err != nil {
-						log.Printf("Error in creating withdraw commission message for %s", val.Address)
-						return err
+						sendPlainAlert(ctx, fmt.Sprintf("withdraw rewards and commission job: Error in creating withdraw commission message for %s chain: %s", key.ChainName, err.Error()))
+						continue
 					}
 
 					msgs = append(msgs, msg)
@@ -100,7 +106,8 @@ func Withdraw(ctx types.Context) error {
 				res, err := executeMsgs(chainClient, msgs, key.GranteeAddress)
 				if err != nil {
 					log.Printf("Error in creating withdraw commission message for %s", val.Address)
-					return err
+					sendPlainAlert(ctx, fmt.Sprintf("withdraw rewards and commission job: Error in executing transaction for %s chain: %s", key.ChainName, err.Error()))
+					continue
 				}
 
 				mintscanName := val.ChainName
@@ -111,13 +118,15 @@ func Withdraw(ctx types.Context) error {
 				rewards, err := getRewardAmount(res, "withdraw_rewards")
 				if err != nil {
 					log.Printf("Error in getting rewards from tx resp for chain %s. txhash: %s", key.ChainName, res.TxHash)
-					return err
+					sendPlainAlert(ctx, fmt.Sprintf("withdraw rewards and commission job: Error in getting rewards from tx resp for chain %s chain: %s", key.ChainName, err.Error()))
+					continue
 				}
 
 				commission, err := getRewardAmount(res, "withdraw_commission")
 				if err != nil {
 					log.Printf("Error in getting rewards from tx resp for chain %s. txhash: %s", key.ChainName, res.TxHash)
-					return err
+					sendPlainAlert(ctx, fmt.Sprintf("withdraw rewards and commission job: Error in getting rewards from tx resp for chain %s chain: %s", key.ChainName, err.Error()))
+					continue
 				}
 
 				url := fmt.Sprintf("https://mintscan.io/%s/txs/%s", mintscanName, res.TxHash)
@@ -126,13 +135,17 @@ func Withdraw(ctx types.Context) error {
 				denom, err := voting.GetChainDenom(chainInfo)
 				if err != nil {
 					log.Printf("Error in getting denom for chain %s", val.ChainName)
-					return err
+					sendPlainAlert(ctx, fmt.Sprintf("withdraw rewards and commission job: Error in getting denom for chain %s chain: %s", key.ChainName, err.Error()))
+					continue
 				}
 
 				if err := ctx.Database().AddRewards(chainInfo.ChainID, denom, val.Address, rewards.String(), commission.String()); err != nil {
 					log.Printf("Failed to store reward and commission for %s on %s", val.Address, val.ChainName)
-					return err
+					sendPlainAlert(ctx, fmt.Sprintf("withdraw rewards and commission job: Failed to store reward and commission for chain %s chain: %s", key.ChainName, err.Error()))
+					continue
 				}
+
+				sendPlainAlert(ctx, fmt.Sprintf("withdraw rewards and commission job: rewards and commission withdrawn for %s", key.ChainName))
 			}
 		}
 	}
@@ -157,8 +170,7 @@ func createChainClient(ctx types.Context, chainName, keyName string) (registry.C
 		return registry.ChainInfo{}, lensclient.ChainClient{}, fmt.Errorf("failed to get denom from chain %s: %v", chainInfo.ChainID, err)
 	}
 
-	gasPrices := "0.55" + denom
-
+	gasPrices := "0.95" + denom
 	chainConfig := utils.GetChainConfig(keyName, chainInfo, gasPrices, rpc)
 
 	curDir, err := os.Getwd()
