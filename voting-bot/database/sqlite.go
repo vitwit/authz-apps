@@ -133,17 +133,7 @@ func (s *Sqlitedb) AddLog(chainName, proposalTitle, proposalID, voteOption strin
 
 	stmt.Close()
 
-	if exists && voteOption != "" {
-		stmt, err = s.db.Prepare("UPDATE logs SET date=?, proposalTitle=?, voteOption=? WHERE chainName=? AND proposalID=?")
-		if err != nil {
-			return err
-		}
-
-		defer stmt.Close()
-
-		_, err = stmt.Exec(time.Now().UTC().Unix(), proposalTitle, voteOption, chainName, proposalID)
-		return err
-	} else {
+	if !exists {
 		stmt, err = s.db.Prepare("INSERT INTO logs(date, chainName, proposalTitle, proposalID, voteOption) values(?,?,?,?,?)")
 		if err != nil {
 			return err
@@ -153,6 +143,19 @@ func (s *Sqlitedb) AddLog(chainName, proposalTitle, proposalID, voteOption strin
 
 		_, err = stmt.Exec(time.Now().UTC().Unix(), chainName, proposalTitle, proposalID, voteOption)
 		return err
+	} else {
+		if voteOption != "" {
+			stmt, err = s.db.Prepare("UPDATE logs SET date=?, proposalTitle=?, voteOption=? WHERE chainName=? AND proposalID=?")
+			if err != nil {
+				return err
+			}
+
+			defer stmt.Close()
+
+			_, err = stmt.Exec(time.Now().UTC().Unix(), proposalTitle, voteOption, chainName, proposalID)
+			return err
+		}
+		return nil
 	}
 
 }
