@@ -18,11 +18,17 @@ type (
 	}
 
 	voteLogs struct {
-		Date          int64
-		ChainName     string
-		ProposalTitle string
-		ProposalID    string
-		VoteOption    string
+		Date          int64  `json:"date"`
+		ChainName     string `json:"chainName"`
+		ProposalTitle string `json:"proposalTitle"`
+		ProposalID    string `json:"proposalID"`
+		VoteOption    string `json:"voteOption"`
+	}
+
+	Proposal struct {
+		ProposalID string `json:"proposalID"`
+		Title      string `json:"title"`
+		VoteOption string `json:"vote_option"`
 	}
 
 	RewardsCommission struct {
@@ -334,4 +340,65 @@ func (a *Sqlitedb) GetRewards(chainId, date string) ([]RewardsCommission, error)
 	}
 
 	return k, nil
+}
+
+func (a *Sqlitedb) GetProposals(chainName, start, end string) (map[string][]Proposal, error) {
+	log.Printf("Fetching proposals...")
+	var k []voteLogs
+	obj := make(map[string][]Proposal)
+
+	if start != "" && end != "" && chainName != "" {
+		query := "SELECT date,chainName, proposalTitle, proposalId, voteOption FROM logs WHERE chainName = ? AND date BETWEEN ? AND ?"
+		rows, err := a.db.Query(query, chainName, start, end)
+		if err != nil {
+			return map[string][]Proposal{}, err
+		}
+
+		defer rows.Close()
+
+		for rows.Next() {
+			var data voteLogs
+			if err := rows.Scan(&data.Date, &data.ChainName, &data.ProposalTitle, &data.ProposalID, &data.VoteOption); err != nil {
+				return map[string][]Proposal{}, err
+			}
+			k = append(k, data)
+		}
+		if err := rows.Err(); err != nil {
+			return map[string][]Proposal{}, err
+		}
+	} else {
+		query := "SELECT date, chainName, proposalTitle, proposalId, voteOption FROM logs WHERE date BETWEEN ? AND ? "
+		rows, err := a.db.Query(query, start, end)
+		if err != nil {
+			return map[string][]Proposal{}, err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var data voteLogs
+			if err := rows.Scan(&data.Date, &data.ChainName, &data.ProposalTitle, &data.ProposalID, &data.VoteOption); err != nil {
+				return map[string][]Proposal{}, err
+			}
+			k = append(k, data)
+		}
+		if err := rows.Err(); err != nil {
+			return map[string][]Proposal{}, err
+		}
+	}
+
+	for _, item := range k {
+		proposal := Proposal{
+			ProposalID: item.ProposalID,
+			Title:      item.ProposalTitle,
+			VoteOption: item.VoteOption,
+		}
+
+		if _, ok := obj[item.ChainName]; ok {
+			obj[item.ChainName] = append(obj[item.ChainName], proposal)
+		} else {
+			obj[item.ChainName] = []Proposal{proposal}
+		}
+	}
+
+	return obj, nil
 }
