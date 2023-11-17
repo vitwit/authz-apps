@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
@@ -14,6 +13,7 @@ import (
 	"github.com/vitwit/authz-apps/voting-bot/client"
 	"github.com/vitwit/authz-apps/voting-bot/config"
 	"github.com/vitwit/authz-apps/voting-bot/database"
+	"github.com/vitwit/authz-apps/voting-bot/handler"
 	"github.com/vitwit/authz-apps/voting-bot/jobs"
 	"github.com/vitwit/authz-apps/voting-bot/types"
 )
@@ -37,8 +37,9 @@ func main() {
 	router := mux.NewRouter()
 
 	// // Define REST API endpoints
-	router.HandleFunc("/rewards", getRewardsHandler(db)).Methods("GET")
-	router.HandleFunc("/votes", retrieveProposalsHandler(db)).Methods("GET")
+	router.HandleFunc("/rewards", handler.GetRewardsHandler(db)).Methods("GET")
+	router.HandleFunc("/votes/{chainName}", handler.RetrieveProposalsHandler(db)).Methods("GET")
+	router.HandleFunc("/votes", handler.RetrieveProposalsForAllNetworksHandler(db)).Methods("GET")
 	// // Start the server
 
 	go func() {
@@ -65,51 +66,4 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	wg.Wait()
-}
-
-// TODO: seperate file
-func getRewardsHandler(db *database.Sqlitedb) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		params := r.URL.Query()
-		chainId := params.Get("id")
-		date := params.Get("date")
-
-		rewards, err := db.GetRewards(chainId, date)
-		if err != nil {
-			http.Error(w, fmt.Errorf("error while getting rewards: %w", err).Error(), http.StatusBadRequest)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(rewards)
-		if err != nil {
-			http.Error(w, fmt.Errorf("error while encoding rewards: %w", err).Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-}
-
-
-func retrieveProposalsHandler(db *database.Sqlitedb) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		params := r.URL.Query()
-		chainName := params.Get("chainName")
-		start := params.Get("start")
-		end := params.Get("end")
-
-		proposals, err := db.GetProposals(chainName, start, end)
-		if err != nil {
-			http.Error(w, fmt.Errorf("error while getting rewards: %w", err).Error(), http.StatusBadRequest)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(proposals)
-		if err != nil {
-			http.Error(w, fmt.Errorf("error while encoding rewards: %w", err).Error(), http.StatusInternalServerError)
-			return
-		}
-	}
 }

@@ -344,10 +344,10 @@ func (a *Sqlitedb) GetRewards(chainId, date string) ([]RewardsCommission, error)
 
 func (a *Sqlitedb) GetProposals(chainName, start, end string) (map[string][]Proposal, error) {
 	log.Printf("Fetching proposals...")
-	var k []voteLogs
+
 	obj := make(map[string][]Proposal)
 
-	if start != "" && end != "" && chainName != "" {
+	if start != "" && chainName != "" {
 		query := "SELECT date,chainName, proposalTitle, proposalId, voteOption FROM logs WHERE chainName = ? AND date BETWEEN ? AND ?"
 		rows, err := a.db.Query(query, chainName, start, end)
 		if err != nil {
@@ -361,7 +361,16 @@ func (a *Sqlitedb) GetProposals(chainName, start, end string) (map[string][]Prop
 			if err := rows.Scan(&data.Date, &data.ChainName, &data.ProposalTitle, &data.ProposalID, &data.VoteOption); err != nil {
 				return map[string][]Proposal{}, err
 			}
-			k = append(k, data)
+			proposal := Proposal{
+				ProposalID: data.ProposalID,
+				Title:      data.ProposalTitle,
+				VoteOption: data.VoteOption,
+			}
+			if _, ok := obj[data.ChainName]; ok {
+				obj[data.ChainName] = append(obj[data.ChainName], proposal)
+			} else {
+				obj[data.ChainName] = []Proposal{proposal}
+			}
 		}
 		if err := rows.Err(); err != nil {
 			return map[string][]Proposal{}, err
@@ -379,24 +388,58 @@ func (a *Sqlitedb) GetProposals(chainName, start, end string) (map[string][]Prop
 			if err := rows.Scan(&data.Date, &data.ChainName, &data.ProposalTitle, &data.ProposalID, &data.VoteOption); err != nil {
 				return map[string][]Proposal{}, err
 			}
-			k = append(k, data)
+			proposal := Proposal{
+				ProposalID: data.ProposalID,
+				Title:      data.ProposalTitle,
+				VoteOption: data.VoteOption,
+			}
+			if _, ok := obj[data.ChainName]; ok {
+				obj[data.ChainName] = append(obj[data.ChainName], proposal)
+			} else {
+				obj[data.ChainName] = []Proposal{proposal}
+			}
 		}
 		if err := rows.Err(); err != nil {
 			return map[string][]Proposal{}, err
 		}
 	}
 
-	for _, item := range k {
-		proposal := Proposal{
-			ProposalID: item.ProposalID,
-			Title:      item.ProposalTitle,
-			VoteOption: item.VoteOption,
+	return obj, nil
+}
+
+func (a *Sqlitedb) GetProposalsForAllNetworks(start, end string) (map[string][]Proposal, error) {
+	log.Printf("Fetching proposals for all networks...")
+
+	obj := make(map[string][]Proposal)
+
+	if start != "" && end != "" {
+		query := "SELECT date,chainName, proposalTitle, proposalId, voteOption FROM logs WHERE date BETWEEN ? AND ?"
+		rows, err := a.db.Query(query, start, end)
+		if err != nil {
+			return map[string][]Proposal{}, err
 		}
 
-		if _, ok := obj[item.ChainName]; ok {
-			obj[item.ChainName] = append(obj[item.ChainName], proposal)
-		} else {
-			obj[item.ChainName] = []Proposal{proposal}
+		defer rows.Close()
+
+		for rows.Next() {
+			var data voteLogs
+			if err := rows.Scan(&data.Date, &data.ChainName, &data.ProposalTitle, &data.ProposalID, &data.VoteOption); err != nil {
+				return map[string][]Proposal{}, err
+			}
+			proposal := Proposal{
+				ProposalID: data.ProposalID,
+				Title:      data.ProposalTitle,
+				VoteOption: data.VoteOption,
+			}
+			if _, ok := obj[data.ChainName]; ok {
+				obj[data.ChainName] = append(obj[data.ChainName], proposal)
+			} else {
+				obj[data.ChainName] = []Proposal{proposal}
+			}
+
+		}
+		if err := rows.Err(); err != nil {
+			return map[string][]Proposal{}, err
 		}
 	}
 
