@@ -3,13 +3,18 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/gorilla/mux"
 	"github.com/vitwit/authz-apps/voting-bot/database"
-	"net/http"
 )
 
 func GetRewardsHandler(db *database.Sqlitedb) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
 		params := r.URL.Query()
 		chainId := params.Get("id")
@@ -55,6 +60,10 @@ func RetrieveProposalsHandler(db *database.Sqlitedb) http.HandlerFunc {
 
 func RetrieveProposalsForAllNetworksHandler(db *database.Sqlitedb) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
 		params := r.URL.Query()
 		start := params.Get("start")
