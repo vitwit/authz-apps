@@ -52,11 +52,11 @@ const getColor = (option) => {
     case "VOTE_OPTION_YES":
       return "green";
     case "VOTE_OPTION_NO":
-      return "red";
+      return "indianred";
     case "VOTE_OPTION_ABSTAIN":
-      return "red";
-    case "VOTE_OPTION_NO_WITH_VETO":
       return "gray";
+    case "VOTE_OPTION_NO_WITH_VETO":
+      return "red";
     default:
       return "gray";
   }
