@@ -1,0 +1,51 @@
+export const NAME_TO_ASSET = {
+  cosmoshub:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/cosmoshub/images/atom.png",
+  osmosis:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/osmo.png",
+  stargaze:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/stargaze/images/stars.png",
+  gravitybridge:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/gravitybridge/images/grav.png",
+  lumnetwork:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/lumnetwork/images/lum.png",
+  agoric:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/agoric/images/bld.png",
+  akash:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/akash/images/akt.png",
+  axelar:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/axelar/images/axl.png",
+  bandchain:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/bandchain/images/band.png",
+  celestia:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/celestia/images/celestia.png",
+  passage:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/passage/images/pasg.png",
+  comdex:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/comdex/images/cmdx.png",
+  crescent:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/crescent/images/cre.png",
+  desmos:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/desmos/images/dsm.png",
+  juno: "https://raw.githubusercontent.com/cosmos/chain-registry/master/juno/images/juno.png",
+  dydx: "https://raw.githubusercontent.com/cosmos/chain-registry/master/dydx/images/dydx.png",
+  evmos:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/evmos/images/evmos.png",
+  kujira:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/kujira/images/kuji.png",
+  nomic:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/nomic/images/nom.png",
+  omniflixhub:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/omniflixhub/images/flix.png",
+  persistence:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/persistence/images/pstake.png",
+  quasar:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/quasar/images/quasar.png",
+  quicksilver:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/quicksilver/images/qck.png",
+  regen:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/regen/images/regen.png",
+  tgrade:
+    "https://raw.githubusercontent.com/cosmos/chain-registry/master/tgrade/images/tgrade-symbol-black_lines.svg",
+  umee: "https://raw.githubusercontent.com/cosmos/chain-registry/master/umee/images/umee.png",
+};
