@@ -13,7 +13,7 @@ function CustomCard({ networkName, data }) {
     <Card
       variant="outlined"
       sx={{
-        p: 2,
+        p: 1,
         borderRadius: 2,
       }}
     >

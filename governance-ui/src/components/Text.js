@@ -2,23 +2,8 @@ import { Grid, Typography } from "@mui/material";
 
 function Text({ proposalId, title, voteOption }) {
   return (
-    <Grid
-      container
-      alignItems="center"
-      spacing={2}
-      
-    >
-      <Grid item xs={2}>
-        <Typography
-          variant="body1"
-          style={{
-            wordWrap: "break-word",
-          }}
-        >
-          #{proposalId}
-        </Typography>
-      </Grid>
-      <Grid item xs={8}>
+    <Grid container alignItems="center" spacing={2}>
+      <Grid item xs={10}>
         <Typography
           style={{
             wordWrap: "break-word",
@@ -26,24 +11,19 @@ function Text({ proposalId, title, voteOption }) {
           variant="body1"
           fontWeight={500}
         >
-          {title}
+          <b>#{proposalId}</b>&nbsp;&nbsp;{title}
         </Typography>
       </Grid>
       <Grid item xs={2}>
         <Typography
-          variant="body1"
+          variant="body2"
           style={{
-            color:
-              voteOption === ("NO" || "NO_WITH_VETO")
-                ? "red"
-                : voteOption === "ABSTAIN"
-                ? "gray"
-                : "green",
+            color: getColor(voteOption),
             wordWrap: "break-word",
           }}
           fontWeight={600}
         >
-          {voteOption}
+          {parseVoteOption(voteOption)}
         </Typography>
       </Grid>
     </Grid>
@@ -51,3 +31,33 @@ function Text({ proposalId, title, voteOption }) {
 }
 
 export default Text;
+
+const parseVoteOption = (option) => {
+  switch (option) {
+    case "VOTE_OPTION_YES":
+      return "YES";
+    case "VOTE_OPTION_NO":
+      return "NO";
+    case "VOTE_OPTION_ABSTAIN":
+      return "ABSTAIN";
+    case "VOTE_OPTION_NO_WITH_VETO":
+      return "VETO";
+    default:
+      return "-";
+  }
+};
+
+const getColor = (option) => {
+  switch (option) {
+    case "VOTE_OPTION_YES":
+      return "green";
+    case "VOTE_OPTION_NO":
+      return "red";
+    case "VOTE_OPTION_ABSTAIN":
+      return "red";
+    case "VOTE_OPTION_NO_WITH_VETO":
+      return "gray";
+    default:
+      return "gray";
+  }
+};

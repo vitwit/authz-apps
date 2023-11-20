@@ -15,7 +15,7 @@ const MyWebpage = () => {
 
   const handleScreenshot = () => {
     if (contentRef.current) {
-      html2canvas(contentRef.current).then((canvas) => {
+      html2canvas(contentRef.current, { scale: 2 }).then((canvas) => {
         // Convert the canvas to an image URL
         const screenshotUrl = canvas.toDataURL("image/png");
         // Create a link element to download the image
@@ -37,7 +37,8 @@ const MyWebpage = () => {
         container
         spacing={2}
         sx={{
-          mt: 2,
+          pt: 2,
+          background: "#efefef",
         }}
       >
         <Grid item md={6} xs={12}></Grid>
@@ -56,8 +57,7 @@ const MyWebpage = () => {
         </Grid>
 
         <Grid item xs={4} md={2}>
-          <LocalizationProvider dateAdapter={AdapterDayjs}
-          >
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Box textAlign="left">
               <DatePicker
                 label="To"
@@ -77,7 +77,7 @@ const MyWebpage = () => {
             variant="contained"
             disableElevation
             sx={{
-              mt: 0.5
+              mt: 0.5,
             }}
             size="small"
           >

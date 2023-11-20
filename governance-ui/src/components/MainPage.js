@@ -10,7 +10,7 @@ function MainPage({ from, to }) {
   };
 
   return (
-    <div style={{ backgroundColor: "  #FFFBE8" }}>
+    <div style={{ backgroundColor: "#efefef" }}>
       <TopSection from={formatDate(from)} to={formatDate(to)} />
       <Box
         sx={{

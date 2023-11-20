@@ -3,8 +3,11 @@ import logo from "../assessts/vitwit-logo.jpg";
 
 function TopSection({ from, to }) {
   return (
-    <div>
-      <Box>
+      <Box
+        sx={{
+          background: "#efefef"
+        }}
+      >
         <Grid container alignItems="center" justifyContent="center" spacing={2}>
           <Grid
             item
@@ -41,7 +44,6 @@ function TopSection({ from, to }) {
           </Grid>
         </Grid>
       </Box>
-    </div>
   );
 }
 
