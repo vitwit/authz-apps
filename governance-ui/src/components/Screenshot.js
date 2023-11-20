@@ -15,15 +15,15 @@ const MyWebpage = () => {
 
   const handleScreenshot = () => {
     if (contentRef.current) {
-      html2canvas(contentRef.current, { scale: 2 }).then((canvas) => {
-        // Convert the canvas to an image URL
-        const screenshotUrl = canvas.toDataURL("image/png");
-        // Create a link element to download the image
-        const downloadLink = document.createElement("a");
-        downloadLink.href = screenshotUrl;
-        downloadLink.download = "screenshot.png";
-        downloadLink.click();
-      });
+        html2canvas(contentRef.current, { scale: 2, allowTaint: true, useCORS: true }).then((canvas) => {
+          // Convert the canvas to an image URL
+          const screenshotUrl = canvas.toDataURL("image/png");
+          // Create a link element to download the image
+          const downloadLink = document.createElement("a");
+          downloadLink.href = screenshotUrl;
+          downloadLink.download = "screenshot.png";
+          downloadLink.click();
+        });
     }
   };
 
