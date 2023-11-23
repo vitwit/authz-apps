@@ -34,6 +34,14 @@ func GetValidEndpointForChain(chainName string) (validLCDEndpoint string, err er
 		return "", err
 	}
 
+	// TODO: gravity-bridge does not implement Tendermint RPC
+	if chainName == "gravitybridge" {
+		if len(AllLCDEndpoints) == 0 {
+			return "", fmt.Errorf("no REST provider is available for network: %s", chainName)
+		}
+		return strings.TrimSuffix(AllLCDEndpoints[0], "/"), nil
+	}
+
 	validLCDEndpoint, err = GetValidLCDEndpoint(AllLCDEndpoints)
 	if err != nil {
 		return "", err
