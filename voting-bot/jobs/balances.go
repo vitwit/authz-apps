@@ -103,7 +103,7 @@ func sendLowBalanceAlerts(ctx types.Context, addr, amount, displayDenom string) 
 
 	attachment := []slack.Block{
 		slack.NewHeaderBlock(
-			slack.NewTextBlockObject("plain_text", fmt.Sprintf("%s is low on balance\nAvailable balance: %s%s", addr, amount, displayDenom), false, false),
+			slack.NewTextBlockObject("plain_text", fmt.Sprintf("%s is low on balance\nAvailable balance is less than: %s%s", addr, "1", displayDenom), false, false),
 		),
 	}
 
