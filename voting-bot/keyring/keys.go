@@ -28,7 +28,7 @@ func CreateKeys(ctx types.Context, chainName, keyName, keyType string) error {
 		return fmt.Errorf("failed to get random RPC endpoint on chain %s. Err: %v", chainInfo.ChainID, err)
 	}
 
-	chainConfig := utils.GetChainConfig("", chainInfo, "", rpc)
+	chainConfig := utils.GetChainConfig("", chainInfo, "", rpc, 1.4)
 
 	curDir, err := os.Getwd()
 	if err != nil {

@@ -5,7 +5,7 @@ import (
 	"github.com/strangelove-ventures/lens/client/chain_registry"
 )
 
-func GetChainConfig(from string, chainInfo chain_registry.ChainInfo, gasPrices string, rpc string) lensclient.ChainClientConfig {
+func GetChainConfig(from string, chainInfo chain_registry.ChainInfo, gasPrices string, rpc string, gasAdjustment float64) lensclient.ChainClientConfig {
 	return lensclient.ChainClientConfig{
 		Key:            from,
 		ChainID:        chainInfo.ChainID,
@@ -15,7 +15,7 @@ func GetChainConfig(from string, chainInfo chain_registry.ChainInfo, gasPrices s
 		GasPrices:      gasPrices,
 		Debug:          true,
 		Timeout:        "30s",
-		GasAdjustment:  1.6,
+		GasAdjustment:  gasAdjustment,
 		OutputFormat:   "json",
 		SignModeStr:    "direct",
 		Modules:        lensclient.ModuleBasics,

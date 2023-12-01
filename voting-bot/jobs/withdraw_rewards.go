@@ -189,8 +189,8 @@ func createChainClient(ctx types.Context, chainName, keyName string) (registry.C
 		return registry.ChainInfo{}, lensclient.ChainClient{}, fmt.Errorf("failed to get denom from chain %s: %v", chainInfo.ChainID, err)
 	}
 
-	gasPrices := "1.95" + denom
-	chainConfig := utils.GetChainConfig(keyName, chainInfo, gasPrices, rpc)
+	gasPrices := "2.95" + denom
+	chainConfig := utils.GetChainConfig(keyName, chainInfo, gasPrices, rpc, 2.1)
 
 	curDir, err := os.Getwd()
 	if err != nil {
@@ -210,8 +210,6 @@ func executeMsgs(chainClient lensclient.ChainClient, msgs []*cdctypes.Any, keyAd
 		Grantee: keyAddr,
 		Msgs:    msgs,
 	}
-
-	chainClient.Config.GasAdjustment = 1.8
 
 	// Send msg and get response
 	res, err := chainClient.SendMsg(context.Background(), req, "")

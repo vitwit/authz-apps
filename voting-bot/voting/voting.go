@@ -82,7 +82,7 @@ func ExecVote(ctx types.Context, chainName, pID, granter, vote,
 		}
 	}
 
-	chainConfig := utils.GetChainConfig(fromKey, chainInfo, gasPrices, rpc)
+	chainConfig := utils.GetChainConfig(fromKey, chainInfo, gasPrices, rpc, 1.4)
 	curDir, err := os.Getwd()
 	if err != nil {
 		return "", fmt.Errorf("error while getting current directory: %v", err)
