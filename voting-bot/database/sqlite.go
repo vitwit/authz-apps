@@ -445,3 +445,19 @@ func (a *Sqlitedb) GetProposalsForAllNetworks(start, end string) (map[string][]P
 
 	return obj, nil
 }
+
+func (a *Sqlitedb) IsIncomeRecordExist(chainId, date string) (bool, error) {
+	stmt, err := a.db.Prepare("SELECT EXISTS(SELECT 1 FROM income WHERE chainId = ? AND date = ?)")
+	if err != nil {
+		return false, err
+	}
+	defer stmt.Close()
+
+	var exists bool
+	err = stmt.QueryRow(chainId, date).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, err
+}

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/slack-go/slack"
 	lensclient "github.com/strangelove-ventures/lens/client"
@@ -51,6 +52,24 @@ func Withdraw(ctx types.Context) error {
 
 		for _, val := range validators {
 			if val.ChainName == key.ChainName {
+				// Get the current time
+				currentTime := time.Now()
+				if currentTime.Day() != 1 {
+					continue
+				}
+
+				// Set the time to the beginning of the month
+				startOfMonth := time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, currentTime.Location())
+				currentDate := startOfMonth.Format("2006-01-02")
+				exist, err := ctx.Database().IsIncomeRecordExist(chainInfo.ChainID, currentDate)
+				if err != nil {
+					sendPlainAlert(ctx, fmt.Sprintf("withdraw rewards and commission job: SQL error for %s chain: %v", key.ChainName, err))
+					continue
+				}
+				if exist {
+					continue
+				}
+
 				validEndpoint, err := endpoints.GetValidEndpointForChain(key.ChainName)
 				if err != nil {
 					log.Printf("Error in getting valid LCD endpoints for %s chain", key.ChainName)
@@ -170,7 +189,7 @@ func createChainClient(ctx types.Context, chainName, keyName string) (registry.C
 		return registry.ChainInfo{}, lensclient.ChainClient{}, fmt.Errorf("failed to get denom from chain %s: %v", chainInfo.ChainID, err)
 	}
 
-	gasPrices := "0.95" + denom
+	gasPrices := "1.95" + denom
 	chainConfig := utils.GetChainConfig(keyName, chainInfo, gasPrices, rpc)
 
 	curDir, err := os.Getwd()
@@ -191,6 +210,8 @@ func executeMsgs(chainClient lensclient.ChainClient, msgs []*cdctypes.Any, keyAd
 		Grantee: keyAddr,
 		Msgs:    msgs,
 	}
+
+	chainClient.Config.GasAdjustment = 1.8
 
 	// Send msg and get response
 	res, err := chainClient.SendMsg(context.Background(), req, "")
