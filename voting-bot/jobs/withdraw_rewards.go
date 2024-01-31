@@ -189,7 +189,7 @@ func createChainClient(ctx types.Context, chainName, keyName string) (registry.C
 		return registry.ChainInfo{}, lensclient.ChainClient{}, fmt.Errorf("failed to get denom from chain %s: %v", chainInfo.ChainID, err)
 	}
 
-	gasPrices := "2.95" + denom
+	gasPrices := "0.005" + denom
 	chainConfig := utils.GetChainConfig(keyName, chainInfo, gasPrices, rpc, 2.1)
 
 	curDir, err := os.Getwd()
