@@ -90,6 +90,7 @@ func InitializeBotcommands(ctx types.Context) error {
 
 			if keyType != "voting" && keyType != "rewards" {
 				response.Reply("Invalid key-type. Must be either \"voting\" or \"rewards\"")
+				return
 			}
 			if keyName == "" {
 				keyName = chainName
